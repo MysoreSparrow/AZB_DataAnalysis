@@ -1,0 +1,84 @@
+---
+title: "Alina's PhD Data Analysis Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+## List of things to do for EDA
+
+1. Reduce Variables and clean up names
+2. Clean up missing Values
+3. Perform Basic Visualization
+4. Perform basic statistical analysis
+
+```{r echo=TRUE, message=TRUE, warning=TRUE, paged.print=TRUE}
+d1 <- read.csv("~/R/Rtuts/Data/C57BL6_476_vs_C57BL6_ctl.csv")
+head(d1)
+```
+```{r}
+str(d1)
+```
+
+Removing unneccesary columns to reduce the table!
+
+```{r}
+d2 <- select(d1, -lfcSE, -stat, -symbol)
+head(d2)
+```
+
+```{r}
+str(d2)
+```
+
+ Rename the Variable names into more readable ones!
+```{r}
+d3 <- d2 %>% rename(CPM_476_R1 = CPM_.C57BL6_476_R1.) %>% rename(CPM_476_R2 = CPM_.C57BL6_476_R2.) %>% rename(CPM_ctl_R1 = CPM_.C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM_.C57BL6_ctl_R2.)
+head(d3)
+```
+
+
+
+
+```{r}
+summary(d3)
+```
+
+
+### Removing Missing Values
+
+```{r}
+# How to remove missing Values
+
+```
+
+
+
+
+
+
+Initial Visualization to gain a ball park view of the data.
+
+```{r}
+
+```
+
+
+
+
+
+
+
