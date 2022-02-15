@@ -3,27 +3,25 @@ title: "Alina's PhD Data Analysis Notebook"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
 ```{r}
 library(tidyverse)
+library(tidyr)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+## Setting the Stage
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+1. A set of 13 different tables provided
+2. Objective: To determine relationships/correlations between different variables of the table.  
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 
-
-## List of things to do for EDA
+## EDA
 
 1. Reduce Variables and clean up names
 2. Clean up missing Values
 3. Perform Basic Visualization
-4. Perform basic statistical analysis
+4. Remove Outliers - 3 different approaches
+4. Filter out outlier values based on statistical approaches
+5. Hypothesis to check?
 
 ```{r echo=TRUE, message=TRUE, warning=TRUE, paged.print=TRUE}
 d1 <- read.csv("~/R/Rtuts/Data/C57BL6_476_vs_C57BL6_ctl.csv")
@@ -58,25 +56,119 @@ summary(d3)
 ```
 
 
-### Removing Missing Values
+### Question1 :
+
+What does the value 0.0 in the min for CPM indicate? Is it a real value or worthy to be discarded?
+
+### Checking Missing Values
 
 ```{r}
-# How to remove missing Values
+glimpse(d3)
+```
+
+
+###
+```{r}
+d3 %>% summarise(c1 = sum(is.na(CPM_476_R1)),
+                 c2 = sum(is.na(CPM_476_R2)),
+                 c3 = sum(is.na(CPM_ctl_R1)),
+                 c4 = sum(is.na(CPM_ctl_R1))
+                 )
+```
+
+Therefore, there are no missing values in the table.
+
+
+## Basic Visualization to get a sneak peak at Data!
+
+```{r}
+ggplot(data = d3, mapping = aes(x = log2FoldChange, y = baseMean)) + geom_point(alpha = 0.1)
 
 ```
 
 
 
 
-
-
-Initial Visualization to gain a ball park view of the data.
-
 ```{r}
-
+ggplot(data = d3, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_point(alpha = 0.1)
 ```
 
 
+```{r}
+ggplot(data = d3, mapping = aes(x = log2FoldChange, y = padj)) + geom_point(alpha = 0.1)
+```
+
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_ctl_R1)) + geom_point(alpha = 0.1)
+```
+
+```{r}
+ggplot(data = d3, mapping = aes(x = CPM_476_R2, y = CPM_ctl_R2)) + geom_point(alpha = 0.1)
+```
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point(alpha = 0.1)
+```
+
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_476_R2)) + geom_point(alpha = 0.1)
+```
+
+
+### Hence, there exists major issue with "Outliers" in data, making the data skewed on the wrong end!
+
+## Removing Outliers
+
+
+Calculating Standard Deviation from current table gives misplaced picture. Hence, remove outliers and then calculate standard deviation to place meaningful thresholds!
+
+The best way to look for outliers in two numeric variables is using a scatter plot.
+
+```{r}
+ggplot(data = d3, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_boxplot() + geom_point(alpha = 0.1, color = "blue")
+```
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_boxplot() + geom_point(alpha = 0.009, color = "blue")
+```
+```{r}
+ggplot(data = d3, mapping = aes(x = CPM_476_R1)) + geom_dotplot(binwidth = 400, color = "brown") 
+```
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, color = "green")
+```
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = padj)) + geom_histogram( color = "green")
+```
+
+
+```{r}
+ggplot(data = d3, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
+```
+
+
+### Question 2: 
+The values of other variables are derived from a (some particular) transformation of CPM values? If yes, then filtering outliers from CPM will also remove values from other variables and could lead elimination of certain genes. Would that create a problem?
+
+
+### Question 3: 
+No wrongly tabulated or mistakenly tabulated data? More an Art than Science!
+
+### Question 4: Which approach to pick for removing outliers?
+1. Hard cut as a threshold based on visualization.
+2. Based on Z-scores.
+3. Based on IQR.
+4. Based on Spread and variability of data : 1sigma, 2 sigma and 3 sigman spread.
 
 
 
