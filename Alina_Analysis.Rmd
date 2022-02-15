@@ -1,11 +1,16 @@
 ---
 title: "Alina's PhD Data Analysis Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 ```{r}
 library(tidyverse)
 library(tidyr)
+library(dplyr)
 ```
 
 ## Setting the Stage
@@ -146,31 +151,50 @@ ggplot(data = d3, mapping = aes(x = CPM_476_R1)) + geom_dotplot(binwidth = 400, 
 ggplot(data = d3, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, color = "green")
 ```
 
-
 ```{r}
 ggplot(data = d3, mapping = aes(x = padj)) + geom_histogram( color = "green")
 ```
-
+```{r}
+ggplot(data = d3, mapping = aes(x = pvalue)) + geom_histogram( color = "green")
+```
 
 ```{r}
 ggplot(data = d3, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
 ```
-
 
 ### Question 2: 
 The values of other variables are derived from a (some particular) transformation of CPM values? If yes, then filtering outliers from CPM will also remove values from other variables and could lead elimination of certain genes. Would that create a problem?
 
 
 ### Question 3: 
-No wrongly tabulated or mistakenly tabulated data? More an Art than Science!
+1. Are there any wrongly tabulated or mistakenly tabulated data? 
 
-### Question 4: Which approach to pick for removing outliers?
+### Question 4: Removing Outliers: More an Art than Science!
+#### Which approach to pick for removing outliers? 
 1. Hard cut as a threshold based on visualization.
 2. Based on Z-scores.
 3. Based on IQR.
-4. Based on Spread and variability of data : 1sigma, 2 sigma and 3 sigman spread.
+4. Based on Spread and variability of data : 1sigma, 2 sigma and 3 sigma spread.
+
+
+### Sorting the Data : in Ascending
+
+```{r}
+sorted_d3 <- d3 %>% arrange(baseMean, log2FoldChange, pvalue, CPM_476_R1, CPM_476_R2, CPM_ctl_R1, CPM_ctl_R2)
+sorted_d3
+```
+
+### Rows at tail-end
+```{r}
+tail(sorted_d3)
+```
 
 
 
 
+### Next Steps:
+
+1. After Removing outliers for this table, perform the same task for other 12 tables as well based on a common uniform approach.
+2. Then combine the 13 tables (with relevant columns as shown here) into a single table as the MASTER table.
+3. Determine correlations between different parameters and try to identify the genes in play.
 
