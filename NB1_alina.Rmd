@@ -1,0 +1,334 @@
+---
+title: "Alina Data Analysis Notebook"
+output:
+  html_document: 
+    toc: yes
+    fig_caption: yes
+---
+
+```{r}
+library(tidyverse)
+library(EnhancedVolcano)
+library(ggrepel)
+```
+
+## Importing the Datasets
+
+```{r}
+t476 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_476_vs_C57BL6_ctl.csv")
+
+t754 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_754_vs_C57BL6_ctl.csv")
+
+t755 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_755_vs_C57BL6_ctl.csv")
+
+t757 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_757_vs_C57BL6_ctl.csv")
+
+t758 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_758_vs_C57BL6_ctl.csv")
+
+t760 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_760_vs_C57BL6_ctl.csv")
+
+t761 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_761_vs_C57BL6_ctl.csv")
+
+t762 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_762_vs_C57BL6_ctl.csv")
+
+t763 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_763_vs_C57BL6_ctl.csv")
+
+t764 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_764_vs_C57BL6_ctl.csv")
+
+t765 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_765_vs_C57BL6_ctl.csv")
+
+t766 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_766_vs_C57BL6_ctl.csv")
+
+t768 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_768_vs_C57BL6_ctl.csv")
+
+t769 <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/C57BL6_769_vs_C57BL6_ctl.csv")
+
+```
+
+```{r}
+head(t766)
+```
+
+## Adding the table number and Number of replicates as addtional columns
+
+```{r}
+t476$Strain_name <- "S476"
+t476$N_infected_Replicates <- "Double"
+
+t754$Strain_name <- "S754"
+t754$CPM_infected_R2 <- "0"
+t754$N_infected_Replicates <- "Single"
+
+t757$Strain_name <- "S757"
+t757$N_infected_Replicates <- "Double"
+
+t755$Strain_name <- "S755"
+t755$CPM_infected_R2 <- "0"
+t755$N_infected_Replicates <- "Single"
+
+t758$Strain_name <- "S758"
+t758$CPM_infected_R2 <- "0"
+t758$N_infected_Replicates <- "Single"
+
+t760$Strain_name <- "S760"
+t760$CPM_infected_R2 <- "0"
+t760$N_infected_Replicates <- "Single"
+
+t761$Strain_name <- "S761"
+t761$CPM_infected_R2 <- "0"
+t761$N_infected_Replicates <- "Single"
+
+t762$Strain_name <- "S762"
+t762$CPM_infected_R2 <- "0"
+t762$N_infected_Replicates <- "Single"
+
+t763$Strain_name <- "S763"
+t763$CPM_infected_R2 <- "0"
+t763$N_infected_Replicates <- "Single"
+
+t764$Strain_name <- "S764"
+t764$CPM_infected_R2 <- "0"
+t764$N_infected_Replicates <- "Single"
+
+t765$Strain_name <- "S765"
+t765$CPM_infected_R2 <- "0"
+t765$N_infected_Replicates <- "Single"
+
+t766$Strain_name <- "S766"
+t766$N_infected_Replicates <- "Double"
+
+t768$Strain_name <- "S768"
+t768$N_infected_Replicates <- "Double"
+
+t769$Strain_name <- "S769"
+t769$CPM_infected_R2 <- "0"
+t769$N_infected_Replicates <- "Single"
+```
+
+## Renaming Column names to more consistent ones
+
+```{r}
+
+t476 <- t476 %>% rename(CPM_infected_R1 = CPM_.C57BL6_476_R1.) %>% rename(CPM_infected_R2 = CPM_.C57BL6_476_R2.) %>% rename(CPM_ctl_R1 = CPM_.C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM_.C57BL6_ctl_R2.)
+
+t754 <- t754 %>% rename(CPM_infected_R1 = CPM..C57BL6_754_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t755 <- t755 %>% rename(CPM_infected_R1 = CPM..C57BL6_755_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t757 <- t757 %>% rename(CPM_infected_R1 = CPM..C57BL6_757_R1.) %>% rename(CPM_infected_R2 = CPM..C57BL6_757_R2.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t758 <- t758 %>% rename(CPM_infected_R1 = CPM..C57BL6_758_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t760 <- t760 %>% rename(CPM_infected_R1 = CPM..C57BL6_760_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t761 <- t761 %>% rename(CPM_infected_R1 = CPM..C57BL6_761_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t762 <- t762 %>% rename(CPM_infected_R1 = CPM..C57BL6_762_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t763 <- t763 %>% rename(CPM_infected_R1 = CPM..C57BL6_763_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t764 <- t764 %>% rename(CPM_infected_R1 = CPM..C57BL6_764_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t765 <- t765 %>% rename(CPM_infected_R1 = CPM..C57BL6_765_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t766 <- t766 %>% rename(CPM_infected_R1 = CPM..C57BL6_766_R1.) %>% rename(CPM_infected_R2 = CPM..C57BL6_766_R2.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t768 <- t768 %>% rename(CPM_infected_R1 = CPM..C57BL6_768_R1.) %>% rename(CPM_infected_R2 = CPM..C57BL6_768_R2.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+t769 <- t769 %>% rename(CPM_infected_R1 = CPM..C57BL6_769_R1.) %>% rename(CPM_ctl_R1 = CPM..C57BL6_ctl_R1.)  %>% rename(CPM_ctl_R2 = CPM..C57BL6_ctl_R2.)
+
+```
+
+```{r}
+
+head(t769)
+```
+
+```{r}
+head(t766)
+```
+
+## Reordering Columns to be or correct order
+
+```{r}
+#t769 <- t769[, c(1, 2, 3, 4, 5, 6,  7, 8, 9, 14,  12, 13, 10, 11)]
+#head(t769)
+```
+
+## Binding all tables into a single Master Table
+
+```{r}
+#rbind two data frames into one data frame
+binded_frame <- rbind(t476,t754,t755,t757,t758,t760,t761,t762,t763,t764,t765,t766, t768, t769)
+write.csv(binded_frame,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Master_Data_Alina.csv")
+
+dim(binded_frame)
+```
+
+```{r echo=TRUE, message=TRUE, warning=TRUE}
+str(binded_frame)
+```
+
+
+
+## Basic Visualization to get a sneak peak at Data!
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = baseMean)) + scale_y_log10() + geom_point(alpha = 0.1) 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_point(alpha = 0.1) + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point(alpha = 0.4) 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = padj)) + geom_point(alpha = 0.1)
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1, color = N_infected_Replicates)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1)) + geom_dotplot(binwidth = 400, color = "brown")
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, color = "green") 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = padj)) + geom_histogram( color = "green")
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
+```
+
+# New Plots! - 10th March, 2022
+
+```{r}
+ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point()
+```
+
+```{r message=TRUE, warning=TRUE}
+ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point(aes( color=Strain_name))
+
+```
+
+```{r}
+ggplot(data = binded_frame, aes( x = log2FoldChange, y = log2(baseMean), color = Strain_name) ) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point()
+```
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2(baseMean), y = -log2(padj), color = Strain_name )) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , color = N_infected_Replicates)) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CPM_ctl_R1), color = Strain_name)) + geom_point()
+```
+# 15th March, 2022:
+
+## Meeting with Johannes on Friday:
+
+1. With Regard to Colors: Cant do selective overlaying in ggplot. His plots were feature plots in Seurat. Can work with distinctive colors and opacity. More on this next week.
+
+2. Parameter Values : pvalue = 0.5, lo2FC = -1 to +1
+
+3. Working with enhanaced Volcano plots
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) 
+```
+### Set of Basic Unrefined Plots
+
+
+```{r}
+  EnhancedVolcano(binded_frame,
+    lab = binded_frame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+```{r}
+    plot1 <- EnhancedVolcano(binded_frame,
+    lab = binded_frame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title = 'pvalue Vs log2FC Plot',
+    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.5"),
+    xlim = c(log2(10e-8), log2(10e4)),
+    ylim = c(0, -log10(10e-60)),
+    pCutoff = 0.5,
+    FCcutoff = 1,
+    pointSize = 1.0,
+    labSize = 4.0)
+
+    plot1 
+
+```
+
+
+```{r}
+ plot1 + coord_flip() + scale_x_continuous(limits = c(-25, 16), breaks = seq(-25, 16, by = 5))
+```
+
+
+```{r}
+    plot1 + xlim(-25,20) 
+ 
+```
+
+
+### CPM infected and Control - Mean Values
+
+```{r}
+head(binded_frame)
+```
+
+```{r}
+
+p <- ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , label = symbol)) + geom_point() 
+
+p +geom_text(hjust=0, vjust=0)
+```
+
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point() + geom_text(aes(label=symbol), hjust=0,vjust=0)
+```
+
+
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) +
+  geom_text_repel(aes(label = symbol),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5)
+```
+ +
+       
+       
+geom_text(aes(label=symbol), hjust=0,vjust=0)
