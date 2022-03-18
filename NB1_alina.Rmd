@@ -160,7 +160,7 @@ head(t766)
 ```{r}
 #rbind two data frames into one data frame
 binded_frame <- rbind(t476,t754,t755,t757,t758,t760,t761,t762,t763,t764,t765,t766, t768, t769)
-write.csv(binded_frame,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Master_Data_Alina.csv")
+write.csv(binded_frame,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_MasterTable_13strains.csv")
 
 dim(binded_frame)
 ```
@@ -250,20 +250,20 @@ ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) 
 ```{r}
 ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CPM_ctl_R1), color = Strain_name)) + geom_point()
 ```
-# 15th March, 2022:
+## 15th March, 2022:
 
 ## Meeting with Johannes on Friday:
 
-1. With Regard to Colors: Cant do selective overlaying in ggplot. His plots were feature plots in Seurat. Can work with distinctive colors and opacity. More on this next week.
+1. With Regard to Colors: Cant do selective overlaying in ggplot. His plots were feature plots in Seurat. Can work with distinctive colors and opacity. More on this next week. Also, consider splitting the strains in 2 or 3 groups!
 
-2. Parameter Values : pvalue = 0.5, lo2FC = -1 to +1
+2. Parameter Values : pvalue = 0.05, lo2FC = -1 to +1
 
 3. Working with enhanaced Volcano plots
 
 ```{r}
 ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) 
 ```
-### Set of Basic Unrefined Plots
+## Set of Basic Unrefined Plots
 
 
 ```{r}
@@ -272,16 +272,18 @@ ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(
     x = 'log2FoldChange',
     y = 'pvalue')
 ```
+
+
 ```{r}
     plot1 <- EnhancedVolcano(binded_frame,
     lab = binded_frame$symbol,              
     x = 'log2FoldChange',
     y = 'pvalue',
     title = 'pvalue Vs log2FC Plot',
-    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.5"),
+    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.05"),
     xlim = c(log2(10e-8), log2(10e4)),
     ylim = c(0, -log10(10e-60)),
-    pCutoff = 0.5,
+    pCutoff = 0.05,
     FCcutoff = 1,
     pointSize = 1.0,
     labSize = 4.0)
@@ -302,12 +304,6 @@ ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(
 ```
 
 
-### CPM infected and Control - Mean Values
-
-```{r}
-head(binded_frame)
-```
-
 ```{r}
 
 p <- ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , label = symbol)) + geom_point() 
@@ -324,11 +320,160 @@ ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), c
 
 ```{r}
 ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) +
-  geom_text_repel(aes(label = symbol),
-                  box.padding   = 0.35, 
-                  point.padding = 0.5)
+  geom_text(aes(label=symbol), hjust=0,vjust=0)
 ```
- +
        
        
-geom_text(aes(label=symbol), hjust=0,vjust=0)
+### CPM infected and Control - Mean Values
+
+```{r}
+head(binded_frame)
+```
+
+
+
+
+```{r}
+# Convert CPM_infected_R2 into numeric from chr
+binded_frame[, c(9:10)] <- sapply(binded_frame[, c(9:10)], as.numeric)
+str(binded_frame)
+```
+```{r}
+binded_frame$CPM_ctl_Mean <- rowMeans(binded_frame[,11:12])
+binded_frame$CPM_Infected_Mean <- rowMeans(binded_frame[,9:10])
+```
+
+```{r}
+view(binded_frame)
+```
+
+
+### Tables for Aline:
+
+
+```{r}
+binded_frame %>% arrange(symbol)
+```
+
+
+
+```{r}
+CPM_mean_table <- select(binded_frame, ensembl_gene_id, symbol, Strain_name, CPM_ctl_Mean, CPM_Infected_Mean)
+head(CPM_mean_table)
+```
+
+```{r}
+log2FC_table <- select(binded_frame, ensembl_gene_id, symbol, Strain_name, log2FoldChange)
+head(log2FC_table)
+```
+
+### Tables with padj and log2FC thresholds imposed, to obtain a list of genes.
+Saving the respective table as well to obtain a list of genes, using which one can create a heatmap.
+
+padj < 0.05, log2FC = +1 or -1.
+
+```{r}
+f1 <- binded_frame
+
+f1$Strain_name <- as.factor(f1$Strain_name)
+table(f1$Strain_name)
+```
+
+## A table with padj<0.05 imposed!
+```{r}
+
+f2 <- filter(f1, padj<0.05)
+head(f2)
+```
+
+
+
+```{r}
+write.csv(f2,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padj_threshold.csv")
+```
+
+
+## A table with padj<0.05 and log2FC>1 imposed!
+```{r}
+f3 <- filter(f1, padj<0.05, log2FoldChange>1)
+str(f3)
+```
+
+```{r}
+write.csv(f3,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padjANDlog2FCgreaterthan1_threshold.csv")
+```
+
+## A table with padj<0.05 and log2FC<-1 imposed!
+
+
+
+```{r}
+f4 <- filter(f1, padj<0.05, log2FoldChange< -1)
+str(f4)
+write.csv(f4,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padjANDlog2FClesserthan1_threshold.csv")
+```
+
+
+## Number of Genes from different strains that are contributing to Up/Down regulation.
+
+
+### Down Regulation
+```{r}
+f4$Strain_name <- as.factor(f4$Strain_name)
+t1 <- table(f4$Strain_name)
+print(t1)
+```
+
+
+### Up Regulation
+```{r}
+f3$Strain_name <- as.factor(f3$Strain_name)
+t2 <- table(f3$Strain_name)
+print(t2)
+```
+
+
+```{r}
+f4$symbol <- as.factor(f4$symbol)
+downgenetable <- table(f4$symbol)
+print(downgenetable)
+
+```
+
+
+```{r}
+f3$symbol <- as.factor(f3$symbol)
+upgenetable <- table(f3$symbol)
+print(upgenetable)
+
+```
+
+### Convert table to a dataframe
+
+
+```{r}
+upgene_df <- data.frame(gene_name=character(), counts=character()) # Creating a empty df with appropriate variable names
+upgene_df <- data.frame(rbind(upgenetable)) #Converting the table and adding it to df #df <- data.frame(rbind(table_name))
+#upgene_df <- arrange(upgene_df,counts)
+upgene_df_t <- t(upgene_df)
+colnames(upgene_df_t)[1] <- "gene_count"
+upgene_df_t <- data                                           # Duplicate example data
+data2 <- tibble::rownames_to_column(data2, "row_names") # Apply rownames_to_column
+data2                                                   # Print updated data
+#print(upgene_df_t)
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
