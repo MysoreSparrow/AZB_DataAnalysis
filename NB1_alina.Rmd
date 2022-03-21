@@ -417,63 +417,97 @@ write.csv(f4,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_
 ## Number of Genes from different strains that are contributing to Up/Down regulation.
 
 
-### Down Regulation
+### Down Regulation - Most Relevant strains
 ```{r}
 f4$Strain_name <- as.factor(f4$Strain_name)
-t1 <- table(f4$Strain_name)
-print(t1)
+t1 <- data.frame(f4$Strain_name)
+summary(t1)
+```
+```{r}
+t1_table <- table(f4$Strain_name)
+print(t1_table)
 ```
 
 
-### Up Regulation
+### Up Regulation - Most Relevant strains
 ```{r}
 f3$Strain_name <- as.factor(f3$Strain_name)
-t2 <- table(f3$Strain_name)
-print(t2)
+
+t2 <- data.frame(f3$Strain_name)
+summary(t2)
+```
+```{r}
+t2_table <- table(f3$Strain_name)
+print(t2_table)
 ```
 
+
+## Genes List and Gene Counts
+
+### List of Down Regulating genes and respective counts
 
 ```{r}
 f4$symbol <- as.factor(f4$symbol)
-downgenetable <- table(f4$symbol)
-print(downgenetable)
-
+downgenetable <- data.frame(f4$symbol)
+#print(downgenetable)
+summary(downgenetable, maxsum = 20)
 ```
 
+```{r}
+downgene.df <- as.data.frame(downgenetable)
+count(downgene.df)
+
+```
+### List of Up Regulating genes and respective counts
 
 ```{r}
 f3$symbol <- as.factor(f3$symbol)
-upgenetable <- table(f3$symbol)
-print(upgenetable)
+upgenetable <- data.frame(f3$symbol)
+#view(upgenetable)
+summary(upgenetable, maxsum = 30)
 
 ```
 
-### Convert table to a dataframe
-
 
 ```{r}
-upgene_df <- data.frame(gene_name=character(), counts=character()) # Creating a empty df with appropriate variable names
-upgene_df <- data.frame(rbind(upgenetable)) #Converting the table and adding it to df #df <- data.frame(rbind(table_name))
-#upgene_df <- arrange(upgene_df,counts)
-upgene_df_t <- t(upgene_df)
-colnames(upgene_df_t)[1] <- "gene_count"
-upgene_df_t <- data                                           # Duplicate example data
-data2 <- tibble::rownames_to_column(data2, "row_names") # Apply rownames_to_column
-data2                                                   # Print updated data
-#print(upgene_df_t)
-```
-
-
-
-```{r}
-
+upgene.df <- as.data.frame(upgenetable)
+count(upgene.df)
+upgene.df
 ```
 
 ```{r}
+library(data.table)
+setnames(downgenetable, "Gene_names")
+setnames(upgenetable, "Gene_names")
+```
 
+```{r}
+Row1<-as.vector(as.matrix( downgenetable[,1]) )
+#downgene.df
+print(Row1)
 ```
 
 ```{r}
 
 ```
+
+
+
+### Common genes between both tables!
+
+```{r}
+#fsetdiff(setDT(downgenetable), setDT(upgenetable), all = TRUE)
+#intersecting_genes<- fintersect(downgenetable, upgenetable, all = F)
+#print(intersecting_genes)
+```
+
+
+
+
+
+
+
+
+
+
 
