@@ -1,13 +1,14 @@
 ---
 title: "Alina's PhD Data Analysis Notebook"
 output:
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
   pdf_document: default
 ---
 
 ```{r}
+
 library(tidyverse)
 library(tidyr)
 library(dplyr)
@@ -106,22 +107,22 @@ ggplot(data = d3, mapping = aes(x = log2FoldChange, y = padj)) + geom_point(alph
 
 
 ```{r}
-ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_ctl_R1)) + geom_point(alpha = 0.1)
+ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_ctl_R1)) + geom_point() + geom_smooth()
 ```
 
 ```{r}
-ggplot(data = d3, mapping = aes(x = CPM_476_R2, y = CPM_ctl_R2)) + geom_point(alpha = 0.1)
+ggplot(data = d3, mapping = aes(x = CPM_476_R2, y = CPM_ctl_R2)) + geom_point() + geom_smooth()
 ```
 
 
 ```{r}
-ggplot(data = d3, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point(alpha = 0.1)
+ggplot(data = d3, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point() + geom_smooth()
 ```
 
 
 
 ```{r}
-ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_476_R2)) + geom_point(alpha = 0.1)
+ggplot(data = d3, mapping = aes(x = CPM_476_R1, y = CPM_476_R2)) + geom_point() + geom_smooth()
 ```
 
 
@@ -153,6 +154,7 @@ ggplot(data = d3, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, c
 
 ```{r}
 ggplot(data = d3, mapping = aes(x = padj)) + geom_histogram( color = "green")
+
 ```
 ```{r}
 ggplot(data = d3, mapping = aes(x = pvalue)) + geom_histogram( color = "green")
@@ -160,6 +162,18 @@ ggplot(data = d3, mapping = aes(x = pvalue)) + geom_histogram( color = "green")
 
 ```{r}
 ggplot(data = d3, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
+```
+
+### Sorting the Data : in Ascending
+
+```{r}
+sorted_d3 <- d3 %>% arrange(baseMean, log2FoldChange, pvalue, CPM_476_R1, CPM_476_R2, CPM_ctl_R1, CPM_ctl_R2)
+sorted_d3
+```
+
+### Rows at tail-end
+```{r}
+tail(sorted_d3)
 ```
 
 ### Question 2: 
@@ -175,26 +189,25 @@ The values of other variables are derived from a (some particular) transformatio
 2. Based on Z-scores.
 3. Based on IQR.
 4. Based on Spread and variability of data : 1sigma, 2 sigma and 3 sigma spread.
+5. If one needs to keep the data as it is, one can use MAD instead of SD -> More robust statistical measure!
 
 
-### Sorting the Data : in Ascending
-
-```{r}
-sorted_d3 <- d3 %>% arrange(baseMean, log2FoldChange, pvalue, CPM_476_R1, CPM_476_R2, CPM_ctl_R1, CPM_ctl_R2)
-sorted_d3
-```
-
-### Rows at tail-end
-```{r}
-tail(sorted_d3)
-```
-
-
-
+### Question 4:
+1. what about lfcse and stat variables? Cannot waste so much data, could be quite useful (continous) data!
 
 ### Next Steps:
 
 1. After Removing outliers for this table, perform the same task for other 12 tables as well based on a common uniform approach.
 2. Then combine the 13 tables (with relevant columns as shown here) into a single table as the MASTER table.
 3. Determine correlations between different parameters and try to identify the genes in play.
+
+
+
+
+# Round2:
+
+
+```{r}
+
+```
 
