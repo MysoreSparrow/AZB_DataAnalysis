@@ -9,7 +9,7 @@ output:
 ```{r}
 library(tidyverse)
 library(EnhancedVolcano)
-library(ggrepel)
+library(data.table)
 ```
 
 ## Importing the Datasets
@@ -250,9 +250,10 @@ ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) 
 ```{r}
 ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CPM_ctl_R1), color = Strain_name)) + geom_point()
 ```
-## 15th March, 2022:
 
-## Meeting with Johannes on Friday:
+# 15th March, 2022:
+
+### Meeting with Johannes on Friday:
 
 1. With Regard to Colors: Cant do selective overlaying in ggplot. His plots were feature plots in Seurat. Can work with distinctive colors and opacity. More on this next week. Also, consider splitting the strains in 2 or 3 groups!
 
@@ -263,6 +264,7 @@ ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CP
 ```{r}
 ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) 
 ```
+
 ## Set of Basic Unrefined Plots
 
 
@@ -343,18 +345,14 @@ binded_frame$CPM_ctl_Mean <- rowMeans(binded_frame[,11:12])
 binded_frame$CPM_Infected_Mean <- rowMeans(binded_frame[,9:10])
 ```
 
-```{r}
-view(binded_frame)
-```
+
 
 
 ### Tables for Aline:
 
-
 ```{r}
-binded_frame %>% arrange(symbol)
+head(binded_frame)
 ```
-
 
 
 ```{r}
@@ -367,26 +365,53 @@ log2FC_table <- select(binded_frame, ensembl_gene_id, symbol, Strain_name, log2F
 head(log2FC_table)
 ```
 
-### Tables with padj and log2FC thresholds imposed, to obtain a list of genes.
-Saving the respective table as well to obtain a list of genes, using which one can create a heatmap.
+# Tables with padj and log2FC thresholds imposed, to obtain a list of genes.
 
-padj < 0.05, log2FC = +1 or -1.
+
+The Plan for doing so:
+
+1. The parameters are : padj < 0.05, log2FC = +1 or -1. This needs to be imposed and two different tables be imposed.
+2. The gender specific genes be removed.
+3. Obtain the number of genes being contributed for respective strains.
+4. Obtain upgenelist and downgenelist.
+5. Determine core90 and Core50 for Up/Down regulation.
+6. For these set of genes, in up/down regulation, create a separate table. Then, from this table, determine the zscore for the log2FC variable and create a heatmap. 
+7. Read Matt's Thesis and move onto Go term and pathway analysis.
+8. Mathias Plots for duplicates of all strains. 
+9. PCA plots and further more
+
+## Gender Specific genes - Removed!
+
+```{r}
+gender_genes_list <- c("Xist","Jpx","Ftx","Tsx", "Cnbp2")
+gender_genes <- filter(binded_frame, symbol %in% gender_genes_list)
+nrow(gender_genes)
+```
+```{r}
+head(gender_genes)
+```
+
+### Gender Genes Removed from Master Table
+```{r}
+binded_frame <- filter(binded_frame, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
+```
+
+
+### Number of genes in play - from each strain!
+
 
 ```{r}
 f1 <- binded_frame
-
 f1$Strain_name <- as.factor(f1$Strain_name)
 table(f1$Strain_name)
 ```
 
+
 ## A table with padj<0.05 imposed!
 ```{r}
-
 f2 <- filter(f1, padj<0.05)
 head(f2)
 ```
-
-
 
 ```{r}
 write.csv(f2,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padj_threshold.csv")
@@ -404,9 +429,6 @@ write.csv(f3,"~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_
 ```
 
 ## A table with padj<0.05 and log2FC<-1 imposed!
-
-
-
 ```{r}
 f4 <- filter(f1, padj<0.05, log2FoldChange< -1)
 str(f4)
@@ -438,76 +460,95 @@ summary(t2)
 ```
 ```{r}
 t2_table <- table(f3$Strain_name)
-print(t2_table)
+#t2_table
+
+Ngenes_fromStrains <- data.frame(rbind(t2_table))      # Converting the table into Data Frame
+
+#row.names(Ngenes_fromStrains) <- 1:nrow(Ngenes_fromStrains)  # change row names to list of numbers
+Ngenes_fromStrains <- as.data.frame(t(Ngenes_fromStrains))    # flip the rows and columns into each other
+Ngenes_fromStrains <- rownames_to_column(Ngenes_fromStrains)
+names(Ngenes_fromStrains)[1] <- 'Strain_ID '                  # Change names of columns 
+names(Ngenes_fromStrains)[2] <- ' Counts'
+
+Ngenes_fromStrains
+
+```
+
+```{r}
+#ggplot(data = Ngenes_fromStrains) + geom_bar(mapping = aes(x = Strain_ID, y = Counts, fill = Strain_ID))
+#str(Ngenes_fromStrains)
+#ggplot(data = Ngenes_fromStrains) + geom_histogram(mapping = aes(x = Counts))
 ```
 
 
 ## Genes List and Gene Counts
 
-### List of Down Regulating genes and respective counts
+### List of Down regulating genes and respective counts
 
 ```{r}
 f4$symbol <- as.factor(f4$symbol)
-downgenetable <- data.frame(f4$symbol)
-#print(downgenetable)
-summary(downgenetable, maxsum = 20)
+downgene_list <- data.frame(f4$symbol)
+#downgene_list <- rownames_to_column(downgene_list)
+names(downgene_list)[1] <- 'DOWN_Genes'
+summary(downgene_list, maxsum = 20)
 ```
+```{r}
+head(downgene_list)
+```
+
 
 ```{r}
-downgene.df <- as.data.frame(downgenetable)
-count(downgene.df)
-
+count(downgene_list)
 ```
-### List of Up Regulating genes and respective counts
+ 
+
+### List of Up-regulating genes and respective counts
 
 ```{r}
 f3$symbol <- as.factor(f3$symbol)
-upgenetable <- data.frame(f3$symbol)
-#view(upgenetable)
-summary(upgenetable, maxsum = 30)
-
+upgene_list <- data.frame(f3$symbol)
+setnames(upgene_list, "Gene_names")
+summary(upgene_list, maxsum = 30)
 ```
 
 
+### Number of Upregulating Genes
 ```{r}
-upgene.df <- as.data.frame(upgenetable)
-count(upgene.df)
-upgene.df
-```
-
-```{r}
-library(data.table)
-setnames(downgenetable, "Gene_names")
-setnames(upgenetable, "Gene_names")
-```
-
-```{r}
-Row1<-as.vector(as.matrix( downgenetable[,1]) )
-#downgene.df
-print(Row1)
-```
-
-```{r}
-
+count(upgene_list)
 ```
 
 
-
-### Common genes between both tables!
+### Common genes between both tables -  Interesting?
 
 ```{r}
-#fsetdiff(setDT(downgenetable), setDT(upgenetable), all = TRUE)
-#intersecting_genes<- fintersect(downgenetable, upgenetable, all = F)
+#intersecting_genes<- fintersect(setDT(downgene_list), setDT(upgene_list), all = F)
 #print(intersecting_genes)
 ```
 
 
 
+# Determining Zscores and Heatmaps
+
+```{r}
+head(binded_frame)
+```
 
 
 
+```{r}
+z1 <- select(binded_frame, log2FoldChange, symbol, padj)
+head(z1)
+```
 
 
+```{r}
+mean(z1$log2FoldChange)
+sd(z1$log2FoldChange)
+```
 
+```{r}
+z1 %>% mutate(zscore = (log2FoldChange - mean(log2FoldChange))/sd(log2FoldChange))
+head(z1)
+```
 
 
