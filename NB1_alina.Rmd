@@ -962,6 +962,22 @@ geneExp_matrix
 ```
 
 ```{r}
-heatmap(geneExp_matrix)
+heatmap(geneExp_matrix, Rowv=NA)
+```
+
+```{r}
+heatmap(geneExp_matrix, Rowv=NA,  Colv=NA)
+```
+
+
+
+```{r}
+library(RColorBrewer)
+heatmap(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")))
+```
+
+```{r}
+# Scaled within rows, no column clustering
+heatmap.2(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")), scale="row", Colv = "NA")
 ```
 
