@@ -560,7 +560,8 @@ head(z1)
 
 Put this section into a separate script for later use!
 
-## METHOD1 :
+## CPMR1 and CPMR2 value stable - per Gene :
+
 Plan is to create individual tables per strain, grouped by each gene with two CPM values and then do this for each strain. then merge the different data frames into row-wise based on each gene.
 
 ### Sorting the genes as per strain_name and gene_name
@@ -571,7 +572,7 @@ by_gene <- binded_frame %>%
            summarise(Strain_name, CPM_infected_R1, CPM_infected_R2) %>% ungroup()
 by_gene
 ```
-## Collecting the CPMr1 and CPMr23 values , gene by gene
+# Collecting the CPMr1 and CPMr23 values , gene by gene
 
 ### bygene_476
 
@@ -676,15 +677,7 @@ bygene_769 <- by_gene %>%
 
 ```
 
-
-```{r}
-bygene_75
-```
-
-
 Now lets try to merge the dataframe for respective genes, row-wise
-
-
 
 ```{r}
 # Merging two df at a time.
@@ -760,9 +753,159 @@ write.csv(CPM_MergedTable_ByGene,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_pr
 ```
 
 
+## log2FC values table - per Gene :
+
+```{r}
+by_gene_forlog2FC <- binded_frame %>% 
+           group_by(symbol) %>% 
+           summarise(log2FoldChange, Strain_name) %>% ungroup()
+by_gene_forlog2FC
+```
+
+```{r}
+log2FC_476 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S476") %>%
+           summarise(log2FC_476 = paste0(log2FoldChange)) 
+log2FC_476
+```
+
+```{r}
+log2FC_754 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S754") %>%
+           summarise(log2FC_754 = paste0(log2FoldChange))
+log2FC_754
+```
+
+```{r}
+log2FC_755 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S755") %>%
+           summarise(log2FC_755 = paste0(log2FoldChange))
+log2FC_755
+```
+
+```{r}
+log2FC_757 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S757") %>%
+           summarise(log2FC_757 = paste0(log2FoldChange))
+log2FC_757
+```
+
+```{r}
+log2FC_758 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S758") %>%
+           summarise(log2FC_758 = paste0(log2FoldChange))
+log2FC_758
+```
+
+```{r}
+log2FC_760 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S760") %>%
+           summarise(log2FC_760 = paste0(log2FoldChange))
+log2FC_760
+```
+
+```{r}
+log2FC_761 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S761") %>%
+           summarise(log2FC_761 = paste0(log2FoldChange))
+log2FC_760
+```
+
+```{r}
+log2FC_762 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S762") %>%
+           summarise(log2FC_762 = paste0(log2FoldChange))
+log2FC_762
+```
+
+```{r}
+log2FC_763 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S763") %>%
+           summarise(log2FC_763 = paste0(log2FoldChange))
+log2FC_763
+```
+
+```{r}
+log2FC_764 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S764") %>%
+           summarise(log2FC_764 = paste0(log2FoldChange))
+log2FC_764
+```
+
+```{r}
+log2FC_765 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S765") %>%
+           summarise(log2FC_765 = paste0(log2FoldChange))
+log2FC_765
+```
+
+```{r}
+log2FC_766 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S766") %>%
+           summarise(log2FC_766 = paste0(log2FoldChange))
+log2FC_766
+```
+
+```{r}
+log2FC_768 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S768") %>%
+           summarise(log2FC_768 = paste0(log2FoldChange))
+```
+
+```{r}
+log2FC_769 <- by_gene_forlog2FC %>% 
+           group_by(symbol) %>% 
+           filter(Strain_name == "S769") %>%
+           summarise(log2FC_769 = paste0(log2FoldChange))
+```
+
+```{r}
+merged_L2fc1 <- merge(data.frame(log2FC_476, row.names=NULL), data.frame(log2FC_754, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc2 <- merge(data.frame(log2FC_755, row.names=NULL), data.frame(log2FC_757, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc3 <- merge(data.frame(log2FC_758, row.names=NULL), data.frame(log2FC_760, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc4 <- merge(data.frame(log2FC_761, row.names=NULL), data.frame(log2FC_762, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc5 <- merge(data.frame(log2FC_763, row.names=NULL), data.frame(log2FC_764, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc6 <- merge(data.frame(log2FC_765, row.names=NULL), data.frame(log2FC_766, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc7 <- merge(data.frame(log2FC_768, row.names=NULL), data.frame(log2FC_769, row.names=NULL), by = 1, all = TRUE)
+
+```
+
+```{r}
+merged_L2fc8 <- merge(data.frame(merged_L2fc1, row.names=NULL), data.frame(merged_L2fc2, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc9 <- merge(data.frame(merged_L2fc3, row.names=NULL), data.frame(merged_L2fc4, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc10 <- merge(data.frame(merged_L2fc5, row.names=NULL), data.frame(merged_L2fc6, row.names=NULL), by = 1, all = TRUE)
+```
+
+```{r}
+merged_L2fc11 <- merge(data.frame(merged_L2fc10, row.names=NULL), data.frame(merged_L2fc7, row.names=NULL), by = 1, all = TRUE)
+
+```
+
+```{r}
+merged_L2fc12 <- merge(data.frame(merged_L2fc8, row.names=NULL), data.frame(merged_L2fc9, row.names=NULL), by = 1, all = TRUE)
+```
+
+```{r}
+merged_L2fc <- merge(data.frame(merged_L2fc12, row.names=NULL), data.frame(merged_L2fc11, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc
+```
 
 
+```{r}
+write.csv(merged_L2fc,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/L2fc_MergedTable_ByGene.csv")
 
-
-
+```
 
