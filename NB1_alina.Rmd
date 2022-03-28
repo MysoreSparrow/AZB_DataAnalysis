@@ -530,31 +530,7 @@ count(upgene_list)
 #print(intersecting_genes)
 ```
 
-
-
-# Determining Zscores and Heatmaps
-
-```{r}
-head(binded_frame)
-```
-
-
-
-```{r}
-z1 <- select(binded_frame, log2FoldChange, symbol, padj)
-head(z1)
-```
-
-
-```{r}
-mean(z1$log2FoldChange)
-sd(z1$log2FoldChange)
-```
-
-```{r}
-z1 %>% mutate(zscore = (log2FoldChange - mean(log2FoldChange))/sd(log2FoldChange))
-head(z1)
-```
+# 29th March, 2022:
 
 # Aline Tables: 
 
@@ -909,3 +885,27 @@ write.csv(merged_L2fc,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/L
 
 ```
 
+
+# Determining Zscores and Heatmaps - per gene and per strain!
+
+```{r}
+head(binded_frame)
+```
+
+
+
+```{r}
+z1 <- select(binded_frame, log2FoldChange, symbol, padj)
+head(z1)
+```
+
+
+```{r}
+mean(z1$log2FoldChange)
+sd(z1$log2FoldChange)
+```
+
+```{r}
+z1 %>% mutate(zscore = (log2FoldChange - mean(log2FoldChange))/sd(log2FoldChange))
+head(z1)
+```
