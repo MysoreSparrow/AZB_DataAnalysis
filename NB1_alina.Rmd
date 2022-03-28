@@ -919,10 +919,17 @@ The NA values are making it very hard to work with this tables. Replace the NA w
 ```{r}
 #replace all NA values with zero
 merged_L2fc_a <- merged_L2fc_a %>% replace(is.na(.), 0.000153042615)
+merged_L2fc_a
 ```
-
 ```{r}
 #merged_L2fc_a <- as.data.frame(apply(merged_L2fc, 2, as.numeric))
+#str(merged_L2fc_a)
+```
+
+
+
+```{r}
+
 merged_L2fc_a <- merged_L2fc_a %>% mutate(
                          zs_476 = (log2FC_476 - mean(log2FC_476))/sd(log2FC_476),
                          zs_754 = (log2FC_754 - mean(log2FC_754))/sd(log2FC_754),
@@ -942,6 +949,8 @@ merged_L2fc_a <- merged_L2fc_a %>% mutate(
 
 ```
 
+
+
 ```{r}
 GeneName <- merged_L2fc$symbol
 zscore_table <- select(merged_L2fc_a, 16:29)
@@ -952,6 +961,9 @@ zscore_table <- data.frame(zscore_table, row.names = 1)
 zscore_table
 ```
 
+```{r}
+write.csv(zscore_table,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/zscore_table.csv")
+```
 
 
 ```{r}
@@ -978,6 +990,6 @@ heatmap(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")))
 
 ```{r}
 # Scaled within rows, no column clustering
-heatmap.2(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")), scale="row", Colv = "NA")
+heatmap.2(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")), scale="row")
 ```
 
