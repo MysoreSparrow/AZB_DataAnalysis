@@ -889,23 +889,79 @@ write.csv(merged_L2fc,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/L
 # Determining Zscores and Heatmaps - per gene and per strain!
 
 ```{r}
-head(binded_frame)
+
+merged_L2fc
+```
+
+
+```{r}
+merged_L2fc_a <- merged_L2fc
+min(merged_L2fc_a$log2FC_476, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_754, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_755, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_757, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_758, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_760, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_762, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_761, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_763, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_764, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_766, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_768, na.rm = TRUE)
+min(merged_L2fc_a$log2FC_769, na.rm = TRUE)
+#merged_L2fc_a %>% mutate(zs_476 = (log2FC_476 ))
+
+```
+
+
+The NA values are making it very hard to work with this tables. Replace the NA with the mean of minimum of all strains : 0.000153042615
+
+```{r}
+#replace all NA values with zero
+merged_L2fc_a <- merged_L2fc_a %>% replace(is.na(.), 0.000153042615)
+```
+
+```{r}
+#merged_L2fc_a <- as.data.frame(apply(merged_L2fc, 2, as.numeric))
+merged_L2fc_a <- merged_L2fc_a %>% mutate(
+                         zs_476 = (log2FC_476 - mean(log2FC_476))/sd(log2FC_476),
+                         zs_754 = (log2FC_754 - mean(log2FC_754))/sd(log2FC_754),
+                         zs_755 = (log2FC_755 - mean(log2FC_755))/sd(log2FC_755),
+                         zs_757 = (log2FC_757 - mean(log2FC_757))/sd(log2FC_757),
+                         zs_758 = (log2FC_758 - mean(log2FC_758))/sd(log2FC_758),
+                         zs_760 = (log2FC_760 - mean(log2FC_760))/sd(log2FC_760),
+                         zs_761 = (log2FC_761 - mean(log2FC_761))/sd(log2FC_761),
+                         zs_762 = (log2FC_762 - mean(log2FC_762))/sd(log2FC_762),
+                         zs_763 = (log2FC_763 - mean(log2FC_763))/sd(log2FC_763),
+                         zs_764 = (log2FC_764 - mean(log2FC_764))/sd(log2FC_764),
+                         zs_765 = (log2FC_765 - mean(log2FC_765))/sd(log2FC_765),
+                         zs_766 = (log2FC_766 - mean(log2FC_766))/sd(log2FC_766),
+                         zs_768 = (log2FC_768 - mean(log2FC_768))/sd(log2FC_768),
+                         zs_769 = (log2FC_769 - mean(log2FC_769))/sd(log2FC_769)
+                         )
+
+```
+
+```{r}
+GeneName <- merged_L2fc$symbol
+zscore_table <- select(merged_L2fc_a, 16:29)
+zscore_table <- cbind(GeneName,zscore_table) 
+zscore_table <- zscore_table %>% distinct(GeneName,.keep_all=TRUE)
+zscore_table <- data.frame(zscore_table, row.names = 1)
+#zscore_table <- setDT(zscore_table) # DF doesnt accept rownames needed for gene expression heatmaps
+zscore_table
 ```
 
 
 
 ```{r}
-z1 <- select(binded_frame, log2FoldChange, symbol, padj)
-head(z1)
-```
-
-
-```{r}
-mean(z1$log2FoldChange)
-sd(z1$log2FoldChange)
+# Extract just the numeric data into a matrix with named rows by gene
+#rownames(geneExp) <- zscore_table$GeneName
+geneExp_matrix <- as.matrix(zscore_table[,1:14])
+geneExp_matrix
 ```
 
 ```{r}
-z1 %>% mutate(zscore = (log2FoldChange - mean(log2FoldChange))/sd(log2FoldChange))
-head(z1)
+heatmap(geneExp_matrix)
 ```
+
