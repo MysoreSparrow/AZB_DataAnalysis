@@ -546,7 +546,7 @@ Plan is to create individual tables per strain, grouped by each gene with two CP
 by_gene <- binded_frame %>% 
            group_by(symbol) %>% 
            summarise(Strain_name, CPM_infected_R1, CPM_infected_R2) %>% ungroup()
-by_gene
+head(by_gene)
 ```
 # Collecting the CPMr1 and CPMr23 values , gene by gene
 
@@ -675,14 +675,12 @@ merged_df6 <- merge(data.frame(bygene_765, row.names=NULL), data.frame(bygene_76
 
 ```{r}
 merged_df7 <- merge(data.frame(bygene_768, row.names=NULL), data.frame(bygene_769, row.names=NULL), by = 1, all = TRUE)
-merged_df7
 ```
 
 ```{r}
 CPM_Merged12 <- merge(
                    data.frame(merged_df1, row.names=NULL), 
                    data.frame(merged_df2, row.names=NULL), all = TRUE)
-CPM_Merged12
 ```
 
 
@@ -690,14 +688,12 @@ CPM_Merged12
 CPM_Merged34 <- merge(
                    data.frame(merged_df3, row.names=NULL), 
                    data.frame(merged_df4, row.names=NULL), all = TRUE)
-CPM_Merged34
 ```
 
 ```{r}
 CPM_Merged56 <- merge(
                    data.frame(merged_df5, row.names=NULL), 
                    data.frame(merged_df6, row.names=NULL), all = TRUE)
-CPM_Merged56
 ```
 
 
@@ -705,14 +701,13 @@ CPM_Merged56
 CPM_Merged567 <- merge(
                    data.frame(CPM_Merged56, row.names=NULL), 
                    data.frame(merged_df7, row.names=NULL), all = TRUE)
-CPM_Merged567
 ```
 
 ```{r}
 CPM_MergedTable_1234 <- merge(
                    data.frame(CPM_Merged12, row.names=NULL), 
                    data.frame(CPM_Merged34, row.names=NULL), all = TRUE)
-CPM_MergedTable_1234
+head(CPM_MergedTable_1234)
 ```
 
 Finally open the complete merged table
@@ -720,7 +715,7 @@ Finally open the complete merged table
 CPM_MergedTable_ByGene <- merge(
                    data.frame(CPM_MergedTable_1234, row.names=NULL), 
                    data.frame(CPM_Merged567, row.names=NULL), all = TRUE)
-CPM_MergedTable_ByGene
+head(CPM_MergedTable_ByGene)
 ```
 
 
@@ -729,267 +724,106 @@ write.csv(CPM_MergedTable_ByGene,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_pr
 ```
 
 
-## log2FC values table - per Gene :
+
+# CPM R1 vs CPM R2 plots:
 
 ```{r}
-by_gene_forlog2FC <- binded_frame %>% 
-           group_by(symbol) %>% 
-           summarise(log2FoldChange, Strain_name) %>% ungroup()
-by_gene_forlog2FC
+head(CPM_MergedTable_ByGene)
 ```
 
 ```{r}
-log2FC_476 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S476") %>%
-           summarise(log2FC_476 = paste0(log2FoldChange)) 
-log2FC_476
-```
+#
+CPM_MergedTable_ByGene <- CPM_MergedTable_ByGene %>% 
+     mutate_at(c(2:29), as.double)
 
-```{r}
-log2FC_754 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S754") %>%
-           summarise(log2FC_754 = paste0(log2FoldChange))
-log2FC_754
-```
-
-```{r}
-log2FC_755 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S755") %>%
-           summarise(log2FC_755 = paste0(log2FoldChange))
-log2FC_755
-```
-
-```{r}
-log2FC_757 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S757") %>%
-           summarise(log2FC_757 = paste0(log2FoldChange))
-log2FC_757
-```
-
-```{r}
-log2FC_758 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S758") %>%
-           summarise(log2FC_758 = paste0(log2FoldChange))
-log2FC_758
-```
-
-```{r}
-log2FC_760 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S760") %>%
-           summarise(log2FC_760 = paste0(log2FoldChange))
-log2FC_760
-```
-
-```{r}
-log2FC_761 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S761") %>%
-           summarise(log2FC_761 = paste0(log2FoldChange))
-log2FC_760
-```
-
-```{r}
-log2FC_762 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S762") %>%
-           summarise(log2FC_762 = paste0(log2FoldChange))
-log2FC_762
-```
-
-```{r}
-log2FC_763 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S763") %>%
-           summarise(log2FC_763 = paste0(log2FoldChange))
-log2FC_763
-```
-
-```{r}
-log2FC_764 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S764") %>%
-           summarise(log2FC_764 = paste0(log2FoldChange))
-log2FC_764
-```
-
-```{r}
-log2FC_765 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S765") %>%
-           summarise(log2FC_765 = paste0(log2FoldChange))
-log2FC_765
-```
-
-```{r}
-log2FC_766 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S766") %>%
-           summarise(log2FC_766 = paste0(log2FoldChange))
-log2FC_766
-```
-
-```{r}
-log2FC_768 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S768") %>%
-           summarise(log2FC_768 = paste0(log2FoldChange))
-```
-
-```{r}
-log2FC_769 <- by_gene_forlog2FC %>% 
-           group_by(symbol) %>% 
-           filter(Strain_name == "S769") %>%
-           summarise(log2FC_769 = paste0(log2FoldChange))
-```
-
-```{r}
-merged_L2fc1 <- merge(data.frame(log2FC_476, row.names=NULL), data.frame(log2FC_754, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc2 <- merge(data.frame(log2FC_755, row.names=NULL), data.frame(log2FC_757, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc3 <- merge(data.frame(log2FC_758, row.names=NULL), data.frame(log2FC_760, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc4 <- merge(data.frame(log2FC_761, row.names=NULL), data.frame(log2FC_762, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc5 <- merge(data.frame(log2FC_763, row.names=NULL), data.frame(log2FC_764, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc6 <- merge(data.frame(log2FC_765, row.names=NULL), data.frame(log2FC_766, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc7 <- merge(data.frame(log2FC_768, row.names=NULL), data.frame(log2FC_769, row.names=NULL), by = 1, all = TRUE)
-
-```
-
-```{r}
-merged_L2fc8 <- merge(data.frame(merged_L2fc1, row.names=NULL), data.frame(merged_L2fc2, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc9 <- merge(data.frame(merged_L2fc3, row.names=NULL), data.frame(merged_L2fc4, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc10 <- merge(data.frame(merged_L2fc5, row.names=NULL), data.frame(merged_L2fc6, row.names=NULL), by = 1, all = TRUE)
-```
-
-```{r}
-merged_L2fc11 <- merge(data.frame(merged_L2fc10, row.names=NULL), data.frame(merged_L2fc7, row.names=NULL), by = 1, all = TRUE)
-
-```
-
-```{r}
-merged_L2fc12 <- merge(data.frame(merged_L2fc8, row.names=NULL), data.frame(merged_L2fc9, row.names=NULL), by = 1, all = TRUE)
-```
-
-```{r}
-merged_L2fc <- merge(data.frame(merged_L2fc12, row.names=NULL), data.frame(merged_L2fc11, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc
+str(CPM_MergedTable_ByGene)
 ```
 
 
 ```{r}
-write.csv(merged_L2fc,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/L2fc_MergedTable_ByGene.csv")
-
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_476_r2))) + geom_point()
 ```
 
-
-# Determining Zscores and Heatmaps - per gene and per strain!
-
 ```{r}
-
-merged_L2fc
-```
-
-
-```{r}
-merged_L2fc_a <- merged_L2fc
-min(merged_L2fc_a$log2FC_476, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_754, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_755, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_757, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_758, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_760, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_762, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_761, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_763, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_764, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_766, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_768, na.rm = TRUE)
-min(merged_L2fc_a$log2FC_769, na.rm = TRUE)
-#merged_L2fc_a %>% mutate(zs_476 = (log2FC_476 ))
-
-```
-
-
-The NA values are making it very hard to work with this tables. Replace the NA with the mean of minimum of all strains : 0.000153042615
-
-```{r}
-#replace all NA values with zero
-merged_L2fc_a <- merged_L2fc_a %>% replace(is.na(.), 0.000153042615)
-merged_L2fc_a
-```
-```{r}
-#merged_L2fc_a <- as.data.frame(apply(merged_L2fc, 2, as.numeric))
-#str(merged_L2fc_a)
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_757_r2))) + geom_point()
 ```
 
 
 
 ```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_757_r2))) + geom_point()
+```
 
-merged_L2fc_a <- merged_L2fc_a %>% mutate(
-                         zs_476 = (log2FC_476 - mean(log2FC_476))/sd(log2FC_476),
-                         zs_754 = (log2FC_754 - mean(log2FC_754))/sd(log2FC_754),
-                         zs_755 = (log2FC_755 - mean(log2FC_755))/sd(log2FC_755),
-                         zs_757 = (log2FC_757 - mean(log2FC_757))/sd(log2FC_757),
-                         zs_758 = (log2FC_758 - mean(log2FC_758))/sd(log2FC_758),
-                         zs_760 = (log2FC_760 - mean(log2FC_760))/sd(log2FC_760),
-                         zs_761 = (log2FC_761 - mean(log2FC_761))/sd(log2FC_761),
-                         zs_762 = (log2FC_762 - mean(log2FC_762))/sd(log2FC_762),
-                         zs_763 = (log2FC_763 - mean(log2FC_763))/sd(log2FC_763),
-                         zs_764 = (log2FC_764 - mean(log2FC_764))/sd(log2FC_764),
-                         zs_765 = (log2FC_765 - mean(log2FC_765))/sd(log2FC_765),
-                         zs_766 = (log2FC_766 - mean(log2FC_766))/sd(log2FC_766),
-                         zs_768 = (log2FC_768 - mean(log2FC_768))/sd(log2FC_768),
-                         zs_769 = (log2FC_769 - mean(log2FC_769))/sd(log2FC_769)
-                         )
 
+
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_768_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_764_r2))) + geom_point()
 ```
 
 
 
 ```{r}
-GeneName <- merged_L2fc$symbol
-zscore_table <- select(merged_L2fc_a, 16:29)
-zscore_table <- cbind(GeneName,zscore_table) 
-zscore_table <- zscore_table %>% distinct(GeneName,.keep_all=TRUE)
-zscore_table <- data.frame(zscore_table, row.names = 1)
-#zscore_table <- setDT(zscore_table) # DF doesnt accept rownames needed for gene expression heatmaps
-zscore_table
-```
-
-```{r}
-write.csv(zscore_table,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/zscore_table.csv")
-```
-
-
-```{r}
-# Extract just the numeric data into a matrix with named rows by gene
-#rownames(geneExp) <- zscore_table$GeneName
-geneExp_matrix <- as.matrix(zscore_table[,1:14])
-geneExp_matrix
-```
-
-```{r}
-heatmap(geneExp_matrix, Rowv=NA)
-```
-
-```{r}
-heatmap(geneExp_matrix, Rowv=NA,  Colv=NA)
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_768_r2))) + geom_point()
 ```
 
 
 
 ```{r}
-library(RColorBrewer)
-heatmap(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")))
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_762_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_768_r2))) + geom_point()
+```
+
+
+
+# Creating UpGeneTable and DownGeneTable
+
+```{r}
+DownGene_DECore50 <- c("Calcoco1",  "Gm22634", "Gm25939", "Gm24265", "Gm22513",
+                 "Gm23804", "Gsta2", "Snca", "Afp", "Col1a2", "Gm22068", 
+                 "Gm24305", "Gm25813", "Nt5e", "Reg4", "Sgk2")
+length(DownGene_DECore50)
 ```
 
 ```{r}
-# Scaled within rows, no column clustering
-heatmap.2(geneExp_matrix, col=rev(brewer.pal(9,"RdBu")), scale="row")
+DownGeneFrame <- binded_frame %>% filter(symbol %in% DownGene_DECore50)
+DownGeneFrame
+write.csv(DownGeneFrame,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/DownGeneFrame_Core50.csv")
 ```
 
+
+
+```{r}
+UpGene_DECore50 <- c( "Reg3b", "Reg3g","Slc9a3", "Cd36", "Dmbt1", "Pigr", "Saa3", 
+                      "Ubd ", "Aldh1l1", "Apol10a", "AY76118", "Defa3", "Dnase1",
+                      "Duox2", " Gsdmc", "Gsdmc2", "Igtp", "Iigp1", "Il18", "Lyz1", 
+                      "Mptx2", "Ncf2", "Prss30", "Ptk6", "Reg3a", "Saa1", "Slfn2")
+length(UpGene_DECore50)
+```
+
+
+```{r}
+UpGeneFrame <- binded_frame %>% filter(symbol %in% UpGene_DECore50)
+UpGeneFrame
+write.csv(UpGeneFrame,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/UpGeneFrame_Core50.csv")
+```
