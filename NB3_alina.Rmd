@@ -1,0 +1,29 @@
+---
+title: "Data Visualization - Alina Data Analysis Project"
+author: "Keshav Prasada Gubbi"
+date: "3/31/2022"
+output: html_document
+---
+
+
+```{r}
+library(EnhancedVolcano)
+```
+
+```{r}
+p2 <- EnhancedVolcano(UpGeneFrame,
+    lab = UpGeneFrame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue')
+
+    p2
+```
+
+```{r}
+p2 <- EnhancedVolcano(DownGeneFrame,
+    lab = DownGeneFrame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue')
+
+    p2
+```
