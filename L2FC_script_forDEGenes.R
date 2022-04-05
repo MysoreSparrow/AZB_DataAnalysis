@@ -70,39 +70,13 @@ log2FC_769 <- by_gene_forlog2FC %>%
   summarise(log2FC_769 = paste0(log2FoldChange))
 
 
-merged_L2fc1 <- merge(data.frame(log2FC_476, row.names=NULL), data.frame(log2FC_754, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc2 <- merge(data.frame(log2FC_755, row.names=NULL), data.frame(log2FC_757, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc3 <- merge(data.frame(log2FC_758, row.names=NULL), data.frame(log2FC_760, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc4 <- merge(data.frame(log2FC_761, row.names=NULL), data.frame(log2FC_762, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc5 <- merge(data.frame(log2FC_763, row.names=NULL), data.frame(log2FC_764, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc6 <- merge(data.frame(log2FC_765, row.names=NULL), data.frame(log2FC_766, row.names=NULL), by = 1, all = TRUE)
-merged_L2fc7 <- merge(data.frame(log2FC_768, row.names=NULL), data.frame(log2FC_769, row.names=NULL), by = 1, all = TRUE)
+df_list_UPGeneDF <- list(log2FC_476, log2FC_754, log2FC_755, log2FC_757,log2FC_758,
+                log2FC_760, log2FC_761, log2FC_762, log2FC_763,log2FC_764,
+                log2FC_765,log2FC_766,log2FC_768,log2FC_769)
 
-
-merged_L2fc_A1 <- merge(data.frame(merged_L2fc1, row.names=NULL),
-                        data.frame(merged_L2fc2, row.names=NULL),
-                        by = 1, all = TRUE)
-merged_L2fc_A2 <- merge(data.frame(merged_L2fc3, row.names=NULL), 
-                        data.frame(merged_L2fc4, row.names=NULL), 
-                        by = 1, all = TRUE)
-merged_L2fc_A3 <- merge(data.frame(merged_L2fc5, row.names=NULL), 
-                        data.frame(merged_L2fc6, row.names=NULL), 
-                        by = 1, all = TRUE)
-merged_L2fc_B1 <- merge(data.frame(merged_L2fc_A1, row.names=NULL), 
-                        data.frame(merged_L2fc_A2, row.names=NULL), 
-                        by = 1, all = TRUE)
-merged_L2fc_B2 <- merge(data.frame(merged_L2fc_A3, row.names=NULL), 
-                        data.frame(merged_L2fc7, row.names=NULL), 
-                        by = 1, all = TRUE)
-merged_L2FC <- merge(data.frame(merged_L2fc_B1, row.names=NULL), 
-                     data.frame(merged_L2fc_B2, row.names=NULL), 
-                     by = 1, all = TRUE)
-
-
-# change the type of rest of columns except for symbol from chr to double
-merged_L2FC <- merged_L2FC %>% mutate_at(c(2:15), as.double)
-# ensure that there are no duplicate rows
-merged_L2FC <- merged_L2FC %>% distinct(symbol,.keep_all=TRUE)
+# Merge all the df into a single dataframe as per individual gene - with all values per gene being in one row
+merged_L2FC <- Reduce(function(d1, d2) merge(d1, d2, by = "symbol", all.x = TRUE, 
+                                             all.y = FALSE), df_list_UPGeneDF)
 
 # Determining the Zscore tables for UP Genes
 
