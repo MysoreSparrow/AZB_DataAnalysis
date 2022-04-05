@@ -169,89 +169,6 @@ dim(binded_frame)
 ```{r echo=TRUE, message=TRUE, warning=TRUE}
 str(binded_frame)
 ```
-
-
-
-## Basic Visualization to get a sneak peak at Data!
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = baseMean)) + scale_y_log10() + geom_point(alpha = 0.1) 
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_point(alpha = 0.1) + geom_smooth()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point(alpha = 0.4) 
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = padj)) + geom_point(alpha = 0.1)
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1)) + geom_point() + geom_smooth()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1, color = N_infected_Replicates)) + geom_point() + geom_smooth()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point() + geom_smooth()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1)) + geom_dotplot(binwidth = 400, color = "brown")
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, color = "green") 
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = padj)) + geom_histogram( color = "green")
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
-```
-
-# New Plots! - 10th March, 2022
-
-```{r}
-ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point()
-```
-
-```{r message=TRUE, warning=TRUE}
-ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point(aes( color=Strain_name))
-
-```
-
-```{r}
-ggplot(data = binded_frame, aes( x = log2FoldChange, y = log2(baseMean), color = Strain_name) ) + geom_point()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point()
-```
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2(baseMean), y = -log2(padj), color = Strain_name )) + geom_point()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , color = N_infected_Replicates)) + geom_point()
-```
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CPM_ctl_R1), color = Strain_name)) + geom_point()
-```
-
 # 15th March, 2022:
 
 ### Meeting with Johannes on Friday:
@@ -262,69 +179,7 @@ ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CP
 
 3. Working with enhanaced Volcano plots
 
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) 
-```
 
-## Set of Basic Unrefined Plots
-
-
-```{r}
-  EnhancedVolcano(binded_frame,
-    lab = binded_frame$symbol,              
-    x = 'log2FoldChange',
-    y = 'pvalue')
-```
-
-
-```{r}
-    plot1 <- EnhancedVolcano(binded_frame,
-    lab = binded_frame$symbol,              
-    x = 'log2FoldChange',
-    y = 'pvalue',
-    title = 'pvalue Vs log2FC Plot',
-    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.05"),
-    xlim = c(log2(10e-8), log2(10e4)),
-    ylim = c(0, -log10(10e-60)),
-    pCutoff = 0.05,
-    FCcutoff = 1,
-    pointSize = 1.0,
-    labSize = 4.0)
-
-    plot1 
-
-```
-
-
-```{r}
- plot1 + coord_flip() + scale_x_continuous(limits = c(-25, 16), breaks = seq(-25, 16, by = 5))
-```
-
-
-```{r}
-    plot1 + xlim(-25,20) 
- 
-```
-
-
-```{r}
-
-p <- ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , label = symbol)) + geom_point() 
-
-p +geom_text(hjust=0, vjust=0)
-```
-
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point() + geom_text(aes(label=symbol), hjust=0,vjust=0)
-```
-
-
-
-```{r}
-ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) +
-  geom_text(aes(label=symbol), hjust=0,vjust=0)
-```
        
        
 ### CPM infected and Control - Mean Values
@@ -332,10 +187,6 @@ ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(
 ```{r}
 head(binded_frame)
 ```
-
-
-
-
 ```{r}
 # Convert CPM_infected_R2 into numeric from chr
 binded_frame[, c(9:10)] <- sapply(binded_frame[, c(9:10)], as.numeric)
@@ -345,9 +196,6 @@ str(binded_frame)
 binded_frame$CPM_ctl_Mean <- rowMeans(binded_frame[,11:12])
 binded_frame$CPM_Infected_Mean <- rowMeans(binded_frame[,9:10])
 ```
-
-
-
 
 ### Tables for Aline:
 
@@ -435,11 +283,14 @@ write.csv(f3,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina
 
 ## A table with padj<0.05 and log2FC<-1 imposed!
 ```{r}
-f4 <- filter(f1, padj<0.05, log2FoldChange< -1)
-str(f4)
-write.csv(f4,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padjANDlog2FClesserthan1_threshold.csv")
+f5 <- filter(f1, padj<0.05, log2FoldChange< -1, log2FoldChange>1)
+str(f5)
+write.csv(f5 ,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_listofgenes_ with_padjANDlog2FClesserthan1_threshold.csv")
 ```
 
+```{r}
+
+```
 
 ## Number of Genes from different strains that are contributing to Up/Down regulation.
 
@@ -723,79 +574,6 @@ head(CPM_MergedTable_ByGene)
 write.csv(CPM_MergedTable_ByGene,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/CPM_MergedTable_ByGene.csv")
 ```
 
-
-
-# CPM R1 vs CPM R2 plots:
-
-```{r}
-head(CPM_MergedTable_ByGene)
-```
-
-```{r}
-#
-CPM_MergedTable_ByGene <- CPM_MergedTable_ByGene %>% 
-     mutate_at(c(2:29), as.double)
-
-str(CPM_MergedTable_ByGene)
-```
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_476_r2))) + geom_point()
-```
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_757_r2))) + geom_point()
-```
-
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_757_r2))) + geom_point()
-```
-
-
-
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_766_r2))) + geom_point()
-```
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_768_r2))) + geom_point()
-```
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_764_r2))) + geom_point()
-```
-
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_768_r2))) + geom_point()
-```
-
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_762_r1), y = log2(cpm_766_r2))) + geom_point()
-```
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_766_r2))) + geom_point()
-```
-
-
-```{r}
-ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_768_r2))) + geom_point()
-```
-
-
-
 # Creating UpGeneTable and DownGeneTable
 
 ```{r}
@@ -827,3 +605,283 @@ UpGeneFrame <- binded_frame %>% filter(symbol %in% UpGene_DECore50)
 UpGeneFrame
 write.csv(UpGeneFrame,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/UpGeneFrame_Core50.csv")
 ```
+
+
+
+```{r}
+# Input the frame that needs to be worked on
+UpGeneFrame_Core50 <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/UpGeneFrame_Core50.csv")
+#binded_frame <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_MasterTable_13strains.csv")
+
+by_gene_forlog2FC <- UpGeneFrame_Core50 %>% group_by(symbol) %>% 
+  summarise(log2FoldChange, Strain_name) %>% ungroup()
+head(by_gene_forlog2FC)
+
+log2FC_476 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S476") %>%
+  summarise(log2FC_476 = paste0(log2FoldChange)) 
+log2FC_754 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S754") %>%
+  summarise(log2FC_754 = paste0(log2FoldChange))
+log2FC_755 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S755") %>%
+  summarise(log2FC_755 = paste0(log2FoldChange))
+log2FC_757 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S757") %>%
+  summarise(log2FC_757 = paste0(log2FoldChange))
+log2FC_758 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S758") %>%
+  summarise(log2FC_758 = paste0(log2FoldChange))
+log2FC_760 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S760") %>%
+  summarise(log2FC_760 = paste0(log2FoldChange))
+log2FC_761 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S761") %>%
+  summarise(log2FC_761 = paste0(log2FoldChange))
+log2FC_762 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S762") %>%
+  summarise(log2FC_762 = paste0(log2FoldChange))
+log2FC_763 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S763") %>%
+  summarise(log2FC_763 = paste0(log2FoldChange))
+log2FC_764 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S764") %>%
+  summarise(log2FC_764 = paste0(log2FoldChange))
+log2FC_765 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S765") %>%
+  summarise(log2FC_765 = paste0(log2FoldChange))
+log2FC_766 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S766") %>%
+  summarise(log2FC_766 = paste0(log2FoldChange))
+log2FC_768 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S768") %>%
+  summarise(log2FC_768 = paste0(log2FoldChange))
+log2FC_769 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S769") %>%
+  summarise(log2FC_769 = paste0(log2FoldChange))
+
+
+merged_L2fc1 <- merge(data.frame(log2FC_476, row.names=NULL), data.frame(log2FC_754, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc2 <- merge(data.frame(log2FC_755, row.names=NULL), data.frame(log2FC_757, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc3 <- merge(data.frame(log2FC_758, row.names=NULL), data.frame(log2FC_760, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc4 <- merge(data.frame(log2FC_761, row.names=NULL), data.frame(log2FC_762, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc5 <- merge(data.frame(log2FC_763, row.names=NULL), data.frame(log2FC_764, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc6 <- merge(data.frame(log2FC_765, row.names=NULL), data.frame(log2FC_766, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc7 <- merge(data.frame(log2FC_768, row.names=NULL), data.frame(log2FC_769, row.names=NULL), by = 1, all = TRUE)
+
+
+merged_L2fc_A1_U <- merge(data.frame(merged_L2fc1, row.names=NULL),
+                        data.frame(merged_L2fc2, row.names=NULL),
+                        by = 1, all = TRUE)
+merged_L2fc_A2_U <- merge(data.frame(merged_L2fc3, row.names=NULL), 
+                        data.frame(merged_L2fc4, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_A3_U <- merge(data.frame(merged_L2fc5, row.names=NULL), 
+                        data.frame(merged_L2fc6, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_B1_U <- merge(data.frame(merged_L2fc_A1_U, row.names=NULL), 
+                        data.frame(merged_L2fc_A2_U, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_B2_U <- merge(data.frame(merged_L2fc_A3_U, row.names=NULL), 
+                        data.frame(merged_L2fc7, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2FC_UP <- merge(data.frame(merged_L2fc_B1_U, row.names=NULL), 
+                     data.frame(merged_L2fc_B2_U, row.names=NULL), 
+                     by = 1, all = TRUE)
+
+
+# change the type of rest of columns except for symbol from chr to double
+merged_L2FC_UP <- merged_L2FC_UP %>% mutate_at(c(2:15), as.double)
+# ensure that there are no duplicate rows
+merged_L2FC_UP <- merged_L2FC_UP %>% distinct(symbol,.keep_all=TRUE)
+
+# Determining the Zscore tables for UP Genes
+
+zs_476 = scale(merged_L2FC$log2FC_476, center = TRUE, scale = TRUE)
+zs_754 = scale(merged_L2FC$log2FC_754, center = TRUE, scale = TRUE)
+zs_755 = scale(merged_L2FC$log2FC_755, center = TRUE, scale = TRUE)
+zs_757 = scale(merged_L2FC$log2FC_757, center = TRUE, scale = TRUE)
+zs_758 = scale(merged_L2FC$log2FC_758, center = TRUE, scale = TRUE)
+zs_760 = scale(merged_L2FC$log2FC_760, center = TRUE, scale = TRUE)
+zs_761 = scale(merged_L2FC$log2FC_761, center = TRUE, scale = TRUE)
+zs_762 = scale(merged_L2FC$log2FC_762, center = TRUE, scale = TRUE)
+zs_763 = scale(merged_L2FC$log2FC_763, center = TRUE, scale = TRUE)
+zs_764 = scale(merged_L2FC$log2FC_764, center = TRUE, scale = TRUE)
+zs_765 = scale(merged_L2FC$log2FC_765, center = TRUE, scale = TRUE)
+zs_766 = scale(merged_L2FC$log2FC_766, center = TRUE, scale = TRUE)
+zs_768 = scale(merged_L2FC$log2FC_768, center = TRUE, scale = TRUE)
+zs_769 = scale(merged_L2FC$log2FC_769, center = TRUE, scale = TRUE)
+
+GeneName <- merged_L2FC$symbol #obtaining genenames from earlier df
+ZS_UPGenes_table <- data.frame(GeneName, zs_476,zs_754,zs_755,zs_757,zs_758,
+                               zs_760, zs_761,zs_762,zs_763,zs_764,zs_765,
+                               zs_766,zs_768,zs_769)
+
+ZS_UPGenes_table <- data.frame(ZS_UPGenes_table, row.names = 1)
+
+#write.csv(ZS_UPGenes_table,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/ZS_UPGenes_table.csv","w")
+
+# MEAN OF MINIMUM WAS 1.1796611
+
+#ZS_UPGenes_table <- ZS_UPGenes_table %>% replace(is.na(.), -1.1796611)
+
+geneExp_matrix_DE_UpGene <- as.matrix(ZS_UPGenes_table)
+
+heatmap(geneExp_matrix_DE_UpGene)
+```
+
+
+### DownGeneTable - Core 50 and heatmaps
+
+```{r}
+# Input the frame that needs to be worked on
+DownGeneFrame_Core50 <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/DownGeneFrame_Core50.csv")
+#binded_frame <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/Data_Alina_MasterTable_13strains.csv")
+
+by_gene_forlog2FC <- DownGeneFrame_Core50 %>% group_by(symbol) %>% 
+  summarise(log2FoldChange, Strain_name) %>% ungroup()
+head(by_gene_forlog2FC)
+
+log2FC_476 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S476") %>%
+  summarise(log2FC_476 = paste0(log2FoldChange)) 
+log2FC_754 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S754") %>%
+  summarise(log2FC_754 = paste0(log2FoldChange))
+log2FC_755 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S755") %>%
+  summarise(log2FC_755 = paste0(log2FoldChange))
+log2FC_757 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S757") %>%
+  summarise(log2FC_757 = paste0(log2FoldChange))
+log2FC_758 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S758") %>%
+  summarise(log2FC_758 = paste0(log2FoldChange))
+log2FC_760 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S760") %>%
+  summarise(log2FC_760 = paste0(log2FoldChange))
+log2FC_761 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S761") %>%
+  summarise(log2FC_761 = paste0(log2FoldChange))
+log2FC_762 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S762") %>%
+  summarise(log2FC_762 = paste0(log2FoldChange))
+log2FC_763 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S763") %>%
+  summarise(log2FC_763 = paste0(log2FoldChange))
+log2FC_764 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S764") %>%
+  summarise(log2FC_764 = paste0(log2FoldChange))
+log2FC_765 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S765") %>%
+  summarise(log2FC_765 = paste0(log2FoldChange))
+log2FC_766 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S766") %>%
+  summarise(log2FC_766 = paste0(log2FoldChange))
+log2FC_768 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S768") %>%
+  summarise(log2FC_768 = paste0(log2FoldChange))
+log2FC_769 <- by_gene_forlog2FC %>% 
+  group_by(symbol) %>% 
+  filter(Strain_name == "S769") %>%
+  summarise(log2FC_769 = paste0(log2FoldChange))
+
+
+merged_L2fc1 <- merge(data.frame(log2FC_476, row.names=NULL), data.frame(log2FC_754, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc2 <- merge(data.frame(log2FC_755, row.names=NULL), data.frame(log2FC_757, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc3 <- merge(data.frame(log2FC_758, row.names=NULL), data.frame(log2FC_760, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc4 <- merge(data.frame(log2FC_761, row.names=NULL), data.frame(log2FC_762, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc5 <- merge(data.frame(log2FC_763, row.names=NULL), data.frame(log2FC_764, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc6 <- merge(data.frame(log2FC_765, row.names=NULL), data.frame(log2FC_766, row.names=NULL), by = 1, all = TRUE)
+merged_L2fc7 <- merge(data.frame(log2FC_768, row.names=NULL), data.frame(log2FC_769, row.names=NULL), by = 1, all = TRUE)
+
+
+merged_L2fc_A1 <- merge(data.frame(merged_L2fc1, row.names=NULL),
+                        data.frame(merged_L2fc2, row.names=NULL),
+                        by = 1, all = TRUE)
+merged_L2fc_A2 <- merge(data.frame(merged_L2fc3, row.names=NULL), 
+                        data.frame(merged_L2fc4, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_A3 <- merge(data.frame(merged_L2fc5, row.names=NULL), 
+                        data.frame(merged_L2fc6, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_B1 <- merge(data.frame(merged_L2fc_A1, row.names=NULL), 
+                        data.frame(merged_L2fc_A2, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2fc_B2 <- merge(data.frame(merged_L2fc_A3, row.names=NULL), 
+                        data.frame(merged_L2fc7, row.names=NULL), 
+                        by = 1, all = TRUE)
+merged_L2FC <- merge(data.frame(merged_L2fc_B1, row.names=NULL), 
+                     data.frame(merged_L2fc_B2, row.names=NULL), 
+                     by = 1, all = TRUE)
+
+
+# change the type of rest of columns except for symbol from chr to double
+merged_L2FC <- merged_L2FC %>% mutate_at(c(2:15), as.double)
+# ensure that there are no duplicate rows
+merged_L2FC <- merged_L2FC %>% distinct(symbol,.keep_all=TRUE)
+
+# Determining the Zscore tables for UP Genes
+
+zs_476 = scale(merged_L2FC$log2FC_476, center = TRUE, scale = TRUE)
+zs_754 = scale(merged_L2FC$log2FC_754, center = TRUE, scale = TRUE)
+zs_755 = scale(merged_L2FC$log2FC_755, center = TRUE, scale = TRUE)
+zs_757 = scale(merged_L2FC$log2FC_757, center = TRUE, scale = TRUE)
+zs_758 = scale(merged_L2FC$log2FC_758, center = TRUE, scale = TRUE)
+zs_760 = scale(merged_L2FC$log2FC_760, center = TRUE, scale = TRUE)
+zs_761 = scale(merged_L2FC$log2FC_761, center = TRUE, scale = TRUE)
+zs_762 = scale(merged_L2FC$log2FC_762, center = TRUE, scale = TRUE)
+zs_763 = scale(merged_L2FC$log2FC_763, center = TRUE, scale = TRUE)
+zs_764 = scale(merged_L2FC$log2FC_764, center = TRUE, scale = TRUE)
+zs_765 = scale(merged_L2FC$log2FC_765, center = TRUE, scale = TRUE)
+zs_766 = scale(merged_L2FC$log2FC_766, center = TRUE, scale = TRUE)
+zs_768 = scale(merged_L2FC$log2FC_768, center = TRUE, scale = TRUE)
+zs_769 = scale(merged_L2FC$log2FC_769, center = TRUE, scale = TRUE)
+
+GeneName <- merged_L2FC$symbol #obtaining genenames from earlier df
+ZS_DownGenes_table <- data.frame(GeneName, zs_476,zs_754,zs_755,zs_757,zs_758,
+                               zs_760, zs_761,zs_762,zs_763,zs_764,zs_765,
+                               zs_766,zs_768,zs_769)
+
+ZS_DownGenes_table <- data.frame(ZS_DownGenes_table, row.names = 1)
+
+#write.csv(ZS_DownGenes_table,"D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/ZS_DownGenes_table.csv")
+
+# MEAN OF MINIMUM WAS 1.1796611
+
+#ZS_DownGenes_table <- ZS_DownGenes_table %>% replace(is.na(.), -1.1796611)
+
+geneExp_matrix_DE_DownGene <- as.matrix(ZS_DownGenes_table)
+
+heatmap(geneExp_matrix_DE_DownGene)
+```
+
+
+

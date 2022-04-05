@@ -8,13 +8,249 @@ output: html_document
 
 ```{r}
 library(EnhancedVolcano)
+library(tidyverse)
 ```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) 
+```
+
+## Set of Basic Unrefined Plots
+
+## Basic Visualization to get a sneak peak at Data!
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = baseMean)) + scale_y_log10() + geom_point(alpha = 0.1) 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue)) + geom_point(alpha = 0.1) + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point(alpha = 0.4) 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = padj)) + geom_point(alpha = 0.1)
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1, y = CPM_ctl_R1, color = N_infected_Replicates)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_ctl_R1, y = CPM_ctl_R2)) + geom_point() + geom_smooth()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = pvalue, color = N_infected_Replicates)) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = CPM_infected_R1)) + geom_dotplot(binwidth = 400, color = "brown")
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = baseMean)) + geom_dotplot(binwidth = 8000, color = "green") 
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = padj)) + geom_histogram( color = "green")
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange)) + geom_histogram(binwidth = 0.15, color = "blue")
+```
+
+# New Plots! - 10th March, 2022
+
+```{r}
+ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point()
+```
+
+```{r message=TRUE, warning=TRUE}
+ggplot(data = binded_frame, aes(x = log2(baseMean), y = log2FoldChange) ) + geom_point(aes( color=Strain_name))
+
+```
+
+```{r}
+ggplot(data = binded_frame, aes( x = log2FoldChange, y = log2(baseMean), color = Strain_name) ) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point()
+```
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2(baseMean), y = -log2(padj), color = Strain_name )) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , color = N_infected_Replicates)) + geom_point()
+```
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2(CPM_infected_R1), y = log2(CPM_ctl_R1), color = Strain_name)) + geom_point()
+```
+
+```{r}
+  EnhancedVolcano(binded_frame,
+    lab = binded_frame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+
+
+```{r}
+    plot1 <- EnhancedVolcano(binded_frame,
+    lab = binded_frame$symbol,              
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title = 'pvalue Vs log2FC Plot',
+    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.05"),
+    xlim = c(log2(10e-8), log2(10e4)),
+    ylim = c(0, -log10(10e-60)),
+    pCutoff = 0.05,
+    FCcutoff = 1,
+    pointSize = 1.0,
+    labSize = 4.0)
+
+    plot1 
+
+```
+
+
+```{r}
+ plot1 + coord_flip() + scale_x_continuous(limits = c(-25, 16), breaks = seq(-25, 16, by = 5))
+```
+
+
+```{r}
+    plot1 + xlim(-25,20) 
+ 
+```
+
+
+```{r}
+
+p <- ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(pvalue) , label = symbol)) + geom_point() 
+
+p +geom_text(hjust=0, vjust=0)
+```
+
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point() + geom_text(aes(label=symbol), hjust=0,vjust=0)
+```
+
+
+
+```{r}
+ggplot(data = binded_frame, mapping = aes(x = log10(CPM_infected_R1), y = log10(CPM_ctl_R1), color = Strain_name)) + geom_point() + geom_abline(intercept = 0, slope = 1) +
+  geom_text(aes(label=symbol), hjust=0,vjust=0)
+```
+
+# CPM R1 vs CPM R2 plots:
+
+```{r}
+CPM_MergedTable_ByGene <- read.csv(("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/CPM_MergedTable_ByGene.csv"))
+```
+
+
+```{r}
+head(CPM_MergedTable_ByGene)
+```
+```{r}
+#
+CPM_MergedTable_ByGene <- CPM_MergedTable_ByGene %>% 
+     mutate_at(c(2:29), as.double)
+
+str(CPM_MergedTable_ByGene)
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_476_r2))) + geom_point()
+```
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_757_r2))) + geom_point()
+```
+
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_757_r2))) + geom_point()
+```
+
+
+
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_476_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_768_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_760_r1), y = log2(cpm_764_r2))) + geom_point()
+```
+
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_757_r1), y = log2(cpm_768_r2))) + geom_point()
+```
+
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_762_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_766_r2))) + geom_point()
+```
+
+
+```{r}
+ggplot(data = CPM_MergedTable_ByGene, mapping = aes(x = log2(cpm_768_r1), y = log2(cpm_768_r2))) + geom_point()
+```
+
+
+
+
+
+
+# Enhanced Volcano Plots for Core50 Genes
+```{r}
+DownGeneFrame_Core50 <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/DownGeneFrame_Core50.csv")
+
+UpGeneFrame_Core50 <- read.csv("D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/csv/UpGeneFrame_Core50.csv")
+```
+
 
 ```{r}
 p2 <- EnhancedVolcano(UpGeneFrame,
     lab = UpGeneFrame$symbol,              
     x = 'log2FoldChange',
-    y = 'pvalue')
+    y = 'pvalue',
+    title = 'pvalue Vs log2FC for DE UP Genes',
+    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.05"),
+    pCutoff = 0.05,
+    FCcutoff = 1,
+    pointSize = 1.0,
+    labSize = 4.0)
 
     p2
 ```
@@ -23,7 +259,23 @@ p2 <- EnhancedVolcano(UpGeneFrame,
 p2 <- EnhancedVolcano(DownGeneFrame,
     lab = DownGeneFrame$symbol,              
     x = 'log2FoldChange',
-    y = 'pvalue')
+    y = 'pvalue',
+    title = 'pvalue Vs log2FC for DE Down Genes',
+    caption = bquote(~Log[2]~ "fold change cutoff: 1; p-value cutoff: 0.05"),
+    pCutoff = 0.05,
+    FCcutoff = 1,
+    pointSize = 1.0,
+    labSize = 4.0)
 
     p2
 ```
+
+
+```{r}
+ggplot(data = UpGeneFrame, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point() + geom_text(aes(label=symbol), hjust=0, vjust=0)
+```
+
+```{r}
+ggplot(data = DownGeneFrame_Core50, mapping = aes(x = log2FoldChange, y = -log2(padj), color = Strain_name )) + geom_point() + geom_text(aes(label=symbol), hjust=0, vjust=0)
+```
+
