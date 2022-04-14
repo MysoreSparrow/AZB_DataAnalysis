@@ -53,7 +53,7 @@ list.files(genome_folder, pattern=".gz$")
 # Feature counts
 ```{r}
 # GTF File
-gtf_file <- "D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/RNAseq/ref/index/Mus_musculus.GRCm39.106.gtf"
+gtf_file <- "D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/RNAseq/ref/bams/Mus_musculus.GRCm38.102.gtf"
 ```
 
 ```{r}
@@ -68,10 +68,12 @@ setwd(bam_path)
 # counting reads that match overlap exons and grouping exons by gene_id
 count_matrix <- featureCounts(files = bamFiles , GTF.featureType="exon",
                               GTF.attrType="gene_id",annot.ext= gtf_file, 
-                              isGTFAnnotationFile=TRUE )
+                              isGTFAnnotationFile=TRUE, isPairedEnd=FALSE)
 ```
 
 ```{r}
 count_matrix
 ```
+
+
 
