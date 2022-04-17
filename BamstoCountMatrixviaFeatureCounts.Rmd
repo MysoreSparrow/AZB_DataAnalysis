@@ -1,0 +1,143 @@
+---
+title: "Bam to Counts Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(Rsubread)
+```
+
+
+# Feature counts
+```{r}
+# GTF File
+gtf_file <- "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/bam/Mus_musculus.GRCm38.102.gtf"
+```
+
+```{r}
+# Bam files
+bam_path <- "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/bam/"
+bamFiles <- list.files(bam_path, pattern = ".*bam$")
+bamFiles
+```
+
+```{r}
+setwd(bam_path)
+# specifying the gtf file containing the annotations and the format of the file
+# counting reads that match overlap exons and grouping exons by gene_id
+count_matrix <- featureCounts(files = bamFiles , GTF.featureType="exon",
+                              GTF.attrType="gene_id",annot.ext= gtf_file, 
+                              isGTFAnnotationFile=TRUE, isPairedEnd=FALSE) 
+```
+
+
+```{r}
+count_matrix
+```
+
+
+
+
+```{r}
+summary(count_matrix)
+```
+counts refers to the total number of unique genes that was in the GTF file used for counting,
+annotation refers to the genomic location of each feature being counted, 
+targets are the input samples, and 
+stat is the summary of how many reads are being used for counting.
+
+
+```{r}
+sample_ID <- colnames(count_matrix$counts) 
+print(sample_ID)
+```
+
+Finally, as a good practice, always save the R image to your working directory
+```{r}
+path <- "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/"
+save.image(paste0(path, "/featureCounts_workspace", ".RData"))
+
+```
+
+# take a loook at objcts inside count matrix
+
+```{r}
+names(count_matrix)
+```
+```{r}
+count_matrix$stat
+```
+
+The counts for the samples are stored in fc$counts. Take a look at that.
+
+```{r}
+## Take a look at the dimensions to see the number of genes
+dim(count_matrix$counts)
+```
+Take a look at a small set of values
+
+```{r}
+head(count_matrix$counts, 10)
+```
+
+```{r}
+count_matrix$targets
+```
+
+
+
+The annotation slot shows the annotation information that featureCounts used to summarise reads over genes.
+```{r}
+Gene_ID <- count_matrix$annotation
+head(Gene_ID, 10)
+```
+
+```{r}
+counts <- write.csv(
+  count_matrix$counts,
+  "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/counts.csv"
+)
+annotations <- write.csv(
+  count_matrix$annotation,
+  "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/annotation.csv"
+)
+samples <- write.csv(
+  count_matrix$targets,
+  "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/samples.csv"
+)
+stats_counts <- write.csv(
+  count_matrix$stat,
+  "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/stats_counts.csv"
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
