@@ -12,6 +12,9 @@ The goal here is to identify the differentially expressed genes under infected c
 
 ```{r}
 library("DESeq2")
+library("PoiClaClu")
+library("pheatmap")
+library("RColorBrewer")
 ```
 
 ```{r}
@@ -41,22 +44,26 @@ coldata
 It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata)
 
 ```{r}
-all(rownames(coldata) %in% colnames(count_matrix1))
+all(rownames(coldata) %in% colnames(cm1))
 ```
 Now, construct DESeqDataSet for DGE analysis:
 
 
 ```{r}
-dds <- DESeqDataSetFromMatrix(countData = count_matrix1, colData = coldata, 
+dds <- DESeqDataSetFromMatrix(countData = cm1, 
+                              colData = coldata, 
                               design = ~ condition)
 ```
 
+```{r}
+dds
+```
 
 
 Pre-filter the genes which have low counts. Here, I will remove the genes which have < 10 reads (this can vary based on research goal) in total across all the samples. Pre-filtering helps to remove genes that have very few mapped reads, reduces memory, and increases the speed of the DESeq2 analysis.
 
 ```{r}
-dds <- dds[rowSums(counts(dds)) >= 10,]
+dds <- dds[rowSums(counts(dds)) >= 5,]
 ```
 
 Now, select the reference level for condition comparisons. The reference level can set using ref parameter. The comparisons of other conditions will be compared against this reference i.e, the log2 fold changes will be calculated based on ref value (infected/control) . If this parameter is not set, comparisons will be based on alphabetical order of the levels.
@@ -72,7 +79,12 @@ dds1 <- DESeq(dds)
 # get gene expression table
 
 ```{r}
-res <- results(dds1)
+resultsNames(dds1)
+```
+
+
+```{r}
+res <- results(dds1, independentFiltering=FALSE, name = "condition_Infected_vs_control")
 res
 ```
 
@@ -83,3 +95,63 @@ res[order(res$padj),]
 
 
 Note on NA:  some genes with p value set to NA. This is due to all samples have zero counts for a gene or there is extreme outlier count for a gene or that gene is subjected to independent filtering by DESeq2.
+
+
+
+```{r}
+write.csv(as.data.frame(res[order(res$padj),] ), 
+          file="C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/results/condition_infected_vs_control_dge.csv")
+```
+
+```{r}
+summary(results(dds1, alpha=0.05))
+```
+
+
+```{r}
+summary(results(dds1, alpha=0.05, lfcThreshold =1))
+```
+
+```{r}
+sizeFactors(dds1)
+```
+
+# Explaratory Data analysis
+
+```{r}
+plotMA(res)
+```
+
+
+
+```{r}
+plotDispEsts(dds1)
+```
+# Heatmap of sample-to-sample distances using the variance stabilizing transformed values.
+
+
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- names(vsd$sizeFactor)
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists
+         )
+```
+
+
+```{r}
+
+poisd <- PoissonDistance(t(counts(dds1)))
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- names(dds1$sizeFactor)
+colnames(samplePoisDistMatrix) <- NULL
+pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd
+         )
+```
+
