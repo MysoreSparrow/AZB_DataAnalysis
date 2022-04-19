@@ -15,12 +15,19 @@ library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
 library("RColorBrewer")
+library(tidyverse)
 ```
 
 ```{r}
 cm1 <- as.matrix(read.csv("C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/counts.csv", row.names = "X"))
 dim(cm1)
 ```
+
+
+```{r}
+head(cm1, 10)
+```
+
 
 DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information (you can also import sample information if you have it in a file).
 
@@ -36,6 +43,11 @@ condition = c("Infected","Infected","Infected","Infected","Infected","Infected",
 ```{r}
 coldata <- data.frame(sample_ID, condition)
 colnames(coldata) <- c('sample','condition') # change name of one of the columns
+coldata
+```
+
+
+```{r}
 coldata$condition <- as.factor(coldata$condition)
 coldata <- data.frame(coldata, row.names = 1) # convert column to row.names
 coldata 
@@ -58,6 +70,158 @@ dds <- DESeqDataSetFromMatrix(countData = cm1,
 ```{r}
 dds
 ```
+
+# Normalization
+
+
+## Count Normalization via DESq2
+
+```{r}
+dds <- estimateSizeFactors(dds)
+```
+
+Can check the normalization factors using:
+```{r}
+sizeFactors(dds)
+```
+
+```{r}
+normalized_counts <- counts(dds, normalized = TRUE)
+```
+
+Saving the normalized counts table.
+```{r}
+write.table(normalized_counts, 
+          file="C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/results/normalized_counts.txt",
+          sep = "\t",
+          quote = FALSE,
+          col.names = NA)
+```
+
+ASK Q1!
+
+
+# Quality Control
+
+
+Assess overall similarity between samples and understand the following:
+
+1. Which samples are similar to each other and which are different?
+2. Does this fit to the expectation from experiment's design?
+3. What are the major sources of variation in dataset?
+
+## Count Data Tansformations - Extracting Transformed Values
+
+
+### Transform normalised counts using rlog transformation for Visualization (only!)
+
+```{r}
+rld <- rlog(dds, blind = TRUE) 
+# blind flag turned on to keep the transformation unbiased to sample condition information
+vsd <- vst(dds, blind = TRUE)
+
+```
+
+
+```{r}
+head(assay(vsd), 3)
+```
+
+### Effects of transformations on the variance
+
+
+```{r}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
+library("vsn")
+meanSdPlot(assay(ntd))
+```
+
+```{r}
+meanSdPlot(assay(vsd))
+```
+```{r}
+meanSdPlot(assay(rld))
+```
+## Data Quality assessment via sample clustering and visualization
+
+
+### Heatmap of Count Matrix
+
+```{r}
+
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+df <- as.data.frame(colData(dds))
+```
+
+
+```{r}
+
+pheatmap(assay(ntd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
+         cluster_cols=FALSE, annotation_col=df)
+```
+```{r}
+pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
+         cluster_cols=FALSE, annotation_col=df)
+```
+
+
+
+### Heatmap of sample-to-sample distances using the variance stabilizing transformed values.
+
+
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- names(vsd$sizeFactor)
+colnames(sampleDistMatrix) <- NULL
+```
+
+
+```{r}
+
+colors <- colorRampPalette( rev(brewer.pal(9, "Spectral")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col= colors
+         )
+```
+### Plot PCA of Samples
+
+```{r}
+plotPCA(vsd, intgroup="condition")
+```
+
+
+### Hierarchical Clustering
+
+```{r}
+### Extract the rlog matrix from the object
+rld_mat <- assay(rld)    ## assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+```
+
+
+```{r}
+### Compute pairwise correlation values
+rld_cor <- cor(rld_mat)    ## cor() is a base R function
+
+head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
+```
+
+```{r}
+### Plot heatmap
+pheatmap(rld_cor)
+```
+```{r}
+heat.colors <- brewer.pal(6, "Blues")
+pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 10, 
+			fontsize_row = 10, height=20)
+```
+
+
 
 
 Pre-filter the genes which have low counts. Here, I will remove the genes which have < 10 reads (this can vary based on research goal) in total across all the samples. Pre-filtering helps to remove genes that have very few mapped reads, reduces memory, and increases the speed of the DESeq2 analysis.
@@ -127,31 +291,8 @@ plotMA(res)
 ```{r}
 plotDispEsts(dds1)
 ```
-# Heatmap of sample-to-sample distances using the variance stabilizing transformed values.
 
 
-```{r}
-sampleDists <- dist(t(assay(vsd)))
-sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- names(vsd$sizeFactor)
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists
-         )
-```
 
 
-```{r}
-
-poisd <- PoissonDistance(t(counts(dds1)))
-samplePoisDistMatrix <- as.matrix( poisd$dd )
-rownames(samplePoisDistMatrix) <- names(dds1$sizeFactor)
-colnames(samplePoisDistMatrix) <- NULL
-pheatmap(samplePoisDistMatrix,
-         clustering_distance_rows = poisd$dd,
-         clustering_distance_cols = poisd$dd
-         )
-```
 
