@@ -213,16 +213,19 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 
 ```{r}
 ### Plot heatmap
-pheatmap(rld_cor)
+pheatmap(rld_cor, border_color=NA, 
+         fontsize = 5, 
+         fontsize_row = 10, 
+         height=50)
 ```
 ```{r}
 heat.colors <- brewer.pal(6, "Blues")
-pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 10, 
-			fontsize_row = 10, height=20)
+pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7, 
+			fontsize_row = 10, height=50)
 ```
 
 
-
+# DGE Analysis
 
 Pre-filter the genes which have low counts. Here, I will remove the genes which have < 10 reads (this can vary based on research goal) in total across all the samples. Pre-filtering helps to remove genes that have very few mapped reads, reduces memory, and increases the speed of the DESeq2 analysis.
 
