@@ -25,7 +25,7 @@ bamFiles
 ```
 
 ```{r}
-setwd(bam_path)
+#setwd(bam_path)
 # specifying the gtf file containing the annotations and the format of the file
 # counting reads that match overlap exons and grouping exons by gene_id
 count_matrix <- featureCounts(files = bamFiles , GTF.featureType="exon",
