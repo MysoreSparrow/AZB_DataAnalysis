@@ -1,7 +1,9 @@
 ---
 title: "Differential Gene Expression Analysis Notebook - Alina's Data Analysis Project"
-output: 
-  html_document: 
+output:
+  pdf_document:
+    toc: yes
+  html_document:
     toc: yes
     number_sections: yes
 ---
@@ -15,6 +17,9 @@ library("PoiClaClu")
 library("pheatmap")
 library("RColorBrewer")
 library('tidyverse')
+library("PoiClaClu")
+library("vsn")
+library('EnhancedVolcano')
 ```
 
 ```{r}
@@ -149,7 +154,7 @@ head(assay(vsd))
 ```{r}
 # this gives log2(n + 1)
 ntd <- normTransform(dds)
-library("vsn")
+
 meanSdPlot(assay(ntd))
 ```
 
@@ -167,7 +172,7 @@ meanSdPlot(assay(rld))
 ```{r}
 
 select <- order(rowMeans(counts(dds,normalized=TRUE)),
-                decreasing=TRUE)[1:20]
+                decreasing=TRUE)[1:21]
 df <- as.data.frame(colData(dds))
 ```
 
@@ -265,7 +270,7 @@ dds1 <- DESeq(dds)
 resultsNames(dds1)
 ```
 
-### Result - Type1
+### Result 
 
 ```{r}
 res <- results(dds1, independentFiltering=FALSE, name = "condition_Infected_vs_control")
@@ -275,11 +280,19 @@ res
 Order gene expression table by adjusted p value (Benjamini-Hochberg FDR method)
 
 ```{r}
-res[order(res$padj),]  
+res_adj <- res[order(res$padj),]  
+res_adj
 ```
 
 
-Note on NA:  some genes with p value set to NA. This is due to all samples have zero counts for a gene or there is extreme outlier count for a gene or that gene is subjected to independent filtering by DESeq2.
+### Note on NA:  some genes with p value set to NA. 
+
+1. This is due to all samples have zero counts for a gene ----->>> baseMean is 0 and all other values are NA.
+2. There is a row with extreme outlier count for a gene (determined by cook's distance) ----->>> pvalue set to NA.
+
+Cook's distance : DESeq function calculates, for every gene and for every sample, a diagnostic test for outliers called Cook’s distance. Cook’s distance is a measure of how much a single sample is influencing the fitted coefficients for a gene, and a large value of Cook’s distance is intended to indicate an outlier count. The Cook’s distances are stored as a matrix available in assays(dds)[["cooks"]].
+
+3. If a row is filtered by automatic independent filtering, for having a low mean normalized count, then only the adjusted p value will be set to NA.
 
 
 
@@ -301,11 +314,50 @@ r
 summary(results(dds1, alpha=0.05, lfcThreshold =1))
 ```
 
+```{r}
+ir <- results(dds1, alpha=0.05, lfcThreshold =1)
+ir
+```
+
+
+## Results - with padj and LFC thresholds
+
+```{r}
+res.05 <- results(dds1, alpha = 0.05)
+table(res.05$padj < 0.05)
+```
+
+```{r}
+resLFC1 <- results(dds1, lfcThreshold=1)
+table(resLFC1$padj < 0.05)
+```
+
+```{r}
+new_res <- results(dds1, alpha = 0.05, lfcThreshold=1)
+new_res
+```
+
+
+### Order gene expression table by adjusted p value (Benjamini-Hochberg FDR method)
+```{r}
+#
+new_res_adj <- new_res[order(new_res$padj),]  
+new_res_adj
+
+```
+saving these results table :
+
+```{r}
+write.csv(as.data.frame(new_res_adj), 
+          file="C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/results/condition_infected_vs_control_dge_withthresholdsimposed.csv")
+```
+
+
 
 # Exploratory Data analysis
 
 ```{r}
-plotMA(res)
+plotMA(new_res)
 ```
 
 
@@ -313,6 +365,35 @@ plotMA(res)
 ```{r}
 plotDispEsts(dds1)
 ```
+
+### Calculating sample distances is to use the Poisson Distance 
+
+This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples. The PoissonDistance function takes the original count matrix (not normalized) with samples as rows instead of columns.
+
+```{r}
+
+poisd <- PoissonDistance(t(counts(dds1)))
+print(poisd)
+```
+
+
+```{r}
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+dim(samplePoisDistMatrix)
+#rownames(samplePoisDistMatrix) <- paste( dds1$dex, dds1$cell, sep=" - " )
+#colnames(samplePoisDistMatrix) <- NULL
+
+```
+
+```{r}
+
+pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd,
+         col = colors)
+```
+
+
 
 ## Log fold change shrinkage for visualization and ranking
 
@@ -323,5 +404,85 @@ resLFC
 
 ```{r}
 plotMA(resLFC)
+```
+
+
+
+# Plotting Results
+
+## Counts Plot
+
+A quick way to visualize the counts for a particular gene is to use the plotCounts function that takes as arguments the DESeqDataSet, a gene name, and the group over which to plot the counts
+
+```{r}
+topGene <- rownames(res)[which.max(res_adj$padj)]
+topGene
+```
+
+```{r}
+plotCounts(dds1, gene = topGene, intgroup="condition")
+```
+### Normalized counts for a single gene over treatment group
+```{r}
+library("ggbeeswarm")
+geneCounts <- plotCounts(dds1, gene = topGene, 
+                         intgroup="condition",
+                         returnData = TRUE)
+geneCounts
+```
+```{r}
+ggplot(geneCounts, aes(x = condition, y = count, color = condition)) +
+  scale_y_log10() +  geom_beeswarm(cex = 3)
+```
+
+
+# MDS Plot
+
+# MA Plot
+
+## Gene Clustering
+
+Sample distance heatmap made previously, the dendrogram at the side shows us a hierarchical clustering of the samples. Such a clustering can also be performed for the genes.For demonstration, let us select the 20 genes with the highest variance across samples.
+
+```{r}
+library("genefilter")
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
+topVarGenes
+```
+The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap (figure below). We provide a data.frame that instructs the pheatmap function how to label the columns.
+```{r}
+mat  <- assay(vsd)[ topVarGenes, ]
+mat  <- mat - rowMeans(mat)
+print(mat)
+anno <- as.data.frame(colData(vsd)[, "condition"])
+```
+```{r}
+all(rownames(anno) %in% colnames(assay(vsd)))
+# this needs to match in order for the genen clustering to take place
+
+```
+
+### Volcano Plots
+
+```{r}
+EnhancedVolcano(new_res,
+    lab = rownames(new_res),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    
+    ylim = c(0, 40),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    pointSize = 3.0,
+    labSize = 3.0,
+    labCol = 'black',
+    labFace = 'bold',
+    boxedLabels = TRUE,
+    colAlpha = 1,
+
+    legendLabSize = 10,
+    legendIconSize = 4.0,
+    drawConnectors = TRUE,
+    widthConnectors = 0.75)
 ```
 
