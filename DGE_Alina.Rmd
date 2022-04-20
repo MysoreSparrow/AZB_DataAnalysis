@@ -7,25 +7,27 @@ output:
 ---
 
                                              
-The DGE analysis will be performed using the raw integer read counts for control and infected conditions.
-The goal here is to identify the differentially expressed genes under infected condition.
+The DGE analysis will be performed using the raw integer read counts for control and infected conditions. The goal here is to identify the differentially expressed genes under infected condition.
 
-```{r}
+```{r message=F, warning=F, paged.print=TRUE}
 library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
 library("RColorBrewer")
-library(tidyverse)
+library('tidyverse')
 ```
 
 ```{r}
-cm1 <- as.matrix(read.csv("C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/counts.csv", row.names = "X"))
+cm1 <-as.matrix(read.csv(
+      "C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/counts.csv",
+      row.names = "X"
+    ))
 dim(cm1)
 ```
 
 
 ```{r}
-head(cm1, 10)
+head(cm1)
 ```
 
 
@@ -35,6 +37,8 @@ DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s 
 sample_ID <- list(read.csv("C:/Users/kesha/Documents/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/fc/samples.csv", row.names = "X"))
 sample_ID
 ```
+
+
 ```{r}
 condition = c("Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","control","control")
 ```
@@ -46,6 +50,12 @@ colnames(coldata) <- c('sample','condition') # change name of one of the columns
 coldata
 ```
 
+```{r}
+library(stringr)
+coldata$sample = str_remove_all(coldata$sample, pattern = '.markdup.sorted') # tidying up the
+coldata
+```
+
 
 ```{r}
 coldata$condition <- as.factor(coldata$condition)
@@ -54,6 +64,12 @@ coldata
 ```
 
 It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata)
+
+```{r}
+colnames(cm1) = str_remove_all(colnames(cm1), pattern = '.markdup.sorted') #tidying up these names again
+colnames(cm1)
+```
+
 
 ```{r}
 all(rownames(coldata) %in% colnames(cm1))
@@ -124,7 +140,7 @@ vsd <- vst(dds, blind = TRUE)
 
 
 ```{r}
-head(assay(vsd), 3)
+head(assay(vsd))
 ```
 
 ### Effects of transformations on the variance
@@ -161,12 +177,12 @@ df <- as.data.frame(colData(dds))
 pheatmap(assay(ntd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
          cluster_cols=FALSE, annotation_col=df)
 ```
+
+
 ```{r}
 pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
          cluster_cols=FALSE, annotation_col=df)
 ```
-
-
 
 ### Heatmap of sample-to-sample distances using the variance stabilizing transformed values.
 
@@ -200,26 +216,26 @@ plotPCA(vsd, intgroup="condition")
 
 ```{r}
 ### Extract the rlog matrix from the object
-rld_mat <- assay(rld)    ## assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
 ```
 
 
 ```{r}
 ### Compute pairwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
-
 head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
 ```
 
 ```{r}
 ### Plot heatmap
 pheatmap(rld_cor, border_color=NA, 
-         fontsize = 5, 
+         fontsize = 8, 
          fontsize_row = 10, 
          height=50)
 ```
+
 ```{r}
-heat.colors <- brewer.pal(6, "Blues")
+heat.colors <- brewer.pal(6, "Spectral")
 pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7, 
 			fontsize_row = 10, height=50)
 ```
@@ -230,7 +246,7 @@ pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7,
 Pre-filter the genes which have low counts. Here, I will remove the genes which have < 10 reads (this can vary based on research goal) in total across all the samples. Pre-filtering helps to remove genes that have very few mapped reads, reduces memory, and increases the speed of the DESeq2 analysis.
 
 ```{r}
-dds <- dds[rowSums(counts(dds)) >= 5,]
+dds <- dds[rowSums(counts(dds)) >= 1,]
 ```
 
 Now, select the reference level for condition comparisons. The reference level can set using ref parameter. The comparisons of other conditions will be compared against this reference i.e, the log2 fold changes will be calculated based on ref value (infected/control) . If this parameter is not set, comparisons will be based on alphabetical order of the levels.
@@ -240,15 +256,16 @@ dds$condition <- relevel(dds$condition, ref = "control")
 ```
 
 Perform Differntial Gene Expression Analysis:
+
 ```{r}
 dds1 <- DESeq(dds)
 ```
-# get gene expression table
 
 ```{r}
 resultsNames(dds1)
 ```
 
+### Result - Type1
 
 ```{r}
 res <- results(dds1, independentFiltering=FALSE, name = "condition_Infected_vs_control")
@@ -256,6 +273,7 @@ res
 ```
 
 Order gene expression table by adjusted p value (Benjamini-Hochberg FDR method)
+
 ```{r}
 res[order(res$padj),]  
 ```
@@ -273,17 +291,18 @@ write.csv(as.data.frame(res[order(res$padj),] ),
 ```{r}
 summary(results(dds1, alpha=0.05))
 ```
+```{r}
+r<- results(dds1, alpha=0.05, lfcThreshold =1)
+r
+```
 
 
 ```{r}
 summary(results(dds1, alpha=0.05, lfcThreshold =1))
 ```
 
-```{r}
-sizeFactors(dds1)
-```
 
-# Explaratory Data analysis
+# Exploratory Data analysis
 
 ```{r}
 plotMA(res)
@@ -295,7 +314,14 @@ plotMA(res)
 plotDispEsts(dds1)
 ```
 
+## Log fold change shrinkage for visualization and ranking
 
+```{r}
+resLFC <- lfcShrink(dds1, coef="condition_Infected_vs_control", type="apeglm")
+resLFC
+```
 
-
+```{r}
+plotMA(resLFC)
+```
 
