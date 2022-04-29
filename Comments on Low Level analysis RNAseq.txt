@@ -1,0 +1,68 @@
+
+Quality of Fastq Files: 
+
+First and foremost, the FastQC "Summary" should generally be ignored. 
+Its "grading scale" (green - good, yellow - warning, red - failed) incorporates assumptions for a particular kind of experiment, 
+and is not applicable to most real-world data. Instead, look through the individual reports and evaluate them according to your experiment type.
+
+The FastQC reports I find most useful, and why:
+
+Should I trim low quality bases?
+consult the Per base sequence quality report based on all sequences.
+Do I need to remove adapter sequences?
+consult the Adapter Content report
+Do I have other contamination?
+consult the Overrepresented Sequences report
+based on the 1st 100,000 sequences, trimmed to 75bp
+How complex is my library?
+consult the Sequence Duplication Levels report, but remember that different experiment types are expected to have vastly different duplication profiles
+
+-------------------------------Trimming with cutadapt ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Imp link: https://cutadapt.readthedocs.io/en/stable/guide.html#adapter-types
+
+# Cutadapt parameters:
+# - a: The sequence of the adapter is given with the -a option. You need to replace AACCGGTT with the correct adapter sequence. or also look poly A and poly T sequences. 
+# - q: The -q (or --quality-cutoff) parameter can be used to trim low-quality ends from reads. If you specify a single cutoff value, the 3’ end of each read is trimmed. Used for quality trimming to remove short reads (<20nt).
+# - j: To specify number of threads.
+# - o: specify output directory where trimmed files are to be written by cutadapt. 
+-------------------------------ALIGNMENT -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Imp link: https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
+
+In order to quantitate how many reads map to which genes in the genome, we need 3 things:
+
+Good-quality read data (which we assessed in step 1)
+An aligner. When working with transcriptomic RNA-seq data, we recommend the following aligners:
+STAR - developed by Alex Dobin - for short-read whole-transcriptome sequencing data.
+BWA - a genomic/DNA aligner, developed by Heng Li - for short-read sequencing data of small RNA (ex - miRNA libraries).
+minimap2 - a transcriptomic aligner, also developed by Heng Li - for long read sequencing data such as Oxford Nanopore and PacBio. Unlike “standard” DNA/RNA aligners, 
+minimap2 is able to handle the high error rate of these technologies.
+
+Both STAR and minimap2 are what are called “splicing-aware” aligners, in that they are designed to align RNA-seq data, which needs to accomodate for (and not penalise too heavily) 
+the natural “gaps” that occur when aligning RNA to genomic DNA sequence as a result of splicing.
+
+A reference genome : The genomes of many species have already been sequenced, and RNA-seq is often done on samples that come from these. We will focus the analysis below on working with human data, for whom the genome was sequenced in 2001. Prior to mapping, most aligners require
+ you to construct and index the genome, so that the aligner can quickly and efficiently retrieve reference sequence information.
+
+# Basic STAR workflow consists of 2 steps:
+# 1. Generating genome indexes files : In this step user supplied the reference genome sequences (FASTA files) and annotations (GTF file), from which STAR generate genome indexes that are utilized in the 2nd (mapping) step. The genome indexes are saved to disk and need only be generated
+once for each genome/annotation combination. A limited collection of STAR genomes is available from http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STARgenomes/, however, it is strongly recommended that users generate their own genome
+indexes with most up-to-date assemblies and annotations.
+
+The basic options to generate genome indices are as follows:
+--runThreadN NumberOfThreads
+--runMode genomeGenerate
+--genomeDir /path/to/genomeDir
+--genomeFastaFiles /path/to/genome/fasta1 /path/to/genome/fasta2 ...
+--sjdbGTFfile /path/to/annotations.gtf
+--sjdbOverhang ReadLength-1
+
+NOTE:  --genomeDir /path/to/genomeDir. This directory has to be created (with mkdir) before STAR run and needs to have writing permissions. The file system needs to have at least 100GB of disk
+space available for a typical mammalian genome. It is recommended to remove all files from the genome directory before running the genome generation step. This directory path will have to be supplied at the mapping step to identify the reference genome.
+
+# 2. Mapping reads to the genome: In this step user supplies the genome files generated in the 1st step, as well as the RNA-seq reads (sequences) in the form of FASTA or FASTQ files. STAR maps the reads to the genome,
+and writes several output files, such as alignments (SAM/BAM), mapping summary statistics, splice junctions, unmapped reads, signal (wiggle) tracks etc. 
+
+STAR command line has the following format:
+STAR --option1-name option1-value(s)--option2-name option2-value(s) ...
+If an option can accept multiple values, they are separated by spaces, and in a few cases - by commas.
