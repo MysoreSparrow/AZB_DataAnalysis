@@ -4,6 +4,12 @@
 
 # login: ssh keshav@134.130.18.27
 # pwd: Aachen198921
+
+
+# Transfer files local computer to HPC:
+scp -r /root/alina_rnaseq/mapping_alignment/mouse_genome_m39/ keshav@134.130.18.27:/data/keshav/alina_rnaseq/mapping_alignment/
+# Transfer files from HPC to local server: https
+
 # --------------------------Run fastqc for first time on raw sequenced files to get an idea about quality of files.-----------------------------------------------------------------------------------------------------------------
 
 ## from directory which has all s/w installed: /root/ , run the following command to run fastqc algorithm, along with specifying where the output will be stored:
@@ -52,6 +58,8 @@ for f in *.fastq.gz; do cutadapt -j 4 -a "poly A=A{20}" --quality-cutoff 20 -u 1
 
 multiqc . -o /root/alina_rnaseq/reports/postcutadapttrimming_run4/
 
+scp -r 
+
 
 # --------------------------Mapping with STAR aligner-----------------------------------------------------------------------------------------------------------------
 # Basic STAR workflow consists of 2 steps:
@@ -71,8 +79,14 @@ multiqc . -o /root/alina_rnaseq/reports/postcutadapttrimming_run4/
 # nohup is used so that the process keeps going on once even if i am disconnected from the server
 # & to put the process in the background
 
+# Links and command for star genome indexing
 
-nohup STAR  --runThreadN 4 --runMode genomeGenerate --genomeDir /data/keshav/alina_rnaseq/mapping_alignment/genome_index_fromSTAR_usingm38/ --genomeFastaFiles /data/keshav/alina_rnaseq/mapping_alignment/mouse_genome_m38/Mus_musculus.GRCm38.cdna.all.fa.gz --sjdbGTFfile /data/keshav/alina_rnaseq/mapping_alignment/mouse_genome_m38/Mus_musculus.GRCm38.102.gtf.gz --sjdbOverhang 100 &
+wget https://ftp.ensembl.org/pub/release-106/gtf/mus_musculus/Mus_musculus.GRCm39.106.gtf.gz  --no-check-certificate
+wget https://ftp.ensembl.org/pub/release-106/fasta/mus_musculus/dna/Mus_musculus.GRCm39.dna.primary_assembly.fa.gz --no-check-certificate
 
+# Command for running on costa lab cluster 
+STAR  --runThreadN 4 --runMode genomeGenerate --genomeDir /data/keshav/alina_rnaseq/mapping_alignment/genome_index_fromSTAR_usingm39/ --genomeFastaFiles /data/keshav/alina_rnaseq/mapping_alignment/mouse_genome_m39/Mus_musculus.GRCm39.dna.primary_assembly.fa --sjdbGTFfile /data/keshav/alina_rnaseq/mapping_alignment/mouse_genome_m39/Mus_musculus.GRCm39.106.chr.gtf --sjdbOverhang 63 --limitGenomeGenerateRAM 83476436576
 
+# genome generation succesfully completed!!!
 
+# Running the mapping job
