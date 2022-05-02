@@ -90,3 +90,4 @@ STAR  --runThreadN 4 --runMode genomeGenerate --genomeDir /data/keshav/alina_rna
 # genome generation succesfully completed!!!
 
 # Running the mapping job
+STAR --runThreadN 4 --genomeDir /data/keshav/alina_rnaseq/mapping_alignment/genome_index_fromSTAR_usingm39/ --readFilesIn /data/keshav/alina_rnaseq/cutadapt/trimmed_run5/*.fastq.gz --readFilesCommand zcat --outFileNamePrefix /data/keshav/alina_rnaseq/mapping_alignment/star_mapped/starmapped_run1_ --outSAMtype BAM SortedByCoordinate
