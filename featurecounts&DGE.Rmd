@@ -1,0 +1,103 @@
+---
+title: "Lets Go: From Bams to Count Matrix Notebook"
+output: html_notebook
+---
+
+```{r}
+library(Rsubread)
+```
+
+# Feature counts
+```{r}
+# GTF File
+gtf_file <- "C:/Users/User/Documents/bam/Mus_musculus.GRCm39.106.chr.gtf"
+
+```
+
+```{r}
+# Bam files
+bam_path <- "C:/Users/User/Documents/bam/"
+bamFiles <- list.files(bam_path, pattern = ".*bam$")
+bamFiles
+```
+
+
+```{r}
+setwd(bam_path)
+fc <- featureCounts(files = bamFiles,
+                    annot.ext= gtf_file,
+                    isGTFAnnotationFile=TRUE,
+                    isPairedEnd=FALSE)
+```
+
+
+
+```{r}
+head(fc)
+```
+```{r}
+head(fc[["annotation"]], 10)
+
+```
+
+```{r}
+head(fc[["counts"]], 10)
+write.csv(fc[["counts"]], 'C:/Users/User/Documents/bam/counts.csv')
+```
+
+
+# Differential Gene Expression Analysis
+
+```{r}
+library("DESeq2")
+library("PoiClaClu")
+library("pheatmap")
+library("RColorBrewer")
+library('tidyverse')
+library("PoiClaClu")
+library("vsn")
+library('EnhancedVolcano')
+library('gplots')
+library('org.Mm.eg.db')
+```
+
+
+```{r}
+countsmatrix <-as.matrix(read.csv('C:/Users/User/Documents/bam/counts.csv'))
+dim(countsmatrix)
+```
+
+## Creating metadata for the DGE Analysis
+
+DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information 
+```{r}
+# write the list of bam files as a list to be saved in csv file
+write.csv(list(bamFiles), 'C:/Users/User/Documents/bam/samples.csv')
+```
+
+
+
+```{r}
+# Read the csv file and change the column name 
+sample_ID <- read.csv('C:/Users/User/Documents/bam/samples.csv')
+names(sample_ID)[2]  <- 'Sample_Name'
+colnames(sample_ID)
+```
+
+
+```{r}
+condition = c("Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","control","control")
+```
+
+
+```{r}
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c('Number','Sample_Name','condition') # change name of one of the columns
+coldata <- subset (coldata, select = -Number)
+```
+
+the metadata can be foudn in a df called coldata!
+```{r}
+head(coldata)
+```
+
