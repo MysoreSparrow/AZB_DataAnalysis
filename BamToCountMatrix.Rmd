@@ -7,73 +7,53 @@ output: html_notebook
 library(Rsubread)
 ```
 
-```{r}
-## create the directory to keep the reference genome
-genome_folder <- "D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/RNAseq/ref/"
-index_folder <- paste0(genome_folder,"/index/")
-dir.create(index_folder,recursive=T,showWarnings = F)
-## setup the paths to the files on the ENSEMBL server
-
-# the full Mouse genome fasta is in this file 
-fa_path <- "https://ftp.ensembl.org/pub/release-106/fasta/mus_musculus/cdna/"
-faFile <- "Mus_musculus.GRCm39.cdna.all.fa.gz"
-
-# the gene annotations for mouse in gtf format are in this file
-gtf_path <- "https://ftp.ensembl.org/pub/release-106/gtf/mus_musculus/"
-gtfFile <- "Mus_musculus.GRCm39.106.gtf.gz"
-```
-
-```{r}
-## run the commands to download the file 
-download.file(paste0(fa_path,faFile),paste0(genome_folder, faFile), mode = "w")
-download.file(paste0(gtf_path,gtfFile),paste0(genome_folder, faFile), mode = "w")
-```
-```{r}
-list.files(genome_folder, pattern=".gz$")
-```
-#paste0(genome_folder,faFile)
-
-```{r}
-# Build an index using the reference fasta file but Rsubread requires 
-# uncompressed fasta files
-# unzip the file
-#system(paste0("gunzip ",paste0(genome_folder,faFile)))
-#gtf_refFile <- R.utils::gunzip("genome_folder/Mus_musculus.GRCm39.106.gtf.gz", remove=FALSE)
-# get the name of the unzipped file
-# <- list.files(genome_folder, pattern=".fa$", full=T)
-```
-
-```{r}
-# build index
-#buildindex(basename=paste0(index_folder,"106"),reference=fa_refFile)
-```
-
-
-
 # Feature counts
 ```{r}
 # GTF File
-gtf_file <- "D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/RNAseq/ref/bams/Mus_musculus.GRCm38.102.gtf"
+gtf_file <- "C:/Users/User/Documents/bam/Mus_musculus.GRCm39.106.chr.gtf"
+
 ```
 
 ```{r}
 # Bam files
-bam_path <- "D:/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/RNAseq/ref/bams"
+bam_path <- "C:/Users/User/Documents/bam/"
 bamFiles <- list.files(bam_path, pattern = ".*bam$")
+bamFiles
 ```
+
 
 ```{r}
 setwd(bam_path)
-# specifying the gtf file containing the annotations and the format of the file
-# counting reads that match overlap exons and grouping exons by gene_id
-count_matrix <- featureCounts(files = bamFiles , GTF.featureType="exon",
-                              GTF.attrType="gene_id",annot.ext= gtf_file, 
-                              isGTFAnnotationFile=TRUE, isPairedEnd=FALSE)
+fc <- featureCounts(files = bamFiles,
+                    annot.ext= gtf_file,
+                    isGTFAnnotationFile=TRUE,
+                    isPairedEnd=FALSE)
+```
+
+
+
+```{r}
+fc
+```
+
+# Differential Gene Expression Analysis
+
+```{r}
+save(fc, file = "C:/Users/User/Documents/bam/featurecounts.csv")
 ```
 
 ```{r}
-count_matrix
+library("DESeq2")
+library("PoiClaClu")
+library("pheatmap")
+library("RColorBrewer")
+library('tidyverse')
+library("PoiClaClu")
+library("vsn")
+library('EnhancedVolcano')
 ```
 
-
+```{r}
+fc$target
+```
 
