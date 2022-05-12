@@ -1,8 +1,8 @@
 ---
-title: "Lets Go: From Bams to Count Matrix Notebook"
-output: html_notebook:
-      toc: true
-    theme: united
+title: "From Bams to Count Matrix and then DGE - Notebook"
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r}
@@ -207,3 +207,273 @@ nrow(dds)
 
 ### The variance stabilizing transformation and the rlog
 
+#### Data needs to be homeoskedastic!
+
+- common statistical methods for exploratory analysis of multidimensional data, for example clustering and principal components analysis (PCA), work best for data that is Homeoskedastic!
+
+- Homeoskedastic: data that generally has the same range of variance at different ranges of the mean values.
+
+- Problem (For RNA-seq counts):  the expected variance grows with the mean.
+If one performs PCA directly on a matrix of counts or normalized counts (e.g. correcting for differences in sequencing depth), the resulting plot typically depends mostly on the genes with highest counts because they show the largest absolute differences between samples.
+
+- Solution: simple and often used strategy to avoid this is to take the logarithm of the normalized count values plus a pseudocount of 1.
+
+- Problem again! - now the genes with the very lowest counts will contribute a great deal of noise to the resulting plot, because taking the logarithm of small counts actually inflates their variance. 
+
+- Result: The logarithm with a small pseudocount amplifies differences when the values are close to 0. The low count genes with low signal-to-noise ratio will overly contribute to sample-sample distances and PCA plots.
+
+- Solution: DESeq2 offers two transformations for count data that stabilize the variance across the mean:
+
+1. the variance stabilizing transformation (VST) for negative binomial data with a dispersion-mean trend (Anders and Huber 2010), implemented in the vst function, 
+2. regularized-logarithm transformation or rlog (Love, Huber, and Anders 2014).
+
+- For genes with high counts, both the VST and the rlog will give similar result to the ordinary log2 transformation of normalized counts.
+- For genes with lower counts, the values are shrunken towards a middle value. The VST or rlog-transformed data then become approximately homoskedastic (more flat trend in the meanSdPlot), and can be used directly for computing distances between samples, making PCA plots, or as input to downstream methods which perform best with homoskedastic data.
+
+
+```{r}
+vsd <- vst(dds, blind = FALSE)
+head(assay(vsd), 3)
+```
+
+```{r}
+colData(vsd)
+```
+
+```{r}
+rld <- rlog(dds, blind = FALSE)
+head(assay(rld), 3)
+```
+
+Scatterplot of transformed counts from two samples. 
+
+While the rlog is on roughly the same scale as the log2 counts, the VST has a upward shift for the smaller values. It is the differences between samples (deviation from y=x in these scatterplots) which will contribute to the distance calculations and the PCA plot.
+
+```{r}
+library("dplyr")
+library("ggplot2")
+
+dds <- estimateSizeFactors(dds)
+
+df <- bind_rows(
+  as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
+         mutate(transformation = "log2(x + 1)"),
+  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"),
+  as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))
+  
+colnames(df)[1:2] <- c("x", "y")  
+
+lvls <- c("log2(x + 1)", "vst", "rlog")
+df$transformation <- factor(df$transformation, levels=lvls)
+
+ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
+  coord_fixed() + facet_grid( . ~ transformation)
+```
+
+
+## Sample Distances
+
+useful first step in an RNA-seq analysis is often to assess overall similarity between samples: 
+
+1. Which samples are similar to each other, which are different? 
+
+2. Does this fit to the expectation from the experiment’s design?
+
+
+### Euclidean Distance between samples
+
+dist to calculate the Euclidean distance between samples. To ensure we have a roughly equal contribution from all genes, we use it on the VST data.
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+head(sampleDists)
+```
+
+visualize the distances in a heatmap
+
+```{r}
+library("pheatmap")
+library("RColorBrewer")
+
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- paste( vsd$dex, vsd$cell, sep = " - " )
+#colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Spectral")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colors)
+```
+
+### Poisson Distance between Samples
+
+Another option for calculating sample distances is to use the Poisson Distance (Witten 2011).
+This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples.
+```{r}
+
+poisd <- PoissonDistance(t(counts(dds)))
+```
+
+```{r}
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep=" - " )
+#colnames(samplePoisDistMatrix) <- NULL
+pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd,
+         col = colors)
+```
+
+### PCA Plot
+
+```{r}
+plotPCA(vsd, intgroup="condition")
+```
+
+```{r}
+pcaData <- plotPCA(vsd, intgroup = "condition", returnData = TRUE)
+pcaData
+```
+
+```{r}
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+```
+
+```{r}
+ggplot(pcaData, aes(x = PC1, y = PC2, color = condition, shape = condition)) +
+  geom_point(size =3) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  coord_fixed() +
+  ggtitle("PCA with VST data")
+```
+
+
+### PCA plot using Generalized PCA.
+
+```{r}
+library("glmpca")
+gpca <- glmpca(counts(dds), L=2)
+gpca.dat <- gpca$factors
+
+```
+
+```{r}
+gpca.dat
+```
+
+```{r}
+gpca.dat$condition <- dds$condition
+```
+
+```{r}
+ggplot(gpca.dat, aes(x = dim1, y = dim2, color = condition, shape = condition)) +
+  geom_point(size =3) + coord_fixed() + ggtitle("glmpca - Generalized PCA")
+```
+
+## Hierarchical Clustering
+
+```{r}
+### Extract the rlog matrix from the object
+rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+```
+
+
+```{r}
+### Compute pairwise correlation values
+rld_cor <- cor(rld_mat)    ## cor() is a base R function
+head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
+```
+
+```{r}
+### Plot heatmap
+pheatmap(rld_cor, border_color=NA, 
+         fontsize = 8, 
+         fontsize_row = 10, 
+         height=50)
+```
+
+```{r}
+heat.colors <- brewer.pal(6, "Spectral")
+pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7, 
+			fontsize_row = 10, height=50)
+```
+
+
+## DGE Results
+
+### Running the differential expression pipeline
+
+```{r}
+dds1 <- DESeq(dds)
+dds1
+```
+
+### Building the results table
+
+```{r}
+res <- results(dds1)
+res
+```
+
+```{r}
+mcols(res, use.names = TRUE)
+```
+
+```{r}
+summary(res)
+```
+
+### Results with thresholds
+
+1. lower the false discovery rate threshold (the threshold on padj in the results table)
+2. raise the log2 fold change threshold from 0 using the lfcThreshold argument of results
+
+```{r}
+res.05 <- results(dds1, alpha = 0.05)
+table(res.05$padj < 0.05)
+```
+
+```{r}
+res.05
+```
+
+
+```{r}
+resLFC1 <- results(dds1, lfcThreshold=1)
+table(resLFC1$padj < 0.1)
+```
+```{r}
+resLFC1
+```
+
+
+## Gene clustering
+
+Sample distance heatmap made previously, the dendrogram at the side shows us a hierarchical clustering of the samples. Such a clustering can also be performed for the genes.
+
+For demonstration, let us select the 20 genes with the highest variance across samples.
+
+```{r}
+library("genefilter")
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
+topVarGenes
+```
+
+The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap. A data.frame that instructs the pheatmap function how to label the columns.
+```{r}
+mat  <- assay(vsd)[ topVarGenes, ]
+mat  <- mat - rowMeans(mat)
+print(mat)
+anno <- as.data.frame(colData(vsd)[, "condition"])
+```
+
+```{r}
+pheatmap(mat)
+```
+
+
+
+```{r}
+all(rownames(anno) %in% colnames(assay(vsd)))
+# this needs to match in order for the gene clustering to take place
+```
