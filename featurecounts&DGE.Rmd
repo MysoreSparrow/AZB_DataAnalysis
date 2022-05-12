@@ -1,6 +1,8 @@
 ---
 title: "Lets Go: From Bams to Count Matrix Notebook"
-output: html_notebook
+output: html_notebook:
+      toc: true
+    theme: united
 ---
 
 ```{r}
@@ -170,6 +172,8 @@ all(rownames(coldata) %in% colnames(countsmatrix))
 ncol(countsmatrix) == nrow(coldata)
 ```
 
+
+## Creating the DESeq Data set Object
 ```{r}
 dds <- DESeqDataSetFromMatrix(countData = countsmatrix, 
                               colData = coldata, 
@@ -181,4 +185,25 @@ dds
 ```
 
 
+
+## Exploratory Data Analysis and Visualization
+
+### Pre-filtering the dataset
+
+
+Our count matrix with our DESeqDataSet contains many rows with only zeros, and additionally many rows with only a few fragments total. In order to reduce the size of the object, and to increase the speed of our functions, we can remove the rows that have no or nearly no information about the amount of gene expression. 
+
+Applying the most minimal filtering rule: removing rows of the DESeqDataSet that have no counts, or only a single count across all samples. Additional weighting/filtering to improve power is applied at a later step in the workflow.
+
+```{r}
+nrow(dds)
+```
+
+```{r}
+keep <- rowSums(counts(dds)) > 1
+dds <- dds[keep,]
+nrow(dds)
+```
+
+### The variance stabilizing transformation and the rlog
 
