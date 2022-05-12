@@ -59,6 +59,7 @@ library("vsn")
 library('EnhancedVolcano')
 library('gplots')
 library('org.Mm.eg.db')
+library('stringr')
 ```
 
 
@@ -100,4 +101,53 @@ the metadata can be foudn in a df called coldata!
 ```{r}
 head(coldata)
 ```
+
+### Tidying up the names for plots later!
+
+First from coldata
+```{r}
+
+coldata$Sample_Name = str_remove_all(coldata$Sample_Name, pattern = 'run6_trimmed_') # tidying up the names
+coldata$condition <- as.factor(coldata$condition)
+coldata <- data.frame(coldata, row.names = 1) # convert column to row.names
+coldata 
+```
+
+
+```{r}
+colnames(countsmatrix) = str_remove_all(colnames(countsmatrix), pattern = 'run6_trimmed_') #tidying up these names again
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column into rownames for sanity check later
+countsmatrix <- subset (countsmatrix, select = -X)#dropping the X column
+colnames(countsmatrix)
+```
+
+It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+```
+
+## DESeq2 Analysis
+
+
+Now, construct DESeqDataSet for DGE analysis:
+
+
+But before that, a sanity check :
+
+```{r}
+ncol(countsmatrix) == nrow(coldata)
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = countsmatrix, 
+                              colData = coldata, 
+                              design = ~ condition)
+```
+
+```{r}
+dds
+```
+
+
 
