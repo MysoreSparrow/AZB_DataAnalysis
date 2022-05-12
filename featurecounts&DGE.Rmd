@@ -63,10 +63,6 @@ library('stringr')
 ```
 
 
-```{r}
-countsmatrix <-as.matrix(read.csv('C:/Users/User/Documents/bam/counts.csv'))
-dim(countsmatrix)
-```
 
 ## Creating metadata for the DGE Analysis
 
@@ -104,28 +100,57 @@ head(coldata)
 
 ### Tidying up the names for plots later!
 
-First from coldata
+####First from coldata
 ```{r}
 
 coldata$Sample_Name = str_remove_all(coldata$Sample_Name, pattern = 'run6_trimmed_') # tidying up the names
-coldata$condition <- as.factor(coldata$condition)
+#coldata$condition <- as.factor(coldata$condition)
 coldata <- data.frame(coldata, row.names = 1) # convert column to row.names
 coldata 
 ```
 
+#### then fix Countsmatrix:
+
+NOTE:
+
+1. From the manuals the countsData must be a numeric matrix
+2. It is IMPORTANT to keep the names of the genes in the rownames
+
+
+```{r}
+countsmatrix <-as.matrix(read.csv('C:/Users/User/Documents/bam/counts.csv'))
+```
+
+```{r}
+dim(countsmatrix)
+str(countsmatrix)
+```
 
 ```{r}
 colnames(countsmatrix) = str_remove_all(colnames(countsmatrix), pattern = 'run6_trimmed_') #tidying up these names again
-rownames(countsmatrix) <- countsmatrix[,1] #converting first column into rownames for sanity check later
-countsmatrix <- subset (countsmatrix, select = -X)#dropping the X column
 colnames(countsmatrix)
 ```
 
-It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
+```{r}
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column into rownames for sanity check later
+# It is IMPORTANT to keep the names of the genes in the rownames
+
+```
+
 
 ```{r}
-all(rownames(coldata) %in% colnames(countsmatrix))
+countsmatrix<- subset (countsmatrix, select = -X)#dropping the X column
+colnames(countsmatrix)
 ```
+
+
+```{r}
+
+class(countsmatrix) <- "numeric"
+str(countsmatrix)
+dim(countsmatrix)
+```
+
 
 ## DESeq2 Analysis
 
@@ -134,6 +159,12 @@ Now, construct DESeqDataSet for DGE analysis:
 
 
 But before that, a sanity check :
+
+It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+```
 
 ```{r}
 ncol(countsmatrix) == nrow(coldata)
