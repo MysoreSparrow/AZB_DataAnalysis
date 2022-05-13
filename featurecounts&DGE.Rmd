@@ -2,6 +2,7 @@
 title: "From Bams to Count Matrix and then DGE - Notebook"
 output:
   html_document:
+    toc: true
     df_print: paged
 ---
 
@@ -62,40 +63,40 @@ library('EnhancedVolcano')
 library('gplots')
 library('org.Mm.eg.db')
 library('stringr')
+library("genefilter")
+library("dplyr")
+library("ggplot2")
 ```
 
 
 
 ## Creating metadata for the DGE Analysis
 
-DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information 
+DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information
+
 ```{r}
 # write the list of bam files as a list to be saved in csv file
 write.csv(list(bamFiles), 'C:/Users/User/Documents/bam/samples.csv')
 ```
 
-
-
 ```{r}
 # Read the csv file and change the column name 
 sample_ID <- read.csv('C:/Users/User/Documents/bam/samples.csv')
-names(sample_ID)[2]  <- 'Sample_Name'
-colnames(sample_ID)
+#names(sample_ID)[2]  <- 'Sample_Name'
+head(sample_ID)
 ```
-
 
 ```{r}
 condition = c("Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","control","control")
 ```
 
-
 ```{r}
 coldata <- data.frame(sample_ID, condition)
-colnames(coldata) <- c('Number','Sample_Name','condition') # change name of one of the columns
-coldata <- subset (coldata, select = -Number)
+colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+#coldata <- subset (coldata, select = -Number)
 ```
 
-the metadata can be foudn in a df called coldata!
+The metadata can be found in a df called coldata!
 ```{r}
 head(coldata)
 ```
@@ -103,12 +104,20 @@ head(coldata)
 ### Tidying up the names for plots later!
 
 ####First from coldata
+
 ```{r}
 
+coldata$Samples <- coldata$Sample_Name # Adding additonal column of sample names apart from exisiting column.
+coldata$Samples = str_remove_all(coldata$Samples, pattern = '_.bam') # tidying up the names
+coldata$Samples = str_remove_all(coldata$Samples, pattern = 'run6_trimmed_') # tidying up the names
+```
+
+
+```{r}
 coldata$Sample_Name = str_remove_all(coldata$Sample_Name, pattern = 'run6_trimmed_') # tidying up the names
 #coldata$condition <- as.factor(coldata$condition)
-coldata <- data.frame(coldata, row.names = 1) # convert column to row.names
-coldata 
+coldata <- data.frame(coldata, row.names = 1) # convert column1 with sample names to row.names of coldata
+head(coldata)
 ```
 
 #### then fix Countsmatrix:
@@ -124,19 +133,13 @@ countsmatrix <-as.matrix(read.csv('C:/Users/User/Documents/bam/counts.csv'))
 ```
 
 ```{r}
-dim(countsmatrix)
-str(countsmatrix)
-```
-
-```{r}
 colnames(countsmatrix) = str_remove_all(colnames(countsmatrix), pattern = 'run6_trimmed_') #tidying up these names again
 colnames(countsmatrix)
 ```
 
 ```{r}
-rownames(countsmatrix) <- countsmatrix[,1] #converting first column into rownames for sanity check later
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
 # It is IMPORTANT to keep the names of the genes in the rownames
-
 ```
 
 
@@ -147,31 +150,24 @@ colnames(countsmatrix)
 
 
 ```{r}
-
+# Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
 str(countsmatrix)
 dim(countsmatrix)
 ```
 
 
-## DESeq2 Analysis
+# Differential Gene Expression analysis using DESeq2
 
 
-Now, construct DESeqDataSet for DGE analysis:
+Now, construct DESeqDataSet for DGE analysis.
 
-
-But before that, a sanity check :
-
-It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
+But before that, a sanity check : It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
 
 ```{r}
 all(rownames(coldata) %in% colnames(countsmatrix))
-```
-
-```{r}
 ncol(countsmatrix) == nrow(coldata)
 ```
-
 
 ## Creating the DESeq Data set Object
 ```{r}
@@ -181,7 +177,7 @@ dds <- DESeqDataSetFromMatrix(countData = countsmatrix,
 ```
 
 ```{r}
-dds
+str(dds)
 ```
 
 
@@ -204,6 +200,11 @@ keep <- rowSums(counts(dds)) > 1
 dds <- dds[keep,]
 nrow(dds)
 ```
+
+```{r}
+(32886/55357)* 100
+```
+
 
 ### The variance stabilizing transformation and the rlog
 
@@ -228,8 +229,10 @@ If one performs PCA directly on a matrix of counts or normalized counts (e.g. co
 2. regularized-logarithm transformation or rlog (Love, Huber, and Anders 2014).
 
 - For genes with high counts, both the VST and the rlog will give similar result to the ordinary log2 transformation of normalized counts.
+
 - For genes with lower counts, the values are shrunken towards a middle value. The VST or rlog-transformed data then become approximately homoskedastic (more flat trend in the meanSdPlot), and can be used directly for computing distances between samples, making PCA plots, or as input to downstream methods which perform best with homoskedastic data.
 
+## Applying VST transformation
 
 ```{r}
 vsd <- vst(dds, blind = FALSE)
@@ -239,6 +242,8 @@ head(assay(vsd), 3)
 ```{r}
 colData(vsd)
 ```
+
+### applying rlog Transformation
 
 ```{r}
 rld <- rlog(dds, blind = FALSE)
@@ -250,9 +255,6 @@ Scatterplot of transformed counts from two samples.
 While the rlog is on roughly the same scale as the log2 counts, the VST has a upward shift for the smaller values. It is the differences between samples (deviation from y=x in these scatterplots) which will contribute to the distance calculations and the PCA plot.
 
 ```{r}
-library("dplyr")
-library("ggplot2")
-
 dds <- estimateSizeFactors(dds)
 
 df <- bind_rows(
@@ -290,33 +292,37 @@ head(sampleDists)
 
 visualize the distances in a heatmap
 
-```{r}
-library("pheatmap")
-library("RColorBrewer")
 
+```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- paste( vsd$dex, vsd$cell, sep = " - " )
-#colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Spectral")) )(255)
+rownames(sampleDistMatrix) <- vsd$Samples 
+colnames(sampleDistMatrix) <- vsd$Samples
+```
+
+```{r}
+colors <- colorRampPalette( rev(brewer.pal(9, "RdGy")) )(255)
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          col = colors)
 ```
 
+
 ### Poisson Distance between Samples
 
 Another option for calculating sample distances is to use the Poisson Distance (Witten 2011).
 This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples.
-```{r}
 
+
+```{r}
 poisd <- PoissonDistance(t(counts(dds)))
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- dds$Samples
+colnames(samplePoisDistMatrix) <- dds$Samples
 ```
 
 ```{r}
-samplePoisDistMatrix <- as.matrix( poisd$dd )
-rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep=" - " )
-#colnames(samplePoisDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "RdGy")) )(255)
 pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
@@ -326,11 +332,20 @@ pheatmap(samplePoisDistMatrix,
 ### PCA Plot
 
 ```{r}
-plotPCA(vsd, intgroup="condition")
+plotPCA(vsd, intgroup= "Samples")
 ```
 
 ```{r}
-pcaData <- plotPCA(vsd, intgroup = "condition", returnData = TRUE)
+plotPCA(vsd, intgroup= "condition")
+```
+
+
+```{r}
+plotPCA(vsd, intgroup= c("condition","Samples"))
+```
+
+```{r}
+pcaData <- plotPCA(vsd, intgroup = c("condition","Samples"), returnData = TRUE)
 pcaData
 ```
 
@@ -339,14 +354,25 @@ percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```
 
 ```{r}
-ggplot(pcaData, aes(x = PC1, y = PC2, color = condition, shape = condition)) +
-  geom_point(size =3) +
+PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
+  geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
-  ggtitle("PCA with VST data")
+  ggtitle("PCA with VST data")+ 
+  theme(legend.position="bottom") + theme(aspect.ratio=10/26) #+geom_text(hjust=0, vjust=0)
+ggsave(filename = 'C:/Users/User/Documents/bam/PCA_vst_plot.tiff', plot = PCAplot_vst)
 ```
 
+```{r}
+ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  coord_fixed() +
+  ggtitle("PCA with VST data")+ 
+  theme(legend.position="bottom") + theme(aspect.ratio=10/26) #+geom_text(hjust=0, vjust=0)
+```
 
 ### PCA plot using Generalized PCA.
 
@@ -454,7 +480,7 @@ Sample distance heatmap made previously, the dendrogram at the side shows us a h
 For demonstration, let us select the 20 genes with the highest variance across samples.
 
 ```{r}
-library("genefilter")
+
 topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
 topVarGenes
 ```
