@@ -66,6 +66,9 @@ library('stringr')
 library("genefilter")
 library("dplyr")
 library("ggplot2")
+library("glmpca")
+library('org.Mm.eg.db')
+library("AnnotationDbi")
 ```
 
 
@@ -361,7 +364,8 @@ PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Sam
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
   theme(legend.position="bottom") + theme(aspect.ratio=10/26) #+geom_text(hjust=0, vjust=0)
-ggsave(filename = 'C:/Users/User/Documents/bam/PCA_vst_plot.tiff', plot = PCAplot_vst)
+
+ggsave(filename = 'C:/Users/User/Documents/bam/PCA_vst_plot1.tiff', plot = PCAplot_vst)
 ```
 
 ```{r}
@@ -371,28 +375,24 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=10/26) #+geom_text(hjust=0, vjust=0)
+  theme(legend.position="bottom") + theme(aspect.ratio=10/26) +
+  geom_text(hjust=0, vjust=0)
 ```
 
 ### PCA plot using Generalized PCA.
 
 ```{r}
-library("glmpca")
 gpca <- glmpca(counts(dds), L=2)
 gpca.dat <- gpca$factors
 
 ```
-
-```{r}
-gpca.dat
-```
-
 ```{r}
 gpca.dat$condition <- dds$condition
+gpca.dat$Samples <- dds$Samples
 ```
 
 ```{r}
-ggplot(gpca.dat, aes(x = dim1, y = dim2, color = condition, shape = condition)) +
+ggplot(gpca.dat, aes(x = dim1, y = dim2, color = Samples, shape = condition, label = Samples)) +
   geom_point(size =3) + coord_fixed() + ggtitle("glmpca - Generalized PCA")
 ```
 
@@ -431,14 +431,14 @@ pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7,
 
 ```{r}
 dds1 <- DESeq(dds)
-dds1
+#str(dds1)
 ```
 
 ### Building the results table
 
 ```{r}
 res <- results(dds1)
-res
+head(res, 10)
 ```
 
 ```{r}
@@ -460,7 +460,8 @@ table(res.05$padj < 0.05)
 ```
 
 ```{r}
-res.05
+head(res.05, 10)
+
 ```
 
 
@@ -473,25 +474,49 @@ resLFC1
 ```
 
 
+Both thresholds Applied!
+```{r}
+res_thresh <- results(dds1, alpha = 0.05, lfcThreshold=1)
+res_thresh
+```
+
+
+## Counts Plot
+
+
+## MA Plot 
+
+
+
+
+
+
+
+
 ## Gene clustering
 
-Sample distance heatmap made previously, the dendrogram at the side shows us a hierarchical clustering of the samples. Such a clustering can also be performed for the genes.
-
-For demonstration, let us select the 20 genes with the highest variance across samples.
+- Sample distance heatmap made previously, the dendrogram at the side shows us a hierarchical clustering of the samples. Such a clustering can also be performed for the genes.
+- Since the clustering is only relevant for genes that actually carry a signal, one usually would only cluster a subset of the most highly variable genes.
+- For demonstration, let us select the 20 genes with the highest variance across samples.
 
 ```{r}
 
-topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
-topVarGenes
+topVarGenes <- order(rowVars(assay(vsd)), decreasing = TRUE)
+head(topVarGenes, 20)
 ```
 
-The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap. A data.frame that instructs the pheatmap function how to label the columns.
+The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap. 
+
 ```{r}
-mat  <- assay(vsd)[ topVarGenes, ]
-mat  <- mat - rowMeans(mat)
-print(mat)
-anno <- as.data.frame(colData(vsd)[, "condition"])
+mat  <- assay(vsd)[topVarGenes, ]
+mat  <- (mat - rowMeans(mat))
+head(mat)
 ```
+'anno' is a data.frame that instructs the pheatmap function how to label the columns.
+```{r}
+anno <- as.data.frame(colData(vsd)[, c("condition","Samples")])
+```
+
 
 ```{r}
 pheatmap(mat)
@@ -503,3 +528,56 @@ pheatmap(mat)
 all(rownames(anno) %in% colnames(assay(vsd)))
 # this needs to match in order for the gene clustering to take place
 ```
+
+
+
+
+
+
+## Heatmap of count matrix
+
+To explore a count matrix, it is often instructive to look at it as a heatmap.
+
+```{r}
+select <- order(rowMeans(counts(dds1,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+df <- as.data.frame(colData(dds1)[,c("condition","Samples")])
+```
+
+```{r}
+pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
+         cluster_cols=TRUE, annotation_col=df)
+```
+
+```{r}
+pheatmap(assay(rld)[select,], 
+         cluster_rows=TRUE,
+         show_rownames=TRUE,
+         cluster_cols=TRUE, 
+         show_colnames = TRUE,
+         annotation_col=df)
+```
+
+## Annotating and Exporting Results
+
+```{r}
+columns(org.Mm.eg.db)
+```
+
+
+```{r}
+ens.str <- substr(rownames(res), 1, 15)
+
+```
+```{r}
+res$symbol <- mapIds(org.Mm.eg.db,
+                     keys=ens.str,
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+```
+```{r}
+keys(ens.str)
+```
+
+
