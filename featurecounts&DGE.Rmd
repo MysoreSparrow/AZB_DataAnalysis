@@ -363,7 +363,8 @@ PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Sam
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=10/26) #+geom_text(hjust=0, vjust=0)
+  theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
+  geom_text(size =2, hjust=0, vjust=0)
 
 ggsave(filename = 'C:/Users/User/Documents/bam/PCA_vst_plot1.tiff', plot = PCAplot_vst)
 ```
@@ -375,8 +376,8 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=10/26) +
-  geom_text(hjust=0, vjust=0)
+  theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
+  geom_text(size =3, hjust=0, vjust=0)
 ```
 
 ### PCA plot using Generalized PCA.
@@ -501,20 +502,29 @@ res_thresh
 
 ```{r}
 
-topVarGenes <- order(rowVars(assay(vsd)), decreasing = TRUE)
+topVarGenes <- order(rowVars(assay(rld)), decreasing = TRUE)
 head(topVarGenes, 20)
 ```
 
 The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap. 
 
 ```{r}
-mat  <- assay(vsd)[topVarGenes, ]
+mat  <- assay(rld)[topVarGenes, ]
 mat  <- (mat - rowMeans(mat))
 head(mat)
 ```
+
+
+```{r}
+str(mat)
+```
+
+
+
 'anno' is a data.frame that instructs the pheatmap function how to label the columns.
 ```{r}
-anno <- as.data.frame(colData(vsd)[, c("condition","Samples")])
+anno <- as.data.frame(colData(rld)[, c("condition","Samples")])
+str(anno)
 ```
 
 
@@ -564,20 +574,30 @@ pheatmap(assay(rld)[select,],
 columns(org.Mm.eg.db)
 ```
 
-
-```{r}
-ens.str <- substr(rownames(res), 1, 15)
-
-```
 ```{r}
 res$symbol <- mapIds(org.Mm.eg.db,
-                     keys=ens.str,
-                     column="SYMBOL",
-                     keytype="ENSEMBL",
+                     keys = rownames(dds),
+                    column = "SYMBOL",
+                    keytype="ENSEMBL",
                      multiVals="first")
 ```
+
 ```{r}
-keys(ens.str)
+head(res)
 ```
 
 
+
+## Saving the Results
+
+
+```{r}
+resOrdered <- res[order(res$pvalue),]
+head(resOrdered)
+```
+
+```{r}
+write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results.csv")
+```
+
+## 
