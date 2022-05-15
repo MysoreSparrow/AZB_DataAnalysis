@@ -600,4 +600,27 @@ head(resOrdered)
 write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results.csv")
 ```
 
-## 
+## Volcano Plots
+
+```{r}
+p1 <- EnhancedVolcano(resOrdered,
+    lab = rownames(resOrdered),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'DE Genes',
+    pointSize = 1.0,
+    labSize = 2.0)
+```
+
+```{r}
+  p1 +
+  ggplot2::coord_cartesian(ylim=c(-2, 12)) +
+  ggplot2::scale_y_continuous(breaks=seq(-2, 12, 2)) +
+  ggplot2::coord_cartesian(xlim=c(-6, 8)) +
+  ggplot2::scale_x_continuous(breaks=seq(-6,8, 1)) +
+  coord_fixed(ratio = 15/55)
+  
+```
+
