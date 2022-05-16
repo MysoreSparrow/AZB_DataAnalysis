@@ -564,10 +564,7 @@ res2.df$symbol <- mapIds(org.Mm.eg.db,
 head(res2.df)
 ```
 
-
-
 ## Saving the Results
-
 
 ```{r}
 resOrdered <- res2.df[order(res2.df$pvalue),]
@@ -578,57 +575,27 @@ head(resOrdered)
 write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results2.csv")
 ```
 
-## Volcano Plots
 
-
-```{r}
-p1 <- EnhancedVolcano(resOrdered,
-    lab = rownames(resOrdered),
-    x = 'log2FoldChange',
-    y = 'pvalue',
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE Genes',
-    pointSize = 1.0,
-    labSize = 2.0,
-    )
-```
-
-```{r}
-  p1 +
-  ggplot2::coord_cartesian(ylim=c(-2, 12)) +
-  ggplot2::scale_y_continuous(breaks=seq(-2, 12, 2)) +
-  ggplot2::coord_cartesian(xlim=c(-6, 8)) +
-  ggplot2::scale_x_continuous(breaks=seq(-6,8, 1)) +
-  coord_fixed(ratio = 15/55)
-  
-```
 
 TODO : make the plot look aesthetically better and also show gene symbols instead of geneIDs.
 
 ## Z-score based Gene Heatmaps
 
-
-```{r}
-
-```
-
 ```{r}
 head(res2.df)
 ```
+### with Whole table (all genes together!)
+
+
 ```{r}
-mat <- counts(dds2, normalized = TRUE)[rownames(res2.df),]
-head(mat)
+sigs.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
 ```
 
-Calculating the zscore for each row
-
 ```{r}
-mat.zs <- t(apply(mat, 1, scale))
+mat <- counts(dds2, normalized = TRUE)[rownames(sigs.df),]
+mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
 head(mat.zs)
-
-
 ```
 
 ```{r}
@@ -636,11 +603,62 @@ Heatmap(mat.zs,
         cluster_columns = TRUE,
         cluster_rows = TRUE,
         column_labels = colnames(mat.zs),
-        name = 'Z-Score Heatmap of DE Genes',
-        row_labels = res2.df[rownames(mat.zs),]$symbol)
+        name = 'Z-Score Heatmap of ALL Genes',
+        )
+```
+
+Need to filter these results to accommodate better the heat maps and also volcano plots
+
+### with tighter constraints (all genes together!)
+
+```{r}
+sigs1.df <- res2.df[(res2.df$baseMean > 75) & (abs(res2.df$log2FoldChange)>2) & (res2.df$pvalue< 0.05),]
 ```
 
 
+```{r}
+mat1 <- counts(dds2, normalized = TRUE)[rownames(sigs1.df),]
+mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
+colnames(mat1.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+head(mat1.zs)
+```
+```{r}
+Heatmap(mat1.zs,
+        cluster_columns = TRUE,
+        cluster_rows = TRUE,
+        column_labels = colnames(mat1.zs),
+        name = 'Z-Score Heatmap of DE Genes',
+        row_labels = sigs1.df[rownames(mat1.zs),]$symbol)
+```
+
+
+## Volcano Plots
+
+
+```{r}
+p1 <- EnhancedVolcano(sigs.df,
+    lab = sigs.df[rownames(mat.zs),]$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'DE Genes',
+    pointSize = 1.0,
+    labSize = 3.0,
+    gridlines.major = TRUE,
+    gridlines.minor = FALSE
+    )
+```
+
+```{r}
+  p1 +
+  ggplot2::coord_cartesian(ylim=c(0, 12)) +
+  ggplot2::scale_y_continuous(breaks=seq(0, 12, 1)) +
+  ggplot2::coord_cartesian(xlim=c(-6, 8)) +
+  ggplot2::scale_x_continuous(breaks=seq(-6,8, 1)) +
+  coord_fixed(ratio = 25/55)
+  
+```
 
 ```{r}
 sessionInfo( )
