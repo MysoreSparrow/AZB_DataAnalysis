@@ -69,6 +69,7 @@ library("ggplot2")
 library("glmpca")
 library('org.Mm.eg.db')
 library("AnnotationDbi")
+library("apeglm")
 ```
 
 
@@ -439,41 +440,45 @@ dds1 <- DESeq(dds)
 
 ```{r}
 res <- results(dds1)
-head(res, 10)
-```
-
-```{r}
-mcols(res, use.names = TRUE)
+head(res, 30)
 ```
 
 ```{r}
 summary(res)
 ```
+```{r}
+res
+```
+
+A Problem: there a number of rows with padj that has NA. 
+
+Reaons: 
+
+1. If within a row, all samples have zero counts, the baseMean column will be zero, and the log2 fold change estimates, p value and adjusted p value will all be set to NA. ------>>>>>> checked and not true!
+
+2. If a row contains a sample with an extreme count outlier then the p value and adjusted p value will be set to NA. These outlier counts are detected by Cook’s distance. Customization of this outlier filtering and description of functionality for replacement of outlier counts and refitting is described below. ------>>>>>> checked and not true!
+
+3. If a row is filtered by automatic independent filtering, for having a low mean normalized count, then only the adjusted p value will be set to NA. Description and customization of independent filtering is described below. ------>>>>>> could be true!
+
+ =====>>>>>> Most likely caused by automatic independent filtering due to the presence of low mean normalized counts. 
+ 
+Solution: Obtain unfiltered DESeq2 results! (counts without automatic independent filtering and outlier removal). Then, only the genes with ALL counts set to zero will have NA for pvalues. 
+
+```{r}
+dds2 <- DESeq(dds, minReplicatesForReplace=Inf)
+res2 <- results(dds2, cooksCutoff=FALSE, independentFiltering=FALSE)
+
+```
+
+```{r}
+print(res2)
+```
+
 
 ### Results with thresholds
 
 1. lower the false discovery rate threshold (the threshold on padj in the results table)
 2. raise the log2 fold change threshold from 0 using the lfcThreshold argument of results
-
-```{r}
-res.05 <- results(dds1, alpha = 0.05)
-table(res.05$padj < 0.05)
-```
-
-```{r}
-head(res.05, 10)
-
-```
-
-
-```{r}
-resLFC1 <- results(dds1, lfcThreshold=1)
-table(resLFC1$padj < 0.1)
-```
-```{r}
-resLFC1
-```
-
 
 Both thresholds Applied!
 ```{r}
@@ -487,60 +492,20 @@ res_thresh
 
 ## MA Plot 
 
-
-
-
-
-
-
-
-## Gene clustering
-
-- Sample distance heatmap made previously, the dendrogram at the side shows us a hierarchical clustering of the samples. Such a clustering can also be performed for the genes.
-- Since the clustering is only relevant for genes that actually carry a signal, one usually would only cluster a subset of the most highly variable genes.
-- For demonstration, let us select the 20 genes with the highest variance across samples.
-
 ```{r}
 
-topVarGenes <- order(rowVars(assay(rld)), decreasing = TRUE)
-head(topVarGenes, 20)
+resultsNames(dds1)
 ```
-
-The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples. Hence, we center each genes’ values across samples, and plot a heatmap. 
 
 ```{r}
-mat  <- assay(rld)[topVarGenes, ]
-mat  <- (mat - rowMeans(mat))
-head(mat)
+res2 <- lfcShrink(dds1, coef="condition_Infected_vs_control", type="apeglm")
+plotMA(res2, ylim = c(-3, 3))
 ```
-
 
 ```{r}
-str(mat)
+res.noshr <- results(dds1, name="condition_Infected_vs_control")
+plotMA(res.noshr, ylim = c(-3, 3))
 ```
-
-
-
-'anno' is a data.frame that instructs the pheatmap function how to label the columns.
-```{r}
-anno <- as.data.frame(colData(rld)[, c("condition","Samples")])
-str(anno)
-```
-
-
-```{r}
-pheatmap(mat)
-```
-
-
-
-```{r}
-all(rownames(anno) %in% colnames(assay(vsd)))
-# this needs to match in order for the gene clustering to take place
-```
-
-
-
 
 
 
@@ -624,3 +589,9 @@ p1 <- EnhancedVolcano(resOrdered,
   
 ```
 
+
+
+
+```{r}
+sessionInfo( )
+```
