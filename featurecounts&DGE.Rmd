@@ -6,8 +6,28 @@ output:
     df_print: paged
 ---
 
+
 ```{r}
-library(Rsubread)
+library("DESeq2")
+library("PoiClaClu")
+library("pheatmap")
+library("RColorBrewer")
+library('tidyverse')
+library("PoiClaClu")
+library("vsn")
+library('EnhancedVolcano')
+library('gplots')
+library('org.Mm.eg.db')
+library('stringr')
+library("genefilter")
+library("dplyr")
+library("ggplot2")
+library("glmpca")
+library('org.Mm.eg.db')
+library("AnnotationDbi")
+library("apeglm")
+library("ComplexHeatmap")
+library('Rsubread')
 ```
 
 # Feature counts
@@ -51,27 +71,6 @@ write.csv(fc[["counts"]], 'C:/Users/User/Documents/bam/counts.csv')
 
 # Differential Gene Expression Analysis
 
-```{r}
-library("DESeq2")
-library("PoiClaClu")
-library("pheatmap")
-library("RColorBrewer")
-library('tidyverse')
-library("PoiClaClu")
-library("vsn")
-library('EnhancedVolcano')
-library('gplots')
-library('org.Mm.eg.db')
-library('stringr')
-library("genefilter")
-library("dplyr")
-library("ggplot2")
-library("glmpca")
-library('org.Mm.eg.db')
-library("AnnotationDbi")
-library("apeglm")
-library("ComplexHeatmap")
-```
 
 
 
@@ -81,7 +80,7 @@ DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s 
 
 ```{r}
 # write the list of bam files as a list to be saved in csv file
-write.csv(list(bamFiles), 'C:/Users/User/Documents/bam/samples.csv')
+#write.csv(list(bamFiles), 'C:/Users/User/Documents/bam/samples.csv')
 ```
 
 ```{r}
@@ -157,7 +156,6 @@ colnames(countsmatrix)
 ```{r}
 # Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
-str(countsmatrix)
 dim(countsmatrix)
 ```
 
@@ -181,16 +179,9 @@ dds <- DESeqDataSetFromMatrix(countData = countsmatrix,
                               design = ~ condition)
 ```
 
-```{r}
-str(dds)
-```
-
-
-
 ## Exploratory Data Analysis and Visualization
 
 ### Pre-filtering the dataset
-
 
 Our count matrix with our DESeqDataSet contains many rows with only zeros, and additionally many rows with only a few fragments total. In order to reduce the size of the object, and to increase the speed of our functions, we can remove the rows that have no or nearly no information about the amount of gene expression. 
 
@@ -351,7 +342,7 @@ plotPCA(vsd, intgroup= c("condition","Samples"))
 
 ```{r}
 pcaData <- plotPCA(vsd, intgroup = c("condition","Samples"), returnData = TRUE)
-pcaData
+head(pcaData)
 ```
 
 ```{r}
@@ -367,8 +358,8 @@ PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Sam
   ggtitle("PCA with VST data")+ 
   theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
   geom_text(size =2, hjust=0, vjust=0)
-
-ggsave(filename = 'C:/Users/User/Documents/bam/PCA_vst_plot1.tiff', plot = PCAplot_vst)
+#print(PCAplot_vst)
+ggsave(filename = 'C:/Users/User/Documents/bam/plots/PCA_vst_plot1.tiff', plot = PCAplot_vst)
 ```
 
 ```{r}
@@ -496,7 +487,7 @@ res2.df <- as.data.frame(res2) # convert the results table to a df
 
 
 ```{r}
-res2.df
+head(res2.df)
 ```
 
 
@@ -586,6 +577,7 @@ head(res2.df)
 ```
 ### with Whole table (all genes together!)
 
+Applying thresholds for Log2FC and pvalue
 
 ```{r}
 sigs.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
