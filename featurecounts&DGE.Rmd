@@ -70,6 +70,7 @@ library("glmpca")
 library('org.Mm.eg.db')
 library("AnnotationDbi")
 library("apeglm")
+library("ComplexHeatmap")
 ```
 
 
@@ -447,7 +448,7 @@ head(res, 30)
 summary(res)
 ```
 ```{r}
-res
+head(res, 30)
 ```
 
 A Problem: there a number of rows with padj that has NA. 
@@ -471,7 +472,7 @@ res2 <- results(dds2, cooksCutoff=FALSE, independentFiltering=FALSE)
 ```
 
 ```{r}
-print(res2)
+head(res2, 30)
 ```
 
 
@@ -482,8 +483,20 @@ print(res2)
 
 Both thresholds Applied!
 ```{r}
-res_thresh <- results(dds1, alpha = 0.05, lfcThreshold=1)
-res_thresh
+res2.df <- as.data.frame(res2) # convert the results table to a df
+```
+
+
+### Applying pvalue and LFC thresholds!
+```{r}
+#res2.df$log2FoldChange <- (abs(res2.df$log2FoldChange>1)) 
+#res2.df <- res2.df [(res2.df$pvalue>0.05)]
+```
+
+
+
+```{r}
+res2.df
 ```
 
 
@@ -494,16 +507,16 @@ res_thresh
 
 ```{r}
 
-resultsNames(dds1)
+resultsNames(dds2)
 ```
 
 ```{r}
-res2 <- lfcShrink(dds1, coef="condition_Infected_vs_control", type="apeglm")
-plotMA(res2, ylim = c(-3, 3))
+res3 <- lfcShrink(dds2, coef="condition_Infected_vs_control", type="apeglm")
+plotMA(res3, ylim = c(-3, 3))
 ```
 
 ```{r}
-res.noshr <- results(dds1, name="condition_Infected_vs_control")
+res.noshr <- results(dds2, name="condition_Infected_vs_control")
 plotMA(res.noshr, ylim = c(-3, 3))
 ```
 
@@ -514,9 +527,9 @@ plotMA(res.noshr, ylim = c(-3, 3))
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
 ```{r}
-select <- order(rowMeans(counts(dds1,normalized=TRUE)),
+select <- order(rowMeans(counts(dds2,normalized=TRUE)),
                 decreasing=TRUE)[1:20]
-df <- as.data.frame(colData(dds1)[,c("condition","Samples")])
+df <- as.data.frame(colData(dds2)[,c("condition","Samples")])
 ```
 
 ```{r}
@@ -540,7 +553,7 @@ columns(org.Mm.eg.db)
 ```
 
 ```{r}
-res$symbol <- mapIds(org.Mm.eg.db,
+res2.df$symbol <- mapIds(org.Mm.eg.db,
                      keys = rownames(dds),
                     column = "SYMBOL",
                     keytype="ENSEMBL",
@@ -548,7 +561,7 @@ res$symbol <- mapIds(org.Mm.eg.db,
 ```
 
 ```{r}
-head(res)
+head(res2.df)
 ```
 
 
@@ -557,15 +570,16 @@ head(res)
 
 
 ```{r}
-resOrdered <- res[order(res$pvalue),]
+resOrdered <- res2.df[order(res2.df$pvalue),]
 head(resOrdered)
 ```
 
 ```{r}
-write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results.csv")
+write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results2.csv")
 ```
 
 ## Volcano Plots
+
 
 ```{r}
 p1 <- EnhancedVolcano(resOrdered,
@@ -576,7 +590,8 @@ p1 <- EnhancedVolcano(resOrdered,
     FCcutoff = 1.0,
     title = 'DE Genes',
     pointSize = 1.0,
-    labSize = 2.0)
+    labSize = 2.0,
+    )
 ```
 
 ```{r}
@@ -589,6 +604,41 @@ p1 <- EnhancedVolcano(resOrdered,
   
 ```
 
+TODO : make the plot look aesthetically better and also show gene symbols instead of geneIDs.
+
+## Z-score based Gene Heatmaps
+
+
+```{r}
+
+```
+
+```{r}
+head(res2.df)
+```
+```{r}
+mat <- counts(dds2, normalized = TRUE)[rownames(res2.df),]
+head(mat)
+```
+
+Calculating the zscore for each row
+
+```{r}
+mat.zs <- t(apply(mat, 1, scale))
+colnames(mat.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+head(mat.zs)
+
+
+```
+
+```{r}
+Heatmap(mat.zs,
+        cluster_columns = TRUE,
+        cluster_rows = TRUE,
+        column_labels = colnames(mat.zs),
+        name = 'Z-Score Heatmap of DE Genes',
+        row_labels = res2.df[rownames(mat.zs),]$symbol)
+```
 
 
 
