@@ -27,12 +27,9 @@ library("AnnotationDbi")
 library("apeglm")
 library("ComplexHeatmap")
 library('Rsubread')
-<<<<<<< HEAD
 library("clusterProfiler")
-=======
 library('clusterProfiler')
 library('PCAtools')
->>>>>>> 8bb163c53d3d5385b53e4946f7ba37f01ecd8fde
 ```
 
 # Differential Gene Expression Analysis
@@ -43,7 +40,7 @@ DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s 
 
 ```{r}
 # Read the csv file and change the column name 
-sample_ID <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/samples.csv")
+sample_ID <- read.csv("~/R/Rtuts/Data/Alina_EPEC_project/samples.csv")
 #names(sample_ID)[2]  <- 'Sample_Name'
 head(sample_ID)
 ```
@@ -91,7 +88,7 @@ NOTE:
 
 
 ```{r}
-countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/counts.csv"))
+countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
 ```
 
 ```{r}
@@ -627,7 +624,7 @@ GO_fit <- plot(barplot(GO_results, showCategory = 10))
 ## Data Carpentry with padj<0.05 and abs(log2FC)<-1 imposed!
 ```{r}
 head(sigs.df)
-write.csv(sigs.df ,"C:/Users/User/Documents/bam/Data_Alina_padjANDlog2FC_thresholdimposed.csv")
+write.csv(sigs.df ,"~/R/Rtuts/Data/Alina_EPEC_project/Data_Alina_padjANDlog2FC_thresholdimposed.csv")
 ```
 
 ```{r}
@@ -719,66 +716,6 @@ NOTE: 67 out of 429 ENS Id found!
 ```{r}
 GO_fit <- plot(barplot(GO_results, showCategory = 10))
 ```
-
-
-## Data Carpentry with padj<0.05 and abs(log2FC)<-1 imposed!
-```{r}
-head(sigs.df)
-write.csv(sigs.df ,"C:/Users/User/Documents/bam/Data_Alina_padjANDlog2FC_thresholdimposed.csv")
-```
-
-```{r}
-summary(sigs.df)
-```
-### Gender Genes Removed from Table
-
-```{r}
-sigs.df <- filter(sigs.df, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
-```
-
-
-### Number of Genes from different strains that are contributing to UP/DOWN regulation.
-
-```{r}
-sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ]
-sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)<1, ]
-```
-
-
-```{r}
-str(sigs.UP.df)
-```
-
-
-```{r}
-str(sigs.DOWN.df)
-```
-
-
-
-### Down Regulation - Most Important Genes
-
-```{r}
-sigs.DOWN.df$symbol <- as.factor(sigs.DOWN.df$symbol)
-downgene_list <- data.frame(sigs.DOWN.df$symbol)
-names(downgene_list)[1] <- 'DOWN_Genes'
-summary(downgene_list, maxsum = 20)
-```
-
-
-```{r}
-count(downgene_list)
-```
-### UP Regulation - Most Important Genes
-
-```{r}
-sigs.UP.df$symbol <- as.factor(sigs.UP.df$symbol)
-upgene_list <- data.frame(sigs.UP.df$symbol)
-names(upgene_list)[1] <- 'UP_Genes'
-summary(upgene_list, maxsum = 20)
-```
-
-
 
 
 ```{r}
