@@ -1,9 +1,11 @@
 ---
 title: ' Differential Gene Expression Analysis Notebook'
 output:
-  html_document:
-    df_print: paged
+  html_document: 
     toc: yes
+    fig_width: 12
+    fig_height: 6
+    fig_caption: yes
 ---
 
 ```{r}
@@ -67,14 +69,19 @@ head(coldata)
 ```{r}
 
 coldata$Samples <- coldata$Sample_Name # Adding additonal column of sample names apart from exisiting column.
-coldata$Samples = str_remove_all(coldata$Samples, pattern = '_.bam') # tidying up the names
-coldata$Samples = str_remove_all(coldata$Samples, pattern = 'run6_trimmed_') # tidying up the names
+coldata$Samples
 ```
 
-
 ```{r}
-coldata$Sample_Name = str_remove_all(coldata$Sample_Name, pattern = 'run6_trimmed_') # tidying up the names
-#coldata$condition <- as.factor(coldata$condition)
+# tidying up the names od samples in both columns that list of samples
+coldata$Samples <- str_remove_all(coldata$Samples, 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  )
+coldata$Sample_Name <- str_remove_all(coldata$Samples, 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  )
+
+coldata$condition <- as.factor(coldata$condition)
 coldata <- data.frame(coldata, row.names = 1) # convert column1 with sample names to row.names of coldata
 head(coldata)
 ```
@@ -92,17 +99,12 @@ countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"
 ```
 
 ```{r}
-colnames(countsmatrix) = str_remove_all(colnames(countsmatrix), pattern = 'run6_trimmed_') #tidying up these names again
-colnames(countsmatrix)
-```
-
-```{r}
+#tidying up these names again
+colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  ) 
 rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
 # It is IMPORTANT to keep the names of the genes in the rownames
-```
-
-
-```{r}
 countsmatrix<- subset (countsmatrix, select = -X)#dropping the X column
 colnames(countsmatrix)
 ```
@@ -251,7 +253,7 @@ colnames(sampleDistMatrix) <- vsd$Samples
 ```
 
 ```{r}
-colors <- colorRampPalette( rev(brewer.pal(9, "RdGy")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "Paired")) )(255)
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
@@ -273,7 +275,7 @@ colnames(samplePoisDistMatrix) <- dds$Samples
 ```
 
 ```{r}
-colors <- colorRampPalette( rev(brewer.pal(9, "RdGy")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "Paired")) )(255)
 pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
@@ -305,27 +307,31 @@ percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```
 
 ```{r}
-PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
+PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, 
+                                   color = Samples, 
+                                   label= Samples,
+                                  shape = condition)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
+  theme(legend.position="bottom") + theme(aspect.ratio=15/46) +
   geom_text(size =2, hjust=0, vjust=0)
 #print(PCAplot_vst)
 ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_vst_plot.tiff', plot = PCAplot_vst)
 ```
 
 ```{r}
-ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Samples)) +
+ggplot(pcaData, aes(x = PC1, y = PC2, 
+                    color = Samples, label= Samples, shape = condition)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
-  geom_text(size =3, hjust=0, vjust=0)
+  theme(legend.position="bottom") + theme(aspect.ratio=15/46) +
+  geom_text(size =2, hjust=0, vjust=0)
 ```
 
 ### PCA plot using Generalized PCA.
@@ -361,18 +367,16 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 
 ```{r}
 ### Plot heatmap
-pheatmap(rld_cor, border_color=NA, 
+heat.colors <- brewer.pal(6, "Paired")
+pheatmap(rld_cor, 
+         border_color=NA,
+         color = heat.colors,
          fontsize = 8, 
          fontsize_row = 10, 
-         height=50)
+         height=50,
+         main = 'Heirarchical Clustering of Samples',
+         )
 ```
-
-```{r}
-heat.colors <- brewer.pal(6, "Spectral")
-pheatmap(rld_cor, color = heat.colors, border_color=NA, fontsize = 7, 
-			fontsize_row = 10, height=50)
-```
-
 
 ## DGE Results
 
@@ -430,9 +434,6 @@ head(res2, 30)
 Both thresholds Applied!
 ```{r}
 res2.df <- as.data.frame(res2) # convert the results table to a df
-```
-
-```{r}
 head(res2.df)
 ```
 
@@ -534,8 +535,8 @@ head(mat.zs)
 
 ```{r}
 Heatmap(mat.zs,
-        cluster_columns = TRUE,
-        cluster_rows = TRUE,
+        cluster_columns = F,
+        cluster_rows = F,
         column_labels = colnames(mat.zs),
         name = 'Z-Score Heatmap of ALL Genes',
         )
@@ -683,38 +684,6 @@ write.csv(as.data.frame(sigs.df), file = "~/R/Rtuts/Data/Alina_EPEC_project/sign
 write.csv(as.data.frame(downgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/downgene_list.csv")
 write.csv(as.data.frame(upgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/upgene_list.csv")
 
-```
-
-
-## GO Terms
-
-```{r}
-
-```
-
-```{r}
-UPgene_names <- rownames(sigs.df[sigs.df$log2FoldChange>1,])
-```
-
-Running GO with clusterProfiler
-
-```{r}
-GO_results <- enrichGO(gene = UPgene_names,
-                       OrgDb = "org.Mm.eg.db",
-                       keyType = "ENSEMBL",
-                       ont = "BP"
-                       )
-```
-
-
-```{r}
-GO.df <- as.data.frame(GO_results)
-GO.df
-```
-NOTE: 67 out of 429 ENS Id found!
-
-```{r}
-GO_fit <- plot(barplot(GO_results, showCategory = 10))
 ```
 
 
