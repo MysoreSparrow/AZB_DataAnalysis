@@ -27,41 +27,18 @@ library("AnnotationDbi")
 library("apeglm")
 library("ComplexHeatmap")
 library('Rsubread')
+library("clusterProfiler")
 ```
-
-# Feature counts
-```{r}
-# GTF File
-gtf_file <- "C:/Users/User/Documents/bam/Mus_musculus.GRCm39.106.chr.gtf"
-
-```
-
-```{r}
-# Bam files
-bam_path <- "C:/Users/User/Documents/bam/"
-bamFiles <- list.files(bam_path, pattern = ".*bam$")
-bamFiles
-```
-
-
 
 # Differential Gene Expression Analysis
-
-
-
 
 ## Creating metadata for the DGE Analysis
 
 DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information
 
 ```{r}
-# write the list of bam files as a list to be saved in csv file
-#write.csv(list(bamFiles), 'C:/Users/User/Documents/bam/samples.csv')
-```
-
-```{r}
 # Read the csv file and change the column name 
-sample_ID <- read.csv('C:/Users/User/Documents/bam/samples.csv')
+sample_ID <- read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/samples.csv")
 #names(sample_ID)[2]  <- 'Sample_Name'
 head(sample_ID)
 ```
@@ -109,7 +86,7 @@ NOTE:
 
 
 ```{r}
-countsmatrix <-as.matrix(read.csv('C:/Users/User/Documents/bam/counts.csv'))
+countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/WG__Discussion_Alina's_EPEC_project/counts.csv"))
 ```
 
 ```{r}
@@ -335,7 +312,7 @@ PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Samples, label= Sam
   theme(legend.position="bottom") + theme(aspect.ratio=10/36) +
   geom_text(size =2, hjust=0, vjust=0)
 #print(PCAplot_vst)
-ggsave(filename = 'C:/Users/User/Documents/bam/plots/PCA_vst_plot1.tiff', plot = PCAplot_vst)
+ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_vst_plot.tiff', plot = PCAplot_vst)
 ```
 
 ```{r}
@@ -453,15 +430,6 @@ Both thresholds Applied!
 res2.df <- as.data.frame(res2) # convert the results table to a df
 ```
 
-
-### Applying pvalue and LFC thresholds!
-```{r}
-#res2.df$log2FoldChange <- (abs(res2.df$log2FoldChange>1)) 
-#res2.df <- res2.df [(res2.df$pvalue>0.05)]
-```
-
-
-
 ```{r}
 head(res2.df)
 ```
@@ -539,12 +507,8 @@ head(resOrdered)
 ```
 
 ```{r}
-write.csv(as.data.frame(resOrdered), file = "C:/Users/User/Documents/bam/results2.csv")
+write.csv(as.data.frame(resOrdered), file = "~/R/Rtuts/Data/Alina_EPEC_project/results2.csv")
 ```
-
-
-
-TODO : make the plot look aesthetically better and also show gene symbols instead of geneIDs.
 
 ## Z-score based Gene Heatmaps
 
@@ -627,6 +591,98 @@ p1 <- EnhancedVolcano(sigs.df,
   coord_fixed(ratio = 25/55)
   
 ```
+## GO Terms
+
+```{r}
+UPgene_names <- rownames(sigs.df[sigs.df$log2FoldChange>1,])
+```
+
+Running GO with clusterProfiler
+
+```{r}
+GO_results <- enrichGO(gene = UPgene_names,
+                       OrgDb = "org.Mm.eg.db",
+                       keyType = "ENSEMBL",
+                       ont = "BP"
+                       )
+```
+
+
+```{r}
+GO.df <- as.data.frame(GO_results)
+GO.df
+```
+NOTE: 67 out of 429 ENS Id found!
+
+```{r}
+GO_fit <- plot(barplot(GO_results, showCategory = 10))
+```
+
+
+## Data Carpentry with padj<0.05 and abs(log2FC)<-1 imposed!
+```{r}
+head(sigs.df)
+write.csv(sigs.df ,"C:/Users/User/Documents/bam/Data_Alina_padjANDlog2FC_thresholdimposed.csv")
+```
+
+```{r}
+summary(sigs.df)
+```
+### Gender Genes Removed from Table
+
+```{r}
+sigs.df <- filter(sigs.df, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
+```
+
+
+### Number of Genes from different strains that are contributing to UP/DOWN regulation.
+
+```{r}
+sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ]
+sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)<1, ]
+```
+
+
+```{r}
+str(sigs.UP.df)
+```
+
+
+```{r}
+str(sigs.DOWN.df)
+```
+
+
+
+### Down Regulation - Most Important Genes
+
+```{r}
+sigs.DOWN.df$symbol <- as.factor(sigs.DOWN.df$symbol)
+downgene_list <- data.frame(sigs.DOWN.df$symbol)
+names(downgene_list)[1] <- 'DOWN_Genes'
+summary(downgene_list, maxsum = 20)
+```
+
+
+```{r}
+count(downgene_list)
+```
+### UP Regulation - Most Important Genes
+
+```{r}
+sigs.UP.df$symbol <- as.factor(sigs.UP.df$symbol)
+upgene_list <- data.frame(sigs.UP.df$symbol)
+names(upgene_list)[1] <- 'UP_Genes'
+summary(upgene_list, maxsum = 20)
+```
+
+```{r}
+write.csv(as.data.frame(sigs.df), file = "~/R/Rtuts/Data/Alina_EPEC_project/significant_genes_table.csv")
+write.csv(as.data.frame(downgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/downgene_list.csv")
+write.csv(as.data.frame(upgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/upgene_list.csv")
+
+```
+
 
 ```{r}
 sessionInfo( )
