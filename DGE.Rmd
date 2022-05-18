@@ -32,6 +32,7 @@ library('Rsubread')
 library("clusterProfiler")
 library('clusterProfiler')
 library('PCAtools')
+library("wesanderson")
 ```
 
 # Differential Gene Expression Analysis
@@ -276,13 +277,29 @@ colnames(samplePoisDistMatrix) <- dds$Samples
 
 ```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "Paired")) )(255)
+
 pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
-         col = colors)
+         col = wes_palette("BottleRocket2"))
 ```
 
 ### PCA Plot
+
+```{r}
+color_values = c("deepskyblue3","deepskyblue3","darkolivegreen","darkred",
+                 "darkgoldenrod","darkblue","darkblue","darkorange1",
+                 "darkcyan","darkorchid4","burlywood4","darkslategray",
+                 "darkturquoise","deeppink2","darkgreen", "darkgreen", 
+                 "brown4", "brown4","chartreuse","black","black")
+```
+
+### PCA Plot with VST Data
+
+```{r}
+plotPCA(vsd, intgroup= "Samples")
+```
+
 
 ```{r}
 plotPCA(vsd, intgroup= "Samples")
@@ -309,30 +326,82 @@ percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```{r}
 PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, 
                                    color = Samples, 
-                                   label= Samples,
-                                  shape = condition)) +
+                                   label= Samples)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
   ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=15/46) +
-  geom_text(size =2, hjust=0, vjust=0)
-#print(PCAplot_vst)
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_vst_plot.tiff', plot = PCAplot_vst)
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)+
+  scale_colour_manual(values = color_values)
+
+PCAplot_vst
 ```
 
 ```{r}
-ggplot(pcaData, aes(x = PC1, y = PC2, 
-                    color = Samples, label= Samples, shape = condition)) +
-  geom_point(size =2) +
-  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
-  coord_fixed() +
-  ggtitle("PCA with VST data")+ 
-  theme(legend.position="bottom") + theme(aspect.ratio=15/46) +
-  geom_text(size =2, hjust=0, vjust=0)
+ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_vst_plot.tiff', 
+       plot = PCAplot_vst, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
 ```
+
+#### PCA Plot with rlog Data
+
+```{r}
+plotPCA(rld, intgroup= c("condition","Samples"), returnData = TRUE)
+```
+
+```{r}
+pcaData_rld <- plotPCA(rld, intgroup = c("condition","Samples"), returnData = TRUE)
+head(pcaData_rld)
+```
+
+```{r}
+percentVar_rld  <- round(100 * attr(pcaData_rld, "percentVar"))
+```
+
+```{r}
+PCAplot_rld <- ggplot(pcaData_rld, aes(x = PC1, y = PC2, 
+                                   color = Samples, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar_rld[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_rld[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA with RLOG data")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size =4, hjust=0, vjust=0)+
+  scale_colour_manual(values = color_values)
+
+PCAplot_rld
+```
+
+```{r}
+ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_rld_plot.tiff', 
+       plot = PCAplot_rld, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+
+### Scree Plot
+
+```{r}
+pca(vsd, metadata = colData, removeVar = 0.1)
+#screeplot(p, axisLabSize = 18, titleLabSize = 22)
+```
+
 
 ### PCA plot using Generalized PCA.
 
@@ -347,8 +416,14 @@ gpca.dat$Samples <- dds$Samples
 ```
 
 ```{r}
-ggplot(gpca.dat, aes(x = dim1, y = dim2, color = Samples, shape = condition, label = Samples)) +
-  geom_point(size =3) + coord_fixed() + ggtitle("glmpca - Generalized PCA")
+ggplot(gpca.dat, aes(x = dim1, y = dim2, color = Samples, label = Samples)) +
+  geom_point(size =3) + 
+  coord_fixed() + 
+  ggtitle("glmpca - Generalized PCA")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 3, hjust=0, vjust=0)+
+  scale_colour_manual(values = color_values)
 ```
 
 ## Hierarchical Clustering
@@ -367,7 +442,9 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 
 ```{r}
 ### Plot heatmap
+
 heat.colors <- brewer.pal(6, "Paired")
+
 pheatmap(rld_cor, 
          border_color=NA,
          color = heat.colors,
@@ -535,10 +612,11 @@ head(mat.zs)
 
 ```{r}
 Heatmap(mat.zs,
-        cluster_columns = F,
+        cluster_columns = T,
         cluster_rows = F,
         column_labels = colnames(mat.zs),
         name = 'Z-Score Heatmap of ALL Genes',
+         
         )
 ```
 
@@ -594,6 +672,31 @@ p1 <- EnhancedVolcano(sigs.df,
   coord_fixed(ratio = 25/55)
   
 ```
+```{r}
+
+ggplot(sigs.df, 
+       aes(x=log2FoldChange , y = -log10(pvalue))) + 
+  geom_point()
+
+```
+
+
+```{r}
+ggplot(sigs.UP.df, 
+       aes(x=log2FoldChange , y = log2(baseMean))
+       ) + 
+  geom_point()+
+  geom_text(aes(label=symbol))
+```
+```{r}
+ggplot(sigs1.df, 
+       aes(x=log2FoldChange , y = -log10(pvalue))) + 
+  geom_point()+
+  geom_text(aes(label=symbol))
+```
+
+
+
 ## GO Terms
 
 ```{r}
