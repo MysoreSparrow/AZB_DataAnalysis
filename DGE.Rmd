@@ -395,13 +395,6 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_rld_plot.tiff',
 ```
 
 
-### Scree Plot
-
-```{r}
-pca(vsd, metadata = colData, removeVar = 0.1)
-#screeplot(p, axisLabSize = 18, titleLabSize = 22)
-```
-
 
 ### PCA plot using Generalized PCA.
 
@@ -444,7 +437,8 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 ### Plot heatmap
 
 heat.colors <- brewer.pal(6, "Paired")
-
+```
+```{r}
 pheatmap(rld_cor, 
          border_color=NA,
          color = heat.colors,
@@ -515,9 +509,6 @@ head(res2.df)
 ```
 
 
-## Counts Plot
-
-
 ## MA Plot 
 
 ```{r}
@@ -548,18 +539,50 @@ df <- as.data.frame(colData(dds2)[,c("condition","Samples")])
 ```
 
 ```{r}
-pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,
-         cluster_cols=TRUE, annotation_col=df)
+pheatmap(assay(vsd)[select,], 
+         cluster_cols=TRUE, 
+         annotation_col=df,
+         color = heat.colors,)
 ```
 
 ```{r}
 pheatmap(assay(rld)[select,], 
-         cluster_rows=TRUE,
-         show_rownames=TRUE,
          cluster_cols=TRUE, 
-         show_colnames = TRUE,
-         annotation_col=df)
+         annotation_col=df,
+         color = heat.colors,)
 ```
+
+## Effect of Transformations on Variance
+
+- These set of plots depict the standard deviation of transformed data (across samples), against mean.
+
+### Based on Shifted Log Transformation
+```{r}
+ntd <- normTransform(dds2)
+meanSdPlot(assay(ntd))
+```
+
+### Based on Rlog Transformation
+
+```{r}
+meanSdPlot(assay(rld))
+```
+
+### Based on Variance Stabilizing Transformation
+
+
+```{r}
+meanSdPlot(assay(vsd))
+```
+## Dispersion Plots
+
+- Its a useful diagnostic to plot the dispersion estimates.
+
+```{r}
+plotDispEsts(dds2)
+```
+
+
 
 ## Annotating and Exporting Results
 
@@ -682,7 +705,7 @@ ggplot(sigs.df,
 
 
 ```{r}
-ggplot(sigs.UP.df, 
+ggplot(sigs1.df, 
        aes(x=log2FoldChange , y = log2(baseMean))
        ) + 
   geom_point()+
