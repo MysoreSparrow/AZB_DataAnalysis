@@ -32,7 +32,7 @@ library('Rsubread')
 library("clusterProfiler")
 library('clusterProfiler')
 library('PCAtools')
-library("wesanderson")
+library('ggrepel')
 ```
 
 # Differential Gene Expression Analysis
@@ -238,7 +238,7 @@ useful first step in an RNA-seq analysis is often to assess overall similarity b
 
 ### Euclidean Distance between samples
 
-dist to calculate the Euclidean distance between samples. To ensure we have a roughly equal contribution from all genes, we use it on the VST data.
+dist to calculate the Euclidean distance between samples - useful for ONLY normalized data. To ensure we have a roughly equal contribution from all genes, we use it on the VST data.
 ```{r}
 sampleDists <- dist(t(assay(vsd)))
 head(sampleDists)
@@ -254,37 +254,50 @@ colnames(sampleDistMatrix) <- vsd$Samples
 ```
 
 ```{r}
-colors <- colorRampPalette( rev(brewer.pal(9, "Paired")) )(255)
-pheatmap(sampleDistMatrix,
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
-         col = colors)
-```
+         main = "Sample-to-Sample Euclidean Distance",
+         col = colors,
+         filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/distance_plot.tiff', 
+         width = 12,
+         height = 10
+         )
 
+distance_plot
+```
 
 ### Poisson Distance between Samples
 
 Another option for calculating sample distances is to use the Poisson Distance (Witten 2011).
-This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples.
+This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples.Useful ONLY with raw counts (unnormalised data).
 
 
 ```{r}
-poisd <- PoissonDistance(t(counts(dds)))
+poisd <- PoissonDistance(t(counts(dds))) # raw counts or unnormalised data
 samplePoisDistMatrix <- as.matrix( poisd$dd )
 rownames(samplePoisDistMatrix) <- dds$Samples
 colnames(samplePoisDistMatrix) <- dds$Samples
 ```
 
 ```{r}
-colors <- colorRampPalette( rev(brewer.pal(9, "Paired")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 
-pheatmap(samplePoisDistMatrix,
+poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
-         col = wes_palette("BottleRocket2"))
+         main = "Sample-to-Sample Poisson Distance",
+         col = colors,
+         filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/poisson_dist_plot.tiff', 
+         width = 12,
+         height = 10)
+         
+poisson_dist_plot
 ```
 
 ### PCA Plot
+
 
 ```{r}
 color_values = c("deepskyblue3","deepskyblue3","darkolivegreen","darkred",
@@ -294,25 +307,7 @@ color_values = c("deepskyblue3","deepskyblue3","darkolivegreen","darkred",
                  "brown4", "brown4","chartreuse","black","black")
 ```
 
-### PCA Plot with VST Data
-
-```{r}
-plotPCA(vsd, intgroup= "Samples")
-```
-
-
-```{r}
-plotPCA(vsd, intgroup= "Samples")
-```
-
-```{r}
-plotPCA(vsd, intgroup= "condition")
-```
-
-
-```{r}
-plotPCA(vsd, intgroup= c("condition","Samples"))
-```
+#### PCA Plot with VST Data
 
 ```{r}
 pcaData <- plotPCA(vsd, intgroup = c("condition","Samples"), returnData = TRUE)
@@ -436,18 +431,28 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 ```{r}
 ### Plot heatmap
 
-heat.colors <- brewer.pal(6, "Paired")
+heat.colors <- brewer.pal(6, "RdYlBu")
+Hclust_plot <- pheatmap(rld_cor, 
+                        color = heat.colors,
+                        main = 'Heirarchical Clustering of Samples',
+                        filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/Hclust_plot.tiff'
+                       )
+
+Hclust_plot
 ```
 ```{r}
-pheatmap(rld_cor, 
-         border_color=NA,
-         color = heat.colors,
-         fontsize = 8, 
-         fontsize_row = 10, 
-         height=50,
-         main = 'Heirarchical Clustering of Samples',
-         )
+library(corrplot)
+
 ```
+```{r}
+corrplot(rld_cor, type="upper", order="hclust") # colorful number
+```
+
+#### Point of Discussion on Variance between R1 and R2: 
+
+From Poisson plot, Euclidean distance plot, PCA and Heirarchical Clustering based on correlation matrix, 
+can we say that R1 is reasonably close enough to R2. So we either drop R2 or we take a mean between R1 and R2.
+
 
 ## DGE Results
 
@@ -517,8 +522,13 @@ resultsNames(dds2)
 ```
 
 ```{r}
+plotMA_res2 <- plotMA(res2, ylim = c(-2, 2))
+```
+
+
+```{r}
 res3 <- lfcShrink(dds2, coef="condition_Infected_vs_control", type="apeglm")
-plotMA(res3, ylim = c(-3, 3))
+plotMA_res3 <-plotMA(res3, ylim = c(-2, 2))
 ```
 
 ```{r}
@@ -526,6 +536,54 @@ res.noshr <- results(dds2, name="condition_Infected_vs_control")
 plotMA(res.noshr, ylim = c(-3, 3))
 ```
 
+### Histogram of p-values
+
+```{r}
+hist(res2$pvalue, breaks = 50, col = "grey50", border = "blue")
+```
+ Further Filtering: baseMean > 1
+```{r}
+hist(res2$pvalue[res2$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
+
+```
+## Annotating and Exporting Results
+
+- adding gene annotation to results table
+
+```{r}
+columns(org.Mm.eg.db)
+
+res2.df$symbol <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds),
+                    column = "SYMBOL",
+                    keytype="ENSEMBL",
+                     multiVals="first")
+```
+
+```{r}
+head(res2.df)
+```
+
+```{r}
+str(res2.df)
+nrow(res2.df)
+```
+Omit NA values from symbol and respective rows!
+```{r}
+res3.df <- res2.df %>% filter(!is.na(symbol)) 
+nrow(res3.df)
+```
+
+## Saving the Results
+
+```{r}
+resOrdered <- res3.df[order(res3.df$pvalue),]
+head(resOrdered)
+```
+
+```{r}
+write.csv(as.data.frame(resOrdered), file = "~/R/Rtuts/Data/Alina_EPEC_project/results_DE.csv")
+```
 
 
 ## Heatmap of count matrix
@@ -581,37 +639,92 @@ meanSdPlot(assay(vsd))
 ```{r}
 plotDispEsts(dds2)
 ```
+## Volcano Plots
 
-
-
-## Annotating and Exporting Results
 
 ```{r}
-columns(org.Mm.eg.db)
+p1 <- EnhancedVolcano(res3.df,
+    lab = res3.df$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    xlab = bquote(~Log[2]~ 'FoldChange'),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'DE Genes',
+    pointSize = 2.0,
+    labSize = 4.0,
+    boxedLabels = FALSE,
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    colAlpha = 0.5,
+    xlim = c(-6, 9),
+    ylim=c(-2, 12),
+    legendPosition = 'bottom',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = TRUE,
+    widthConnectors = 0.75
+    )
+
+p1 +
+  scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
 ```
+### Significantly Differentially Expressed Genes
 
 ```{r}
-res2.df$symbol <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds),
-                    column = "SYMBOL",
-                    keytype="ENSEMBL",
-                     multiVals="first")
+res3.df$diffexpressed <- "NO"
+# if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange > 1.0 & res3.df$pvalue < 0.05] <- "UP" 
+# if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange < -1.0 & res3.df$pvalue < 0.05] <- "DOWN" 
+
+# Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
+res3.df$delabel <- NA
+res3.df$delabel[res3.df$diffexpressed != "NO"] <- res3.df$symbol[res3.df$diffexpressed != "NO"]
 ```
+
+
+### Volcano Plot using ggplot
+```{r}
+mycolors <- c("blue","red", "black")
+names(mycolors) <- c("UP", "DOWN","NO")
+
+p <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
+                         col=diffexpressed)) + geom_point() + theme_minimal()+ 
+  # Add hline and vline L2FC and Pvalue.
+  geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
+  geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
+  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 1.0)) +
+  scale_x_continuous(limits = c(-4, 9) , breaks=seq(-4, 9, 1.0)) +
+  scale_color_manual(values = mycolors)
+  
+p
+
+```
+
+, label=delabel
+sizes <- c("UP" = 2, "DOWN" = 2, "NO" = 1) 
+alphas <- c("UP" = 1, "DOWN" = 1, "NO" = 0.5)
+#scale_fill_manual(values = cols) + # Modify point colour
+#scale_size_manual(values = sizes) + # Modify point size
+#scale_alpha_manual(values = alphas) + # Modify point transparency
 
 ```{r}
-head(res2.df)
+ggplot(res3.df, 
+       aes(x=log2FoldChange , y = log10(baseMean))
+       ) + 
+  geom_point()
+  #+geom_text(aes(label=symbol))
 ```
-
-## Saving the Results
-
 ```{r}
-resOrdered <- res2.df[order(res2.df$pvalue),]
-head(resOrdered)
+ggplot(sigs1.df, 
+       aes(x=log2FoldChange , y = -log10(pvalue))) + 
+  geom_point()+
+  ggtitle("Log2FC vs -Log10(pvalue)")
+  geom_text(aes(label=symbol))
 ```
 
-```{r}
-write.csv(as.data.frame(resOrdered), file = "~/R/Rtuts/Data/Alina_EPEC_project/results2.csv")
-```
 
 ## Z-score based Gene Heatmaps
 
@@ -669,56 +782,6 @@ Heatmap(mat1.zs,
 ```
 
 
-## Volcano Plots
-
-
-```{r}
-p1 <- EnhancedVolcano(sigs.df,
-    lab = sigs.df[rownames(mat.zs),]$symbol,
-    x = 'log2FoldChange',
-    y = 'pvalue',
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE Genes',
-    pointSize = 1.0,
-    labSize = 3.0,
-    gridlines.major = TRUE,
-    gridlines.minor = FALSE
-    )
-```
-
-```{r}
-  p1 +
-  coord_cartesian(ylim=c(0, 12)) +
-  scale_y_continuous(breaks=seq(-2, 12, 1)) +
-  coord_cartesian(xlim=c(-6, 8)) +
-  scale_x_continuous(breaks=seq(-8,8, 1)) +
-  coord_fixed(ratio = 15/55)
-  
-```
-```{r}
-
-ggplot(sigs.df, 
-       aes(x=log2FoldChange , y = -log10(pvalue))) + 
-  geom_point()
-
-```
-
-
-```{r}
-ggplot(sigs1.df, 
-       aes(x=log2FoldChange , y = log2(baseMean))
-       ) + 
-  geom_point()+
-  geom_text(aes(label=symbol))
-```
-```{r}
-ggplot(sigs1.df, 
-       aes(x=log2FoldChange , y = -log10(pvalue))) + 
-  geom_point()+
-  ggtitle("Log2FC vs -Log10(pvalue)")
-  geom_text(aes(label=symbol))
-```
 
 
 
