@@ -673,7 +673,7 @@ p1 +
 ### Significantly Differentially Expressed Genes
 
 ```{r}
-res3.df$diffexpressed <- "NO"
+res3.df$diffexpressed <- "NS"
 # if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
 res3.df$diffexpressed[res3.df$log2FoldChange > 1.0 & res3.df$pvalue < 0.05] <- "UP" 
 # if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
@@ -681,50 +681,45 @@ res3.df$diffexpressed[res3.df$log2FoldChange < -1.0 & res3.df$pvalue < 0.05] <- 
 
 # Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
 res3.df$delabel <- NA
-res3.df$delabel[res3.df$diffexpressed != "NO"] <- res3.df$symbol[res3.df$diffexpressed != "NO"]
+res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexpressed != "NS"]
 ```
 
 
 ### Volcano Plot using ggplot
 ```{r}
 mycolors <- c("blue","red", "black")
-names(mycolors) <- c("UP", "DOWN","NO")
+names(mycolors) <- c("UP", "DOWN","NS")
 
 p <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
-                         col=diffexpressed)) + geom_point() + theme_minimal()+ 
+                         col=diffexpressed, label=delabel)) + geom_point() + theme_bw()+ 
   # Add hline and vline L2FC and Pvalue.
   geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
   geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
   scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 1.0)) +
-  scale_x_continuous(limits = c(-4, 9) , breaks=seq(-4, 9, 1.0)) +
-  scale_color_manual(values = mycolors)
+  scale_x_continuous(limits = c(-4, 9) , breaks=seq(-4, 9, 0.5)) +
+  scale_color_manual(values = mycolors) +
+  # title and legend
+  labs(title = "Volcano Plot for DE genes", 
+       subtitle = "|L2FC| > 1 , pvalue < 0.05") +
+  theme(legend.position = "Bottom")+
+  geom_text_repel()
   
 p
 
 ```
-
-, label=delabel
 sizes <- c("UP" = 2, "DOWN" = 2, "NO" = 1) 
 alphas <- c("UP" = 1, "DOWN" = 1, "NO" = 0.5)
-#scale_fill_manual(values = cols) + # Modify point colour
 #scale_size_manual(values = sizes) + # Modify point size
 #scale_alpha_manual(values = alphas) + # Modify point transparency
 
 ```{r}
-ggplot(res3.df, 
-       aes(x=log2FoldChange , y = log10(baseMean))
+ggplot(res3.df, aes(x=log2FoldChange , y = log10(baseMean), 
+                    col=diffexpressed, label=delabel)
        ) + 
-  geom_point()
-  #+geom_text(aes(label=symbol))
+  geom_point() +
+  scale_color_manual(values = mycolors)+
+  geom_text_repel()
 ```
-```{r}
-ggplot(sigs1.df, 
-       aes(x=log2FoldChange , y = -log10(pvalue))) + 
-  geom_point()+
-  ggtitle("Log2FC vs -Log10(pvalue)")
-  geom_text(aes(label=symbol))
-```
-
 
 ## Z-score based Gene Heatmaps
 
