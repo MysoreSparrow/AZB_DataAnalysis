@@ -4,7 +4,7 @@ output:
   html_document: 
     toc: yes
     fig_width: 12
-    fig_height: 10
+    fig_height: 12
     fig_caption: yes
 ---
 
@@ -30,9 +30,9 @@ library("apeglm")
 library("ComplexHeatmap")
 library('Rsubread')
 library("clusterProfiler")
-library('clusterProfiler')
 library('PCAtools')
 library('ggrepel')
+library('corrplot')
 ```
 
 # Differential Gene Expression Analysis
@@ -440,10 +440,7 @@ Hclust_plot <- pheatmap(rld_cor,
 
 Hclust_plot
 ```
-```{r}
-library(corrplot)
 
-```
 ```{r}
 corrplot(rld_cor, type="upper", order="hclust") # colorful number
 ```
@@ -641,16 +638,17 @@ plotDispEsts(dds2)
 ```
 ## Volcano Plots
 
+### Volcano Plots based on Enhanced Volcano
 
 ```{r}
 p1 <- EnhancedVolcano(res3.df,
     lab = res3.df$symbol,
     x = 'log2FoldChange',
     y = 'pvalue',
-    xlab = bquote(~Log[2]~ 'FoldChange'),
+    xlab = bquote(~Log[2]~'FoldChange'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'DE Genes',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue',
     pointSize = 2.0,
     labSize = 4.0,
     boxedLabels = FALSE,
@@ -670,7 +668,7 @@ p1 +
   scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
   scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
 ```
-### Significantly Differentially Expressed Genes
+
 
 ```{r}
 res3.df$diffexpressed <- "NS"
@@ -689,28 +687,60 @@ res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexp
 ```{r}
 mycolors <- c("blue","red", "black")
 names(mycolors) <- c("UP", "DOWN","NS")
+myalphas <- c("UP" = 1, "DOWN" = 1, "NS" = 0.3)
 
-p <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
+
+DE_volcanoplot1 <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
+                         col=diffexpressed)) + geom_point() + theme_bw()+ 
+  # Add hline and vline L2FC and Pvalue.
+  geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
+  geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
+  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 0.5)) +
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 0.5)) +
+  scale_color_manual(values = mycolors) +
+  # title and legend
+  labs(title = "Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue", 
+       subtitle = "|L2FC| > 1 , pvalue < 0.05") +
+  theme(legend.position = "Bottom")+
+  scale_alpha_manual(values = myalphas)  # Modify point transparency
+  
+DE_volcanoplot1
+
+```
+
+```{r}
+mycolors <- c("blue","red", "black")
+names(mycolors) <- c("UP", "DOWN","NS")
+myalphas <- c("UP" = 1, "DOWN" = 1, "NO" = 0.3)
+options(ggrepel.max.overlaps = 75)
+
+DE_volcanoplot <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
                          col=diffexpressed, label=delabel)) + geom_point() + theme_bw()+ 
   # Add hline and vline L2FC and Pvalue.
   geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
   geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
-  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 1.0)) +
-  scale_x_continuous(limits = c(-4, 9) , breaks=seq(-4, 9, 0.5)) +
+  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 0.5)) +
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 0.5)) +
   scale_color_manual(values = mycolors) +
   # title and legend
-  labs(title = "Volcano Plot for DE genes", 
+  labs(title = "Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue", 
        subtitle = "|L2FC| > 1 , pvalue < 0.05") +
   theme(legend.position = "Bottom")+
-  geom_text_repel()
+  geom_text_repel() +
+  scale_alpha_manual(values = myalphas)  # Modify point transparency
   
-p
+DE_volcanoplot
 
 ```
-sizes <- c("UP" = 2, "DOWN" = 2, "NO" = 1) 
-alphas <- c("UP" = 1, "DOWN" = 1, "NO" = 0.5)
-#scale_size_manual(values = sizes) + # Modify point size
-#scale_alpha_manual(values = alphas) + # Modify point transparency
+
+```{r}
+ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/DE_volcanoplot.tiff', 
+       plot = DE_volcanoplot, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
 
 ```{r}
 ggplot(res3.df, aes(x=log2FoldChange , y = log10(baseMean), 
@@ -719,6 +749,57 @@ ggplot(res3.df, aes(x=log2FoldChange , y = log10(baseMean),
   geom_point() +
   scale_color_manual(values = mycolors)+
   geom_text_repel()
+```
+## Significant Differentially Expressed Genes
+
+Arrive at relevant genes by imposing thresholds.
+
+```{r}
+sigs.df <- res3.df[(abs(res3.df$log2FoldChange)>1) & (res3.df$pvalue< 0.05),]
+nrow(sigs.df)
+```
+
+### Gender Genes Removed from Table
+
+```{r}
+sigs.df <- filter(sigs.df, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
+```
+
+```{r}
+nrow(sigs.df)
+```
+Therefore, gender genes werent so much in play in terms of significance!
+
+```{r}
+head(sigs.df)
+write.csv(sigs.df ,"~/R/Rtuts/Data/Alina_EPEC_project/SignificantGenes_pval&log2FC_thresholdimposed.csv")
+```
+
+
+### Number of Genes from different strains that are contributing to UP/DOWN regulation.
+
+```{r}
+sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ] #UP Regulation Table
+sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)< -1, ]#DOWN Regulation Table
+```
+
+```{r}
+nrow(sigs.UP.df)
+nrow(sigs.DOWN.df)
+```
+
+### Determine Top20 UP Genes and Top20 DOWN Genes
+
+```{r}
+UpGene <- sigs.UP.df[order(-sigs.UP.df$log2FoldChange), ]$symbol
+DownGene <- sigs.DOWN.df[order(-sigs.DOWN.df$log2FoldChange), ]$symbol
+DE_Genes_table <- as.data.frame(cbind(UpGene,DownGene)) # sorted based on highest Log2FC value
+```
+
+```{r}
+
+write.csv(DE_Genes_table ,"~/R/Rtuts/Data/Alina_EPEC_project/DE_Genes_table.csv")
+head(DE_Genes_table, 20)
 ```
 
 ## Z-score based Gene Heatmaps
@@ -832,73 +913,6 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_dotplot.tiff',
 
 ```{r}
 GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 11))
-```
-
-
-
-
-## Data Carpentry with padj<0.05 and abs(log2FC)<-1 imposed!
-```{r}
-head(sigs.df)
-write.csv(sigs.df ,"~/R/Rtuts/Data/Alina_EPEC_project/Data_Alina_padjANDlog2FC_thresholdimposed.csv")
-```
-
-```{r}
-summary(sigs.df)
-```
-### Gender Genes Removed from Table
-
-```{r}
-sigs.df <- filter(sigs.df, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
-```
-
-
-### Number of Genes from different strains that are contributing to UP/DOWN regulation.
-
-```{r}
-sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ]
-sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)<1, ]
-```
-
-
-```{r}
-str(sigs.UP.df)
-```
-
-
-```{r}
-str(sigs.DOWN.df)
-```
-
-
-
-### Down Regulation - Most Important Genes
-
-```{r}
-sigs.DOWN.df$symbol <- as.factor(sigs.DOWN.df$symbol)
-downgene_list <- data.frame(sigs.DOWN.df$symbol)
-names(downgene_list)[1] <- 'DOWN_Genes'
-summary(downgene_list, maxsum = 20)
-```
-
-
-```{r}
-count(downgene_list)
-```
-### UP Regulation - Most Important Genes
-
-```{r}
-sigs.UP.df$symbol <- as.factor(sigs.UP.df$symbol)
-upgene_list <- data.frame(sigs.UP.df$symbol)
-names(upgene_list)[1] <- 'UP_Genes'
-summary(upgene_list, maxsum = 20)
-```
-
-```{r}
-write.csv(as.data.frame(sigs.df), file = "~/R/Rtuts/Data/Alina_EPEC_project/significant_genes_table.csv")
-write.csv(as.data.frame(downgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/downgene_list.csv")
-write.csv(as.data.frame(upgene_list), file = "~/R/Rtuts/Data/Alina_EPEC_project/upgene_list.csv")
-
 ```
 
 
