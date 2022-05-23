@@ -33,6 +33,11 @@ library("clusterProfiler")
 library('PCAtools')
 library('ggrepel')
 library('corrplot')
+library(GO.db)
+library(GOstats)
+library(pathview)
+library(gage)
+library(gageData)
 ```
 
 # Differential Gene Expression Analysis
@@ -562,7 +567,7 @@ res2.df$symbol <- mapIds(org.Mm.eg.db,
 res2.df$entrez <- mapIds(org.Mm.eg.db,
                      keys = rownames(dds),
                     column = "ENTREZID",
-                    keytype="REFSEQ",
+                    keytype="ENSEMBL",
                      multiVals="first")
 ```
 
@@ -576,7 +581,7 @@ nrow(res2.df)
 ```
 Omit NA values from symbol and respective rows!
 ```{r}
-res3.df <- res2.df %>% filter(!is.na(symbol)) 
+res3.df <- res2.df %>% filter(!is.na(symbol) & !is.na(entrez)) 
 nrow(res3.df)
 ```
 
@@ -860,17 +865,106 @@ Heatmap(mat1.zs,
         row_labels = sigs1.df[rownames(mat1.zs),]$symbol)
 ```
 
+## Gene Ontology - Alex Soupir
+
+```{r}
+selectUPGenes_entrezid = unique(sigs.UP.df['entrez'] )
+selectDOWNGenes_entrezid = unique(sigs.DOWN.df['entrez'] )
+```
+
+```{r}
+UniverseGenes = unique(sigs.df$entrez)
+cutOff = 0.01 # setting the cutoff at 1%
+```
+
+```{r}
+upParams = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+downParams = new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+```
+```{r}
+upBP = hyperGTest(upParams)
+summary(upBP)
+```
+
+```{r}
+downBP = hyperGTest(downParams)
+summary(downBP)
+```
+
+## Pathway Analysis
+
+### GO Pathways
+
+```{r}
+foldchanges = sigs.df$log2FoldChange
+names(foldchanges) = sigs.df$entrez
+head(foldchanges)
+```
+Bring in 2 relevant Mm datasets from GO db
+
+```{r}
+data("go.sets.mm")
+data("go.subs.mm")
+```
+
+```{r}
+gobpsets = go.sets.mm[go.subs.mm$BP]
+gobpres = gage(exprs = foldchanges,
+               gsets = gobpsets,
+               same.dir = TRUE)
+```
+
+Look at UP regulated ones
+```{r}
+head(gobpres$greater, 20)
+```
+Look at down regulated ones
+```{r}
+head(gobpres$less, 20)
+```
+
+```{r}
+head(gobpres$stats, 20)
+```
+
+### KEGG Pathways
+
+```{r}
+foldchanges = sigs.df$log2FoldChange
+names(foldchanges) = sigs.df$entrez
+head(foldchanges)
+```
+```{r}
+data(kegg.sets.mm)
+data(sigmet.idx.mm)
+kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
+#head(kegg.sets.mm, 3)
+```
+
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.mm, same.dir=TRUE)
+```
 
 
-
-
-## GO Terms
+## GO Terms with clusterProfiler
 
 ```{r}
 UPgene_names <- rownames(sigs.df[sigs.df$log2FoldChange>1,])
 ```
 
-Running GO with clusterProfiler
+Running GO 
 
 ```{r}
 GO_results <- enrichGO(gene = UPgene_names,
