@@ -388,9 +388,6 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_rld_plot.tiff',
        height = 10,
        units = "in")
 ```
-
-
-
 ### PCA plot using Generalized PCA.
 
 ```{r}
@@ -413,6 +410,9 @@ ggplot(gpca.dat, aes(x = dim1, y = dim2, color = Samples, label = Samples)) +
   geom_text(size = 3, hjust=0, vjust=0)+
   scale_colour_manual(values = color_values)
 ```
+
+
+
 
 ## Hierarchical Clustering
 
@@ -543,17 +543,26 @@ hist(res2$pvalue, breaks = 50, col = "grey50", border = "blue")
 hist(res2$pvalue[res2$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
 
 ```
+
 ## Annotating and Exporting Results
 
 - adding gene annotation to results table
+- adding ENTREZ Id to results table
 
 ```{r}
 columns(org.Mm.eg.db)
+```
 
+```{r}
 res2.df$symbol <- mapIds(org.Mm.eg.db,
                      keys = rownames(dds),
                     column = "SYMBOL",
                     keytype="ENSEMBL",
+                     multiVals="first")
+res2.df$entrez <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds),
+                    column = "ENTREZID",
+                    keytype="REFSEQ",
                      multiVals="first")
 ```
 
@@ -597,14 +606,16 @@ df <- as.data.frame(colData(dds2)[,c("condition","Samples")])
 pheatmap(assay(vsd)[select,], 
          cluster_cols=TRUE, 
          annotation_col=df,
-         color = heat.colors,)
+         color = heat.colors,
+         show_rownames = FALSE)
 ```
 
 ```{r}
 pheatmap(assay(rld)[select,], 
          cluster_cols=TRUE, 
          annotation_col=df,
-         color = heat.colors,)
+         color = heat.colors,
+         show_rownames = FALSE)
 ```
 
 ## Effect of Transformations on Variance
@@ -805,16 +816,10 @@ head(DE_Genes_table, 20)
 ## Z-score based Gene Heatmaps
 
 ```{r}
-head(res2.df)
+head(sigs.df)
 ```
 
 ### with Whole table (all genes together!)
-
-Applying thresholds for Log2FC and pvalue
-
-```{r}
-sigs.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
-```
 
 ```{r}
 mat <- counts(dds2, normalized = TRUE)[rownames(sigs.df),]
@@ -822,16 +827,14 @@ mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
 head(mat.zs)
 ```
-
 ```{r}
-Heatmap(mat.zs,
-        cluster_columns = T,
-        cluster_rows = F,
-        column_labels = colnames(mat.zs),
-        name = 'Z-Score Heatmap of ALL Genes',
-         
-        )
+Heatmap_ALL_DEGene <- pheatmap(mat.zs,
+         cluster_cols = TRUE,
+         cluster_rows = FALSE,
+         show_rownames = FALSE)
+Heatmap_ALL_DEGene
 ```
+
 
 Need to filter these results to accommodate better the heat maps and also volcano plots
 
@@ -919,3 +922,25 @@ GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 11))
 ```{r}
 sessionInfo( )
 ```
+
+### Multiple PCA
+
+method1
+
+```{r}
+dds_forpca <- DESeq(dds)
+vst_pcatools <- assay(vst(dds_forpca ))
+```
+```{r}
+ p <- pca(vst_pcatools, metadata = coldata)
+```
+```{r}
+screeplot(p, axisLabSize = 18, titleLabSize = 22)
+```
+```{r}
+  biplot(p)
+```
+```{r}
+ pairsplot(p)
+```
+
