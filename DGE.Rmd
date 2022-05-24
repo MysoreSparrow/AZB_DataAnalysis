@@ -4,7 +4,7 @@ output:
   html_document: 
     toc: yes
     fig_width: 12
-    fig_height: 12
+    fig_height: 10
     fig_caption: yes
 ---
 
@@ -301,7 +301,7 @@ poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
 poisson_dist_plot
 ```
 
-### PCA Plot
+## PCA Plot
 
 
 ```{r}
@@ -446,9 +446,6 @@ Hclust_plot <- pheatmap(rld_cor,
 Hclust_plot
 ```
 
-```{r}
-corrplot(rld_cor, type="upper", order="hclust") # colorful number
-```
 
 #### Point of Discussion on Variance between R1 and R2: 
 
@@ -459,6 +456,7 @@ can we say that R1 is reasonably close enough to R2. So we either drop R2 or we 
 ## DGE Results
 
 ### Running the differential expression pipeline
+
 
 ```{r}
 dds1 <- DESeq(dds)
@@ -531,11 +529,6 @@ plotMA_res2 <- plotMA(res2, ylim = c(-2, 2))
 ```{r}
 res3 <- lfcShrink(dds2, coef="condition_Infected_vs_control", type="apeglm")
 plotMA_res3 <-plotMA(res3, ylim = c(-2, 2))
-```
-
-```{r}
-res.noshr <- results(dds2, name="condition_Infected_vs_control")
-plotMA(res.noshr, ylim = c(-3, 3))
 ```
 
 ### Histogram of p-values
@@ -652,9 +645,9 @@ meanSdPlot(assay(vsd))
 ```{r}
 plotDispEsts(dds2)
 ```
-## Volcano Plots
+# Volcano Plots
 
-### Volcano Plots based on Enhanced Volcano
+## Volcano Plots based on Enhanced Volcano
 
 ```{r}
 p1 <- EnhancedVolcano(res3.df,
@@ -699,7 +692,7 @@ res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexp
 ```
 
 
-### Volcano Plot using ggplot
+## Volcano Plot using ggplot
 ```{r}
 mycolors <- c("blue","red", "black")
 names(mycolors) <- c("UP", "DOWN","NS")
@@ -834,11 +827,47 @@ head(mat.zs)
 ```
 ```{r}
 Heatmap_ALL_DEGene <- pheatmap(mat.zs,
-         cluster_cols = TRUE,
-         cluster_rows = FALSE,
-         show_rownames = FALSE)
+                               cluster_cols = TRUE,
+                               cluster_rows = FALSE,
+                               show_rownames = FALSE)
 Heatmap_ALL_DEGene
 ```
+
+
+---------------------------------------------------------------------------------
+```{r}
+sigs2.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
+
+mat2 <- counts(dds2, normalized = TRUE)[rownames(sigs2.df),]
+mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
+colnames(mat2.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+head(mat1.zs)
+
+#pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
+```
+
+
+```{r}
+newHP <- Heatmap(mat2.zs, 
+        cluster_columns = TRUE, 
+        cluster_rows = TRUE, 
+        column_labels = colnames(mat2.zs),
+        name = 'Z-Score Heatmap of DE Genes',
+        show_row_names = FALSE, 
+        use_raster = TRUE, 
+        raster_quality = 5,
+        width = unit(12, "cm"), 
+        height = unit(8, "cm")
+        #row_labels = sigs2.df[rownames(mat2.zs),]$symbol
+        )
+newHP
+```
+
+
+
+
+---------------------------------------------------------------------------------
+
 
 
 Need to filter these results to accommodate better the heat maps and also volcano plots
@@ -847,10 +876,7 @@ Need to filter these results to accommodate better the heat maps and also volcan
 
 ```{r}
 sigs1.df <- res2.df[(res2.df$baseMean > 75) & (abs(res2.df$log2FoldChange)>2) & (res2.df$pvalue< 0.05),]
-```
 
-
-```{r}
 mat1 <- counts(dds2, normalized = TRUE)[rownames(sigs1.df),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
@@ -928,7 +954,7 @@ gobpres = gage(exprs = foldchanges,
 
 Look at UP regulated ones
 ```{r}
-head(gobpres$greater, 20)
+lapply(gobpres, head)
 ```
 Look at down regulated ones
 ```{r}
@@ -949,14 +975,15 @@ head(foldchanges)
 ```{r}
 data(kegg.sets.mm)
 data(sigmet.idx.mm)
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-#head(kegg.sets.mm, 3)
 ```
-
 ```{r}
-keggres = gage(foldchanges, gsets=kegg.sets.mm, same.dir=TRUE)
-```
+kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
 
+keggres = gage(exprs = foldchanges, 
+               gsets= kegg.sets.mm, 
+               same.dir=TRUE)
+lapply(keggres, head)
+```
 
 ## GO Terms with clusterProfiler
 
@@ -973,7 +1000,6 @@ GO_results <- enrichGO(gene = UPgene_names,
                        ont = "BP"
                        )
 ```
-
 
 ```{r}
 GO.df <- as.data.frame(GO_results)
@@ -1011,7 +1037,23 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_dotplot.tiff',
 ```{r}
 GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 11))
 ```
+## KEGG pathway with ClusterProfiler
 
+```{r}
+kk <- enrichKEGG(gene = sigs.df$entrez,
+               organism = 'mmu',
+               pvalueCutoff = 0.05)
+
+kk[1:30]
+
+barplot(kk,showCategory = 25, title="The KEGG enrichment analysis of all DEGs")+
+  scale_size(range=c(2, 12))+
+  scale_x_discrete(labels=function(kk) str_wrap(kk,width = 25))
+
+dotplot(kk,showCategory = 25, title="The KEGG enrichment analysis of all DEGs")+
+  scale_size(range=c(2, 12))+
+  scale_x_discrete(labels=function(kk) str_wrap(kk,width = 25))
+```
 
 ```{r}
 sessionInfo( )
