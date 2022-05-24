@@ -1,0 +1,884 @@
+---
+title: ' Differential Gene Expression Analysis Notebook - Multiple Conditions'
+output:
+  html_document: 
+    toc: yes
+    fig_width: 12
+    fig_height: 12
+    fig_caption: yes
+---
+
+```{r}
+library("DESeq2")
+library("PoiClaClu")
+library("pheatmap")
+library("RColorBrewer")
+library('tidyverse')
+library("PoiClaClu")
+library("vsn")
+library('EnhancedVolcano')
+library('gplots')
+library('org.Mm.eg.db')
+library('stringr')
+library("genefilter")
+library("dplyr")
+library("ggplot2")
+library("glmpca")
+library('org.Mm.eg.db')
+library("AnnotationDbi")
+library("apeglm")
+library("ComplexHeatmap")
+library('Rsubread')
+library("clusterProfiler")
+library('PCAtools')
+library('ggrepel')
+library('corrplot')
+library(GO.db)
+library(GOstats)
+library(pathview)
+library(gage)
+library(gageData)
+```
+
+# Differential Gene Expression Analysis
+
+## Creating metadata for the DGE Analysis
+
+DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s create the sample information
+
+```{r}
+# Read the csv file and change the column name 
+sample_ID <- read.csv("~/R/Rtuts/Data/Alina_EPEC_project/samples.csv")
+#names(sample_ID)[2]  <- 'Sample_Name'
+head(sample_ID)
+```
+
+```{r}
+condition = c("Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","control","control")
+```
+
+```{r}
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+#coldata <- subset (coldata, select = -Number)
+```
+
+The metadata can be found in a df called coldata!
+```{r}
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+####First from coldata
+
+```{r}
+
+coldata$Samples <- coldata$Sample_Name # Adding additonal column of sample names apart from exisiting column.
+coldata$Samples
+```
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+coldata$Samples <- str_remove_all(coldata$Samples, 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  )
+coldata$Sample_Name <- str_remove_all(coldata$Samples, 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  )
+
+coldata$condition <- as.factor(coldata$condition)
+coldata <- data.frame(coldata, row.names = 1) # convert column1 with sample names to row.names of coldata
+head(coldata)
+```
+
+## Adding the groupings by Alina for further Metadata Information
+
+```{r}
+coldata$epithelial_response = c ('LowInducer','LowInducer','LowInducer','HighInducer',
+                                 'Unknown','HighInducer','HighInducer','LowInducer',
+                                 'LowInducer','HighInducer','HighInducer','LowInducer',
+                                 'HighInducer',
+                                 'LowInducer','HighInducer','HighInducer','LowInducer',
+                                 'LowInducer','LowInducer','NR','NR')
+
+coldata$clinical_outcome = c('symptomatic','symptomatic','symptomatic','symptomatic',
+                             'Unknown','Lethal','Lethal','asymptomatic','Lethal',
+                             'symptomatic','asymptomatic','Lethal','symptomatic',
+                             'symptomatic','Lethal','Lethal',
+                             'asymptomatic','asymptomatic','Lethal','NR','NR')
+
+coldata$microcolonies = c('Low','Low','Low','Low','Unknown','High','High','Low','Low',
+                          'High','High','Low','High','Low','High','High','Low','Low',
+                          'Low','NR','NR')
+
+
+```
+
+#### then fix Countsmatrix:
+
+NOTE:
+
+1. From the manuals the countsData must be a numeric matrix
+2. It is IMPORTANT to keep the names of the genes in the rownames
+
+
+```{r}
+countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+```
+
+```{r}
+#tidying up these names again
+colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), 
+                                  pattern = c("run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+                                  ) 
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# It is IMPORTANT to keep the names of the genes in the rownames
+countsmatrix<- subset (countsmatrix, select = -X)#dropping the X column
+colnames(countsmatrix)
+```
+
+
+```{r}
+# Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
+class(countsmatrix) <- "numeric"
+dim(countsmatrix)
+```
+
+
+# Differential Gene Expression analysis using DESeq2
+
+
+Now, construct DESeqDataSet for DGE analysis.
+
+But before that, a sanity check : It is essential to have the name of the columns in the count matrix in the same order as that in name of the samples (rownames in coldata).
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+ncol(countsmatrix) == nrow(coldata)
+```
+
+## Creating the DESeq Data set Object
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = countsmatrix, 
+                              colData = coldata, 
+                              design = ~ condition)
+```
+
+## Exploratory Data Analysis and Visualization
+
+### Pre-filtering the dataset
+
+Our count matrix with our DESeqDataSet contains many rows with only zeros, and additionally many rows with only a few fragments total. In order to reduce the size of the object, and to increase the speed of our functions, we can remove the rows that have no or nearly no information about the amount of gene expression. 
+
+Applying the most minimal filtering rule: removing rows of the DESeqDataSet that have no counts, or only a single count across all samples. Additional weighting/filtering to improve power is applied at a later step in the workflow.
+
+```{r}
+nrow(dds)
+```
+
+```{r}
+keep <- rowSums(counts(dds)) > 1
+dds <- dds[keep,]
+nrow(dds)
+```
+
+```{r}
+(32886/55357)* 100
+```
+
+
+### The variance stabilizing transformation and the rlog
+
+#### Data needs to be homeoskedastic!
+
+- common statistical methods for exploratory analysis of multidimensional data, for example clustering and principal components analysis (PCA), work best for data that is Homeoskedastic!
+
+- Homeoskedastic: data that generally has the same range of variance at different ranges of the mean values.
+
+- Problem (For RNA-seq counts):  the expected variance grows with the mean.
+If one performs PCA directly on a matrix of counts or normalized counts (e.g. correcting for differences in sequencing depth), the resulting plot typically depends mostly on the genes with highest counts because they show the largest absolute differences between samples.
+
+- Solution: simple and often used strategy to avoid this is to take the logarithm of the normalized count values plus a pseudocount of 1.
+
+- Problem again! - now the genes with the very lowest counts will contribute a great deal of noise to the resulting plot, because taking the logarithm of small counts actually inflates their variance. 
+
+- Result: The logarithm with a small pseudocount amplifies differences when the values are close to 0. The low count genes with low signal-to-noise ratio will overly contribute to sample-sample distances and PCA plots.
+
+- Solution: DESeq2 offers two transformations for count data that stabilize the variance across the mean:
+
+1. the variance stabilizing transformation (VST) for negative binomial data with a dispersion-mean trend (Anders and Huber 2010), implemented in the vst function, 
+2. regularized-logarithm transformation or rlog (Love, Huber, and Anders 2014).
+
+- For genes with high counts, both the VST and the rlog will give similar result to the ordinary log2 transformation of normalized counts.
+
+- For genes with lower counts, the values are shrunken towards a middle value. The VST or rlog-transformed data then become approximately homoskedastic (more flat trend in the meanSdPlot), and can be used directly for computing distances between samples, making PCA plots, or as input to downstream methods which perform best with homoskedastic data.
+
+## Applying VST transformation
+
+```{r}
+vsd <- vst(dds, blind = FALSE)
+head(assay(vsd), 3)
+```
+
+```{r}
+colData(vsd)
+```
+
+### applying rlog Transformation
+
+```{r}
+rld <- rlog(dds, blind = FALSE)
+head(assay(rld), 3)
+```
+
+
+## Sample Distances
+
+useful first step in an RNA-seq analysis is often to assess overall similarity between samples: 
+
+1. Which samples are similar to each other, which are different? 
+
+2. Does this fit to the expectation from the experiment’s design?
+
+
+### Euclidean Distance between samples
+
+dist to calculate the Euclidean distance between samples - useful for ONLY normalized data. To ensure we have a roughly equal contribution from all genes, we use it on the VST data.
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+head(sampleDists)
+```
+
+visualize the distances in a heatmap
+
+
+```{r}
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- vsd$Samples 
+colnames(sampleDistMatrix) <- vsd$Samples
+```
+
+```{r}
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+distance_plot <- pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         main = "Sample-to-Sample Euclidean Distance",
+         col = colors,
+         filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/distance_plot.tiff', 
+         width = 12,
+         height = 10
+         )
+
+distance_plot
+```
+
+### Poisson Distance between Samples
+
+Another option for calculating sample distances is to use the Poisson Distance (Witten 2011).
+This measure of dissimilarity between counts also takes the inherent variance structure of counts into consideration when calculating the distances between samples.Useful ONLY with raw counts (unnormalised data).
+
+
+```{r}
+poisd <- PoissonDistance(t(counts(dds))) # raw counts or unnormalised data
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- dds$Samples
+colnames(samplePoisDistMatrix) <- dds$Samples
+```
+
+```{r}
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+
+poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd,
+         main = "Sample-to-Sample Poisson Distance",
+         col = colors,
+         filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/poisson_dist_plot.tiff', 
+         width = 12,
+         height = 10)
+         
+poisson_dist_plot
+```
+
+## PCA Plot
+
+
+```{r}
+color_values = c("deepskyblue3","deepskyblue3","darkolivegreen","darkred",
+                 "darkgoldenrod","darkblue","darkblue","darkorange1",
+                 "darkcyan","darkorchid4","burlywood4","darkslategray",
+                 "darkturquoise","deeppink2","darkgreen", "darkgreen", 
+                 "brown4", "brown4","chartreuse","black","black")
+```
+
+#### PCA Plot with VST Data
+
+
+```{r}
+PCAdata1 = plotPCA(vsd, intgroup = c("Samples","epithelial_response"), returnData = TRUE)
+head(PCAdata1)
+```
+
+```{r}
+percentVar.PCAdata1 <- round(100 * attr(PCAdata1, "percentVar"))
+
+PCAplot_ER <- ggplot(PCAdata1, aes(x = PC1, y = PC2, 
+                                   color = epithelial_response, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata1[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata1[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Epithelial Response")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_ER
+```
+
+```{r}
+PCAdata2 = plotPCA(vsd, intgroup = c("Samples","clinical_outcome"), returnData = TRUE)
+head(PCAdata2)
+```
+
+```{r}
+percentVar.PCAdata2 <- round(100 * attr(PCAdata2, "percentVar"))
+
+PCAplot_CO <- ggplot(PCAdata2, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata2[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata2[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Clinical Outcome")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_CO
+```
+
+
+```{r}
+PCAdata3 = plotPCA(vsd, intgroup = c("Samples","microcolonies"), returnData = TRUE)
+head(PCAdata3)
+```
+
+```{r}
+percentVar.PCAdata3 <- round(100 * attr(PCAdata3, "percentVar"))
+
+PCAplot_MC <- ggplot(PCAdata3, aes(x = PC1, y = PC2, 
+                                   color = microcolonies, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata3[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata3[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_MC
+```
+
+
+```{r}
+pcadata4 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+                                     "clinical_outcome"), 
+                   returnData = TRUE)
+head(pcadata4)
+```
+
+```{r}
+percentVar.PCAdata4 <- round(100 * attr(pcadata4, "percentVar"))
+
+PCAplot4 <- ggplot(pcadata4, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   shape = epithelial_response,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata4[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata4[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: epithelial_response & clinical_outcome")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot4
+```
+
+```{r}
+pcadata5 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+                                     "microcolonies"), 
+                   returnData = TRUE)
+head(pcadata5)
+```
+
+```{r}
+percentVar.PCAdata5 <- round(100 * attr(pcadata5, "percentVar"))
+
+PCAplot5 <- ggplot(pcadata5, aes(x = PC1, y = PC2, 
+                                   color = microcolonies, 
+                                   shape = epithelial_response,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata5[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata5[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: epithelial_response & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot5
+```
+
+```{r}
+pcadata6 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
+                                     "microcolonies"), 
+                   returnData = TRUE)
+head(pcadata6)
+```
+
+```{r}
+percentVar.PCAdata6 <- round(100 * attr(pcadata6, "percentVar"))
+
+PCAplot6 <- ggplot(pcadata6, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   shape = microcolonies,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata6[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata6[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: clinical_outcome & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot6
+```
+
+
+```{r}
+pcadata7 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
+                                      "epithelial_response","microcolonies"), returnData = TRUE)
+head(pcadata7)
+```
+
+```{r}
+percentVar.PCAdata7 <- round(100 * attr(pcadata7, "percentVar"))
+
+PCAplot7 <- ggplot(pcadata7, aes(x = PC1, y = PC2, 
+                                 color = clinical_outcome, 
+                                 shape = microcolonies,
+                                 size = epithelial_response,
+                                 color = Samples,
+                                 label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata7[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata7[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Epithelial response, clinical outcome & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot7
+```
+
+## DGE Results
+
+### Running the differential expression pipeline
+
+```{r}
+dds1 <- DESeq(dds)
+#str(dds1)
+```
+
+### Building the results table
+
+```{r}
+res <- results(dds1)
+head(res, 30)
+```
+
+```{r}
+summary(res)
+```
+```{r}
+head(res, 30)
+```
+
+```{r}
+dds2 <- DESeq(dds, minReplicatesForReplace=Inf)
+res2 <- results(dds2, cooksCutoff=FALSE, independentFiltering=FALSE)
+
+```
+
+```{r}
+head(res2, 30)
+```
+
+
+### Results with thresholds
+
+1. lower the false discovery rate threshold (the threshold on padj in the results table)
+2. raise the log2 fold change threshold from 0 using the lfcThreshold argument of results
+
+
+```{r}
+res2.df <- as.data.frame(res2) # convert the results table to a df
+head(res2.df)
+```
+
+
+## MA Plot 
+
+```{r}
+
+resultsNames(dds2)
+```
+
+```{r}
+plotMA_res2 <- plotMA(res2, ylim = c(-2, 2))
+```
+
+
+```{r}
+res3 <- lfcShrink(dds2, coef="condition_Infected_vs_control", type="apeglm")
+plotMA_res3 <-plotMA(res3, ylim = c(-2, 2))
+```
+
+```{r}
+res.noshr <- results(dds2, name="condition_Infected_vs_control")
+plotMA(res.noshr, ylim = c(-3, 3))
+```
+
+### Histogram of p-values
+
+```{r}
+hist(res2$pvalue, breaks = 50, col = "grey50", border = "blue")
+```
+ Further Filtering: baseMean > 1
+```{r}
+hist(res2$pvalue[res2$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
+
+```
+
+## Annotating and Exporting Results
+
+- adding gene annotation to results table
+- adding ENTREZ Id to results table
+
+```{r}
+columns(org.Mm.eg.db)
+```
+
+```{r}
+res2.df$symbol <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds),
+                    column = "SYMBOL",
+                    keytype="ENSEMBL",
+                     multiVals="first")
+res2.df$entrez <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds),
+                    column = "ENTREZID",
+                    keytype="ENSEMBL",
+                     multiVals="first")
+```
+
+```{r}
+head(res2.df)
+```
+
+```{r}
+str(res2.df)
+nrow(res2.df)
+```
+Omit NA values from symbol and respective rows!
+```{r}
+res3.df <- res2.df %>% filter(!is.na(symbol) & !is.na(entrez)) 
+nrow(res3.df)
+```
+
+## Saving the Results
+
+```{r}
+resOrdered <- res3.df[order(res3.df$pvalue),]
+head(resOrdered)
+```
+
+```{r}
+write.csv(as.data.frame(resOrdered), file = "~/R/Rtuts/Data/Alina_EPEC_project/results_DE.csv")
+```
+
+
+## Heatmap of count matrix
+
+To explore a count matrix, it is often instructive to look at it as a heatmap.
+
+```{r}
+select <- order(rowMeans(counts(dds2,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+df <- as.data.frame(colData(dds2)[,c("condition","Samples")])
+```
+
+```{r}
+pheatmap(assay(vsd)[select,], 
+         cluster_cols=TRUE, 
+         annotation_col=df,
+         color = heat.colors,
+         show_rownames = FALSE)
+```
+
+```{r}
+pheatmap(assay(rld)[select,], 
+         cluster_cols=TRUE, 
+         annotation_col=df,
+         color = heat.colors,
+         show_rownames = FALSE)
+```
+
+
+
+## Volcano Plots
+
+### Volcano Plots based on Enhanced Volcano
+
+```{r}
+p1 <- EnhancedVolcano(res3.df,
+    lab = res3.df$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    xlab = bquote(~Log[2]~'FoldChange'),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue',
+    pointSize = 2.0,
+    labSize = 4.0,
+    boxedLabels = FALSE,
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    colAlpha = 0.5,
+    xlim = c(-6, 9),
+    ylim=c(-2, 12),
+    legendPosition = 'bottom',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = TRUE,
+    widthConnectors = 0.75
+    )
+
+p1 +
+  scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
+```
+
+
+```{r}
+res3.df$diffexpressed <- "NS"
+# if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange > 1.0 & res3.df$pvalue < 0.05] <- "UP" 
+# if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange < -1.0 & res3.df$pvalue < 0.05] <- "DOWN" 
+
+# Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
+res3.df$delabel <- NA
+res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexpressed != "NS"]
+```
+
+
+### Volcano Plot using ggplot
+```{r}
+mycolors <- c("blue","red", "black")
+names(mycolors) <- c("UP", "DOWN","NS")
+myalphas <- c("UP" = 1, "DOWN" = 1, "NS" = 0.3)
+
+
+DE_volcanoplot1 <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
+                         col=diffexpressed)) + geom_point() + theme_bw()+ 
+  # Add hline and vline L2FC and Pvalue.
+  geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
+  geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
+  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 0.5)) +
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 0.5)) +
+  scale_color_manual(values = mycolors) +
+  # title and legend
+  labs(title = "Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue", 
+       subtitle = "|L2FC| > 1 , pvalue < 0.05") +
+  theme(legend.position = "Bottom")+
+  scale_alpha_manual(values = myalphas)  # Modify point transparency
+  
+DE_volcanoplot1
+
+```
+
+```{r}
+mycolors <- c("blue","red", "black")
+names(mycolors) <- c("UP", "DOWN","NS")
+myalphas <- c("UP" = 1, "DOWN" = 1, "NO" = 0.3)
+options(ggrepel.max.overlaps = 75)
+
+DE_volcanoplot <- ggplot(res3.df, aes(x=log2FoldChange , y = -log10(pvalue),
+                         col=diffexpressed, label=delabel)) + geom_point() + theme_bw()+ 
+  # Add hline and vline L2FC and Pvalue.
+  geom_vline(xintercept = c(-1.0,1.0), col = "green", linetype = "dashed") + 
+  geom_hline(yintercept = -log10(0.05), col = "green",linetype = "dashed") +
+  scale_y_continuous(limits = c(-1, 10) ,breaks=seq(-1, 10, 0.5)) +
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 0.5)) +
+  scale_color_manual(values = mycolors) +
+  # title and legend
+  labs(title = "Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue", 
+       subtitle = "|L2FC| > 1 , pvalue < 0.05") +
+  theme(legend.position = "Bottom")+
+  geom_text_repel() +
+  scale_alpha_manual(values = myalphas)  # Modify point transparency
+  
+DE_volcanoplot
+
+```
+
+```{r}
+ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/DE_volcanoplot.tiff', 
+       plot = DE_volcanoplot, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+ggplot(res3.df, aes(x=log2FoldChange , y = log10(baseMean), 
+                    col=diffexpressed, label=delabel)
+       ) + 
+  geom_point() +
+  scale_color_manual(values = mycolors)+
+  geom_text_repel()
+```
+## Significant Differentially Expressed Genes
+
+Arrive at relevant genes by imposing thresholds.
+
+```{r}
+sigs.df <- res3.df[(abs(res3.df$log2FoldChange)>1) & (res3.df$pvalue< 0.05),]
+nrow(sigs.df)
+```
+
+### Gender Genes Removed from Table
+
+```{r}
+sigs.df <- filter(sigs.df, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
+```
+
+```{r}
+nrow(sigs.df)
+```
+Therefore, gender genes werent so much in play in terms of significance!
+
+```{r}
+head(sigs.df)
+write.csv(sigs.df ,"~/R/Rtuts/Data/Alina_EPEC_project/SignificantGenes_pval&log2FC_thresholdimposed.csv")
+```
+
+
+### Number of Genes from different strains that are contributing to UP/DOWN regulation.
+
+```{r}
+sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ] #UP Regulation Table
+sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)< -1, ]#DOWN Regulation Table
+```
+
+```{r}
+nrow(sigs.UP.df)
+nrow(sigs.DOWN.df)
+```
+
+### Determine Top20 UP Genes and Top20 DOWN Genes
+
+```{r}
+UpGene <- sigs.UP.df[order(-sigs.UP.df$log2FoldChange), ]$symbol
+DownGene <- sigs.DOWN.df[order(-sigs.DOWN.df$log2FoldChange), ]$symbol
+DE_Genes_table <- as.data.frame(cbind(UpGene,DownGene)) # sorted based on highest Log2FC value
+```
+
+```{r}
+
+write.csv(DE_Genes_table ,"~/R/Rtuts/Data/Alina_EPEC_project/DE_Genes_table.csv")
+head(DE_Genes_table, 20)
+```
+
+## Z-score based Gene Heatmaps
+
+```{r}
+head(sigs.df)
+```
+
+### with Whole table (all genes together!)
+
+```{r}
+mat <- counts(dds2, normalized = TRUE)[rownames(sigs.df),]
+mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
+colnames(mat.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+head(mat.zs)
+```
+```{r}
+Heatmap_ALL_DEGene <- pheatmap(mat.zs,
+         cluster_cols = TRUE,
+         cluster_rows = FALSE,
+         show_rownames = FALSE)
+Heatmap_ALL_DEGene
+```
+
+
+Need to filter these results to accommodate better the heat maps and also volcano plots
+
+### with tighter constraints (all genes together!)
+
+```{r}
+sigs1.df <- res2.df[(res2.df$baseMean > 75) & (abs(res2.df$log2FoldChange)>2) & (res2.df$pvalue< 0.05),]
+```
+
+
+```{r}
+mat1 <- counts(dds2, normalized = TRUE)[rownames(sigs1.df),]
+mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
+colnames(mat1.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+head(mat1.zs)
+```
+```{r}
+Heatmap(mat1.zs,
+        cluster_columns = TRUE,
+        cluster_rows = TRUE,
+        column_labels = colnames(mat1.zs),
+        name = 'Z-Score Heatmap of DE Genes',
+        row_labels = sigs1.df[rownames(mat1.zs),]$symbol)
+```
+
