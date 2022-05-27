@@ -473,7 +473,7 @@ ggsave(filename = '~/R/Alina_RNAseq/PCA_rld_plot.tiff',
 
 
 ```{r}
-PCAdata1 = plotPCA(vsd, intgroup = c("Samples","epithelial_response"), returnData = TRUE)
+PCAdata1 = plotPCA(vsd, intgroup = c("Samples","Epithelial_response"), returnData = TRUE)
 head(PCAdata1)
 ```
 
@@ -481,7 +481,7 @@ head(PCAdata1)
 percentVar.PCAdata1 <- round(100 * attr(PCAdata1, "percentVar"))
 
 PCAplot_ER <- ggplot(PCAdata1, aes(x = PC1, y = PC2, 
-                                   color = epithelial_response, 
+                                   color = Epithelial_response, 
                                    label= Samples)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar.PCAdata1[1], "% variance")) +
@@ -553,7 +553,7 @@ PCAplot_MC
 
 
 ```{r}
-pcadata4 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+pcadata4 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
                                      "clinical_outcome"), 
                    returnData = TRUE)
 head(pcadata4)
@@ -564,7 +564,7 @@ percentVar.PCAdata4 <- round(100 * attr(pcadata4, "percentVar"))
 
 PCAplot4 <- ggplot(pcadata4, aes(x = PC1, y = PC2, 
                                    color = clinical_outcome, 
-                                   shape = epithelial_response,
+                                   shape = Epithelial_response,
                                    label= Samples)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar.PCAdata4[1], "% variance")) +
@@ -582,7 +582,7 @@ PCAplot4
 ```
 
 ```{r}
-pcadata5 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+pcadata5 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
                                      "microcolonies"), 
                    returnData = TRUE)
 head(pcadata5)
@@ -593,7 +593,7 @@ percentVar.PCAdata5 <- round(100 * attr(pcadata5, "percentVar"))
 
 PCAplot5 <- ggplot(pcadata5, aes(x = PC1, y = PC2, 
                                    color = microcolonies, 
-                                   shape = epithelial_response,
+                                   shape = Epithelial_response,
                                    label= Samples)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar.PCAdata5[1], "% variance")) +
@@ -642,7 +642,7 @@ PCAplot6
 
 ```{r}
 pcadata7 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
-                                      "epithelial_response","microcolonies"), returnData = TRUE)
+                                      "Epithelial_response","microcolonies"), returnData = TRUE)
 head(pcadata7)
 ```
 
@@ -652,7 +652,7 @@ percentVar.PCAdata7 <- round(100 * attr(pcadata7, "percentVar"))
 PCAplot7 <- ggplot(pcadata7, aes(x = PC1, y = PC2, 
                                  color = clinical_outcome, 
                                  shape = microcolonies,
-                                 size = epithelial_response,
+                                 size = Epithelial_response,
                                  color = Samples,
                                  label= Samples)) +
   geom_point(size =2) +
@@ -1237,11 +1237,17 @@ UPgene_names <- rownames(sigs.df[sigs.df$log2FoldChange>1,])
 
 Running GO 
 
+### GO over-representation analysis
+
 ```{r}
 GO_results <- enrichGO(gene = UPgene_names,
                        OrgDb = "org.Mm.eg.db",
                        keyType = "ENSEMBL",
-                       ont = "BP"
+                       ont = "BP",
+                       pAdjustMethod = "BH",
+                       pvalueCutoff  = 0.01,
+                       qvalueCutoff  = 0.05,
+                       readable      = TRUE
                        )
 ```
 
@@ -1252,11 +1258,16 @@ GO.df
 NOTE: 67 out of 429 ENS Id found!
 
 ```{r}
-GO_fit <- plot(barplot(GO_results, showCategory = 11))
+write.csv(GO.df ,"~/R/Alina_RNAseq/GO_resultse.csv")
+```
+
+
+```{r}
+GO_fit <- plot(barplot(GO_results, showCategory = 9))
 ```
 
 ```{r}
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_plot.tiff', 
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_plot.tiff', 
        plot = GO_fit, 
        dpi = 300,
        width = 12,
@@ -1265,7 +1276,7 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_plot.tiff',
 ```
 
 ```{r}
-GO_fit.dot <- plot(dotplot(GO_results, showCategory = 11))
+GO_fit.dot <- plot(dotplot(GO_results, showCategory = 13))
 ```
 ```{r}
 ggsave(filename = '~/R/Alina_RNAseq/GO_fit_dotplot.tiff', 
@@ -1279,9 +1290,16 @@ ggsave(filename = '~/R/Alina_RNAseq/GO_fit_dotplot.tiff',
 
 
 ```{r}
-GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 11))
+GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 7))
 ```
-
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GO_cnet_plot.tiff', 
+       plot = GO_fit.cnet, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
 
 ```{r}
 sessionInfo( )
