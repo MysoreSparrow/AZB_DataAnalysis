@@ -359,7 +359,7 @@ poisson_dist_plot
 ## PCA Plot
 
 
- Calculating all PCA Values
+### Calculating all PCA Values
 ```{r}
  # calculate the variance for each gene
   rv <- rowVars(assay(vsd))
@@ -428,6 +428,8 @@ ggsave(filename = '~/R/Alina_RNAseq/PCA_vst_plot.tiff',
 
 #### PCA Plot with rlog Data
 
+Reconfirminhg the PCA values with another transformation.
+
 ```{r}
 plotPCA(rld, intgroup= c("condition","Samples"), returnData = TRUE)
 ```
@@ -469,8 +471,9 @@ ggsave(filename = '~/R/Alina_RNAseq/PCA_rld_plot.tiff',
        units = "in")
 ```
 
-#### PCA Plot with VST Data
+## PCA Plot for different groupings VST Data
 
+### PCA for Epithelial Response
 
 ```{r}
 PCAdata1 = plotPCA(vsd, intgroup = c("Samples","Epithelial_response"), returnData = TRUE)
@@ -498,6 +501,7 @@ PCAplot_ER <- ggplot(PCAdata1, aes(x = PC1, y = PC2,
 PCAplot_ER
 ```
 
+### PCA for Clinical Outcome
 ```{r}
 PCAdata2 = plotPCA(vsd, intgroup = c("Samples","clinical_outcome"), returnData = TRUE)
 head(PCAdata2)
@@ -524,7 +528,7 @@ PCAplot_CO <- ggplot(PCAdata2, aes(x = PC1, y = PC2,
 PCAplot_CO
 ```
 
-
+### PCA for Microcolonies
 ```{r}
 PCAdata3 = plotPCA(vsd, intgroup = c("Samples","microcolonies"), returnData = TRUE)
 head(PCAdata3)
@@ -551,7 +555,88 @@ PCAplot_MC <- ggplot(PCAdata3, aes(x = PC1, y = PC2,
 PCAplot_MC
 ```
 
+### PCA for ER_Microcolonies
+```{r}
+PCAdata8 = plotPCA(vsd, intgroup = c("Samples","ER_microcolonies"), returnData = TRUE)
+head(PCAdata8)
+```
 
+```{r}
+percentVar.PCAdata8 <- round(100 * attr(PCAdata3, "percentVar"))
+
+PCAplot_ERMC <- ggplot(PCAdata8, aes(x = PC1, y = PC2, 
+                                   color = ER_microcolonies, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata8[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata8[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: EpithelialResponse_Microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_ERMC
+```
+### PCA for Phylogentic Lineage
+```{r}
+pcadata9 <- plotPCA(vsd, intgroup = c("Samples","phylogenetic_lineage"), 
+                    returnData = TRUE)
+head(pcadata9)
+```
+```{r}
+percentVar.PCAdata9 <- round(100 * attr(pcadata9, "percentVar"))
+
+PCAplot9 <- ggplot(pcadata9, aes(x = PC1, y = PC2, 
+                                   color = phylogenetic_lineage, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata9[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata9[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Phylogenetic Lineage")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot9
+```
+### PCA for Phylogentic Lineage and Epithelial Response
+```{r}
+pcadata10 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
+                                      "phylogenetic_lineage"), returnData = TRUE)
+head(pcadata10)
+```
+
+```{r}
+percentVar.PCAdata10 <- round(100 * attr(pcadata4, "percentVar"))
+
+PCAplot10 <- ggplot(pcadata10, aes(x = PC1, y = PC2, 
+                                   color = phylogenetic_lineage, 
+                                   shape = Epithelial_response,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata10[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata10[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Epithelial_response & Phylogenetic Lineage")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot10
+```
+
+### PCA for Epithelial Response and Clinical Outcome
 ```{r}
 pcadata4 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
                                      "clinical_outcome"), 
@@ -572,7 +657,7 @@ PCAplot4 <- ggplot(pcadata4, aes(x = PC1, y = PC2,
   coord_fixed() +
   scale_y_continuous(breaks=seq(-12, 12, 2))+
   scale_x_continuous(breaks=seq(-20, 20, 2))+
-  ggtitle("PCA: epithelial_response & clinical_outcome")+ 
+  ggtitle("PCA: Epithelial_response & Clinical_outcome")+ 
   theme(legend.position="bottom") + 
   theme(aspect.ratio=25/75) +
   geom_text(size = 4, hjust=0, vjust=0)#+
@@ -580,7 +665,7 @@ PCAplot4 <- ggplot(pcadata4, aes(x = PC1, y = PC2,
 
 PCAplot4
 ```
-
+### PCA for Epithelial Response and Microcolonies
 ```{r}
 pcadata5 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
                                      "microcolonies"), 
@@ -588,6 +673,7 @@ pcadata5 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
 head(pcadata5)
 ```
 
+### PCA for Epithelial Response
 ```{r}
 percentVar.PCAdata5 <- round(100 * attr(pcadata5, "percentVar"))
 
@@ -609,7 +695,7 @@ PCAplot5 <- ggplot(pcadata5, aes(x = PC1, y = PC2,
 
 PCAplot5
 ```
-
+### PCA for Clinical Outcome and Microcolonies
 ```{r}
 pcadata6 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
                                      "microcolonies"), 
@@ -630,7 +716,7 @@ PCAplot6 <- ggplot(pcadata6, aes(x = PC1, y = PC2,
   coord_fixed() +
   scale_y_continuous(breaks=seq(-12, 12, 2))+
   scale_x_continuous(breaks=seq(-20, 20, 2))+
-  ggtitle("PCA: clinical_outcome & microcolonies")+ 
+  ggtitle("PCA: Clinical Outcome and Microcolonies")+ 
   theme(legend.position="bottom") + 
   theme(aspect.ratio=25/75) +
   geom_text(size = 4, hjust=0, vjust=0)#+
@@ -639,7 +725,7 @@ PCAplot6 <- ggplot(pcadata6, aes(x = PC1, y = PC2,
 PCAplot6
 ```
 
-
+### PCA for Epithelial response, Clinical Outcome and Microcolonies
 ```{r}
 pcadata7 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
                                       "Epithelial_response","microcolonies"), returnData = TRUE)
