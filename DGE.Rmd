@@ -48,13 +48,16 @@ DESeq2 needs sample information (metadata) for performing DGE analysis. Let’s 
 
 ```{r}
 # Read the csv file and change the column name 
-sample_ID <- read.csv("~/R/Rtuts/Data/Alina_EPEC_project/samples.csv")
+sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+
 #names(sample_ID)[2]  <- 'Sample_Name'
 head(sample_ID)
 ```
 
 ```{r}
-condition = c("Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","Infected","control","control")
+condition = c("Infected","Infected","Infected","Infected","Infected","Infected",
+              "Infected","Infected","Infected","Infected","Infected","Infected",
+              "Infected","Infected","control","control")
 ```
 
 ```{r}
@@ -92,6 +95,35 @@ coldata <- data.frame(coldata, row.names = 1) # convert column1 with sample name
 head(coldata)
 ```
 
+
+## Adding the groupings by Alina for further Metadata Information
+
+```{r}
+coldata$Epithelial_response = c ("LowInducer", "LowInducer", "HighInducer",
+                                 "HighInducer","LowInducer","LowInducer",
+                                 "HighInducer","HighInducer","LowInducer",
+                                 "HighInducer","LowInducer","HighInducer",
+                                 "LowInducer","LowInducer",'NR','NR')
+
+coldata$clinical_outcome = c('symptomatic','symptomatic','symptomatic',
+                             'Lethal','asymptomatic','Lethal','symptomatic',
+                             'asymptomatic','Lethal','symptomatic','symptomatic',
+                             'Lethal','asymptomatic','Lethal','NR','NR')
+
+coldata$microcolonies = c('Low','Low','Low','High','Low','Low',
+                          'High','High','Low','High','Low','High','Low',
+                          'Low','NR','NR')
+
+coldata$ER_microcolonies = c("LI_LM","LI_LM", "HI_LM","HI_HM","LI_LM","LI_LM",
+                             "HI_HM","HI_HM","LI_LM","LI_LM","LI_LM","HI_HM",
+                             "LI_LM","LI_LM",'NR','NR')
+
+coldata$phylogenetic_lineage = c("EPEC1","EPEC10","EPEC9","EPEC9","NC","EPEC5",
+                                 "EPEC8","NC","EPEC7","NC","EPEC2","EPEC9",
+                                 "EPEC2","EPEC2",'NR','NR')
+
+```
+
 #### then fix Countsmatrix:
 
 NOTE:
@@ -101,7 +133,20 @@ NOTE:
 
 
 ```{r}
-countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
+nrow(countsmatrix)
+#countsmatrix <- as.data.frame(countsmatrix)
+```
+
+```{r}
+## Removal of Gender Genes from ENSEMBL ID itself
+countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
+                                  countsmatrix$X != "ENSMUSG00000097571",
+                                  countsmatrix$X != "ENSMUSG00000086370",
+                                  countsmatrix$X != "ENSMUSG00000031329")
+nrow(countsmatrix)
+countsmatrix <- as.matrix(countsmatrix)
 ```
 
 ```{r}
@@ -142,6 +187,19 @@ dds <- DESeqDataSetFromMatrix(countData = countsmatrix,
                               design = ~ condition)
 ```
 
+```{r}
+dds_ER <- DESeqDataSetFromMatrix(countData = countsmatrix, 
+                              colData = coldata, 
+                              design = ~  Epithelial_response)
+```
+
+```{r}
+dds_CO <- DESeqDataSetFromMatrix(countData = countsmatrix, 
+                              colData = coldata, 
+                              design = ~  clinical_outcome)
+```
+
+
 ## Exploratory Data Analysis and Visualization
 
 ### Pre-filtering the dataset
@@ -161,7 +219,7 @@ nrow(dds)
 ```
 
 ```{r}
-(32886/55357)* 100
+(31691/55353)* 100
 ```
 
 
@@ -196,9 +254,6 @@ If one performs PCA directly on a matrix of counts or normalized counts (e.g. co
 ```{r}
 vsd <- vst(dds, blind = FALSE)
 head(assay(vsd), 3)
-```
-
-```{r}
 colData(vsd)
 ```
 
@@ -217,7 +272,7 @@ While the rlog is on roughly the same scale as the log2 counts, the VST has a up
 dds <- estimateSizeFactors(dds)
 
 df <- bind_rows(
-  as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
+  as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:4]+1)) %>%
          mutate(transformation = "log2(x + 1)"),
   as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"),
   as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))
@@ -304,12 +359,32 @@ poisson_dist_plot
 ## PCA Plot
 
 
+ Calculating all PCA Values
 ```{r}
-color_values = c("deepskyblue3","deepskyblue3","darkolivegreen","darkred",
-                 "darkgoldenrod","darkblue","darkblue","darkorange1",
+ # calculate the variance for each gene
+  rv <- rowVars(assay(vsd))
+  ntop=500
+  # select the ntop genes by variance
+  select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+
+  # perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(vsd)[select,]))
+```
+
+
+```{r}
+  # the contribution to the total variance for each component
+  percentVar <- (pca$sdev^2 / sum( pca$sdev^2 )) *100 
+  percentVar
+```
+
+
+```{r}
+color_values = c("deepskyblue3","darkolivegreen","darkred",
+                 "darkgoldenrod","darkblue","darkorange1",
                  "darkcyan","darkorchid4","burlywood4","darkslategray",
-                 "darkturquoise","deeppink2","darkgreen", "darkgreen", 
-                 "brown4", "brown4","chartreuse","black","black")
+                 "darkturquoise","deeppink2","darkgreen", 
+                 "brown4","black","black")
 ```
 
 #### PCA Plot with VST Data
@@ -343,7 +418,7 @@ PCAplot_vst
 ```
 
 ```{r}
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_vst_plot.tiff', 
+ggsave(filename = '~/R/Alina_RNAseq/PCA_vst_plot.tiff', 
        plot = PCAplot_vst, 
        dpi = 300,
        width = 12,
@@ -386,37 +461,214 @@ PCAplot_rld
 ```
 
 ```{r}
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/PCA_rld_plot.tiff', 
+ggsave(filename = '~/R/Alina_RNAseq/PCA_rld_plot.tiff', 
        plot = PCAplot_rld, 
        dpi = 300,
        width = 12,
        height = 10,
        units = "in")
 ```
-### PCA plot using Generalized PCA.
+
+#### PCA Plot with VST Data
+
 
 ```{r}
-gpca <- glmpca(counts(dds), L=2)
-gpca.dat <- gpca$factors
-
-```
-```{r}
-gpca.dat$condition <- dds$condition
-gpca.dat$Samples <- dds$Samples
+PCAdata1 = plotPCA(vsd, intgroup = c("Samples","epithelial_response"), returnData = TRUE)
+head(PCAdata1)
 ```
 
 ```{r}
-ggplot(gpca.dat, aes(x = dim1, y = dim2, color = Samples, label = Samples)) +
-  geom_point(size =3) + 
-  coord_fixed() + 
-  ggtitle("glmpca - Generalized PCA")+ 
+percentVar.PCAdata1 <- round(100 * attr(PCAdata1, "percentVar"))
+
+PCAplot_ER <- ggplot(PCAdata1, aes(x = PC1, y = PC2, 
+                                   color = epithelial_response, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata1[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata1[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Epithelial Response")+ 
   theme(legend.position="bottom") + 
   theme(aspect.ratio=25/75) +
-  geom_text(size = 3, hjust=0, vjust=0)+
-  scale_colour_manual(values = color_values)
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_ER
+```
+
+```{r}
+PCAdata2 = plotPCA(vsd, intgroup = c("Samples","clinical_outcome"), returnData = TRUE)
+head(PCAdata2)
+```
+
+```{r}
+percentVar.PCAdata2 <- round(100 * attr(PCAdata2, "percentVar"))
+
+PCAplot_CO <- ggplot(PCAdata2, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata2[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata2[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Clinical Outcome")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_CO
 ```
 
 
+```{r}
+PCAdata3 = plotPCA(vsd, intgroup = c("Samples","microcolonies"), returnData = TRUE)
+head(PCAdata3)
+```
+
+```{r}
+percentVar.PCAdata3 <- round(100 * attr(PCAdata3, "percentVar"))
+
+PCAplot_MC <- ggplot(PCAdata3, aes(x = PC1, y = PC2, 
+                                   color = microcolonies, 
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata3[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata3[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot_MC
+```
+
+
+```{r}
+pcadata4 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+                                     "clinical_outcome"), 
+                   returnData = TRUE)
+head(pcadata4)
+```
+
+```{r}
+percentVar.PCAdata4 <- round(100 * attr(pcadata4, "percentVar"))
+
+PCAplot4 <- ggplot(pcadata4, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   shape = epithelial_response,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata4[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata4[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: epithelial_response & clinical_outcome")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot4
+```
+
+```{r}
+pcadata5 <- plotPCA(vsd, intgroup = c("Samples","epithelial_response",
+                                     "microcolonies"), 
+                   returnData = TRUE)
+head(pcadata5)
+```
+
+```{r}
+percentVar.PCAdata5 <- round(100 * attr(pcadata5, "percentVar"))
+
+PCAplot5 <- ggplot(pcadata5, aes(x = PC1, y = PC2, 
+                                   color = microcolonies, 
+                                   shape = epithelial_response,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata5[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata5[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: epithelial_response & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot5
+```
+
+```{r}
+pcadata6 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
+                                     "microcolonies"), 
+                   returnData = TRUE)
+head(pcadata6)
+```
+
+```{r}
+percentVar.PCAdata6 <- round(100 * attr(pcadata6, "percentVar"))
+
+PCAplot6 <- ggplot(pcadata6, aes(x = PC1, y = PC2, 
+                                   color = clinical_outcome, 
+                                   shape = microcolonies,
+                                   label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata6[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata6[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: clinical_outcome & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot6
+```
+
+
+```{r}
+pcadata7 <- plotPCA(vsd, intgroup = c("Samples","clinical_outcome",
+                                      "epithelial_response","microcolonies"), returnData = TRUE)
+head(pcadata7)
+```
+
+```{r}
+percentVar.PCAdata7 <- round(100 * attr(pcadata7, "percentVar"))
+
+PCAplot7 <- ggplot(pcadata7, aes(x = PC1, y = PC2, 
+                                 color = clinical_outcome, 
+                                 shape = microcolonies,
+                                 size = epithelial_response,
+                                 color = Samples,
+                                 label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata7[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata7[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Epithelial response, clinical outcome & microcolonies")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot7
+```
 
 
 ## Hierarchical Clustering
@@ -440,17 +692,11 @@ heat.colors <- brewer.pal(6, "RdYlBu")
 Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
                         main = 'Heirarchical Clustering of Samples',
-                        filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/Hclust_plot.tiff'
+                        filename = '~/R/Alina_RNAseq/Hclust_plot.tiff'
                        )
 
 Hclust_plot
 ```
-
-
-#### Point of Discussion on Variance between R1 and R2: 
-
-From Poisson plot, Euclidean distance plot, PCA and Heirarchical Clustering based on correlation matrix, 
-can we say that R1 is reasonably close enough to R2. So we either drop R2 or we take a mean between R1 and R2.
 
 
 ## DGE Results
@@ -503,9 +749,6 @@ head(res2, 30)
 
 
 ### Results with thresholds
-
-1. lower the false discovery rate threshold (the threshold on padj in the results table)
-2. raise the log2 fold change threshold from 0 using the lfcThreshold argument of results
 
 Both thresholds Applied!
 ```{r}
@@ -586,7 +829,7 @@ head(resOrdered)
 ```
 
 ```{r}
-write.csv(as.data.frame(resOrdered), file = "~/R/Rtuts/Data/Alina_EPEC_project/results_DE.csv")
+write.csv(as.data.frame(resOrdered), file = "~/R/Alina_RNAseq/results_DE_gendergenesremoved.csv")
 ```
 
 
@@ -743,7 +986,7 @@ DE_volcanoplot
 ```
 
 ```{r}
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/DE_volcanoplot.tiff', 
+ggsave(filename = '~/R/Alina_RNAseq/DE_volcanoplot.tiff', 
        plot = DE_volcanoplot, 
        dpi = 300,
        width = 12,
@@ -781,7 +1024,7 @@ Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 head(sigs.df)
-write.csv(sigs.df ,"~/R/Rtuts/Data/Alina_EPEC_project/SignificantGenes_pval&log2FC_thresholdimposed.csv")
+write.csv(sigs.df ,"~/R/Alina_RNAseq/SignificantGenes_Gendergenesremoved_thresholdimposed.csv")
 ```
 
 
@@ -807,7 +1050,7 @@ DE_Genes_table <- as.data.frame(cbind(UpGene,DownGene)) # sorted based on highes
 
 ```{r}
 
-write.csv(DE_Genes_table ,"~/R/Rtuts/Data/Alina_EPEC_project/DE_Genes_table.csv")
+write.csv(DE_Genes_table ,"~/R/Alina_RNAseq/DE_Genes_table.csv")
 head(DE_Genes_table, 20)
 ```
 
@@ -841,7 +1084,7 @@ sigs2.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
 mat2 <- counts(dds2, normalized = TRUE)[rownames(sigs2.df),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
-head(mat1.zs)
+head(mat2.zs)
 
 #pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
@@ -976,6 +1219,7 @@ head(foldchanges)
 data(kegg.sets.mm)
 data(sigmet.idx.mm)
 ```
+
 ```{r}
 kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
 
@@ -1024,7 +1268,7 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_plot.tiff',
 GO_fit.dot <- plot(dotplot(GO_results, showCategory = 11))
 ```
 ```{r}
-ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_dotplot.tiff', 
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_dotplot.tiff', 
        plot = GO_fit.dot, 
        dpi = 300,
        width = 12,
@@ -1037,46 +1281,10 @@ ggsave(filename = '~/R/Rtuts/Data/Alina_EPEC_project/plots/GO_fit_dotplot.tiff',
 ```{r}
 GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 11))
 ```
-## KEGG pathway with ClusterProfiler
 
-```{r}
-kk <- enrichKEGG(gene = sigs.df$entrez,
-               organism = 'mmu',
-               pvalueCutoff = 0.05)
-
-kk[1:30]
-
-barplot(kk,showCategory = 25, title="The KEGG enrichment analysis of all DEGs")+
-  scale_size(range=c(2, 12))+
-  scale_x_discrete(labels=function(kk) str_wrap(kk,width = 25))
-
-dotplot(kk,showCategory = 25, title="The KEGG enrichment analysis of all DEGs")+
-  scale_size(range=c(2, 12))+
-  scale_x_discrete(labels=function(kk) str_wrap(kk,width = 25))
-```
 
 ```{r}
 sessionInfo( )
 ```
 
-### Multiple PCA
-
-method1
-
-```{r}
-dds_forpca <- DESeq(dds)
-vst_pcatools <- assay(vst(dds_forpca ))
-```
-```{r}
- p <- pca(vst_pcatools, metadata = coldata)
-```
-```{r}
-screeplot(p, axisLabSize = 18, titleLabSize = 22)
-```
-```{r}
-  biplot(p)
-```
-```{r}
- pairsplot(p)
-```
 
