@@ -3,8 +3,8 @@ title: ' Differential Gene Expression Analysis Notebook'
 output:
   html_document: 
     toc: yes
-    fig_width: 12
-    fig_height: 10
+    fig_width: 15
+    fig_height: 12
     fig_caption: yes
 ---
 
@@ -115,12 +115,17 @@ coldata$microcolonies = c('Low','Low','Low','High','Low','Low',
                           'Low','NR','NR')
 
 coldata$ER_microcolonies = c("LI_LM","LI_LM", "HI_LM","HI_HM","LI_LM","LI_LM",
-                             "HI_HM","HI_HM","LI_LM","LI_LM","LI_LM","HI_HM",
+                             "HI_HM","HI_HM","LI_LM","HI_HM","LI_LM","HI_HM",
                              "LI_LM","LI_LM",'NR','NR')
 
-coldata$phylogenetic_lineage = c("EPEC1","EPEC10","EPEC9","EPEC9","NC","EPEC5",
+coldata$phylogenomic_lineage = c("EPEC1","EPEC10","EPEC9","EPEC9","NC","EPEC5",
                                  "EPEC8","NC","EPEC7","NC","EPEC2","EPEC9",
                                  "EPEC2","EPEC2",'NR','NR')
+coldata$phylogroup = c("B2","A","B2","B2","B1","A","B2","B2","B1","B2","B1",
+                       "B2","B1","B2",'NR','NR')
+coldata$Intimin_Type = c("alpha", "ND", "lambda", "lambda", "epsilon","epsilon",
+                         "mu","lambda", "beta", "kappa", "beta", "alpha","beta",
+                         "beta",'NR','NR')
 
 ```
 
@@ -583,7 +588,7 @@ PCAplot_ERMC
 ```
 ### PCA for Phylogentic Lineage
 ```{r}
-pcadata9 <- plotPCA(vsd, intgroup = c("Samples","phylogenetic_lineage"), 
+pcadata9 <- plotPCA(vsd, intgroup = c("Samples","phylogenomic_lineage"), 
                     returnData = TRUE)
 head(pcadata9)
 ```
@@ -591,7 +596,7 @@ head(pcadata9)
 percentVar.PCAdata9 <- round(100 * attr(pcadata9, "percentVar"))
 
 PCAplot9 <- ggplot(pcadata9, aes(x = PC1, y = PC2, 
-                                   color = phylogenetic_lineage, 
+                                   color = phylogenomic_lineage, 
                                    label= Samples)) +
   geom_point(size =2) +
   xlab(paste0("PC1: ", percentVar.PCAdata9[1], "% variance")) +
@@ -599,7 +604,7 @@ PCAplot9 <- ggplot(pcadata9, aes(x = PC1, y = PC2,
   coord_fixed() +
   scale_y_continuous(breaks=seq(-12, 12, 2))+
   scale_x_continuous(breaks=seq(-20, 20, 2))+
-  ggtitle("PCA: Phylogenetic Lineage")+ 
+  ggtitle("PCA: phylogenomic_lineage")+ 
   theme(legend.position="bottom") + 
   theme(aspect.ratio=25/75) +
   geom_text(size = 4, hjust=0, vjust=0)#+
@@ -610,15 +615,15 @@ PCAplot9
 ### PCA for Phylogentic Lineage and Epithelial Response
 ```{r}
 pcadata10 <- plotPCA(vsd, intgroup = c("Samples","Epithelial_response",
-                                      "phylogenetic_lineage"), returnData = TRUE)
+                                      "phylogenomic_lineage"), returnData = TRUE)
 head(pcadata10)
 ```
 
 ```{r}
-percentVar.PCAdata10 <- round(100 * attr(pcadata4, "percentVar"))
+percentVar.PCAdata10 <- round(100 * attr(pcadata10, "percentVar"))
 
 PCAplot10 <- ggplot(pcadata10, aes(x = PC1, y = PC2, 
-                                   color = phylogenetic_lineage, 
+                                   color = phylogenomic_lineage, 
                                    shape = Epithelial_response,
                                    label= Samples)) +
   geom_point(size =2) +
@@ -627,7 +632,7 @@ PCAplot10 <- ggplot(pcadata10, aes(x = PC1, y = PC2,
   coord_fixed() +
   scale_y_continuous(breaks=seq(-12, 12, 2))+
   scale_x_continuous(breaks=seq(-20, 20, 2))+
-  ggtitle("PCA: Epithelial_response & Phylogenetic Lineage")+ 
+  ggtitle("PCA: Epithelial_response & Phylogenomic Lineage")+ 
   theme(legend.position="bottom") + 
   theme(aspect.ratio=25/75) +
   geom_text(size = 4, hjust=0, vjust=0)#+
@@ -755,6 +760,61 @@ PCAplot7 <- ggplot(pcadata7, aes(x = PC1, y = PC2,
 
 PCAplot7
 ```
+### PCA for Phylogroup
+```{r}
+pcadata11 <- plotPCA(vsd, intgroup = c("Samples","phylogroup"), returnData = TRUE)
+head(pcadata11)
+
+```
+
+```{r}
+percentVar.PCAdata11 <- round(100 * attr(pcadata11, "percentVar"))
+
+PCAplot11 <- ggplot(pcadata11, aes(x = PC1, y = PC2, 
+                                 color = phylogroup, 
+                                 label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata11[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata11[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: phylogroup")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot11
+```
+### PCA for Intimin Group
+```{r}
+pcadata12 <- plotPCA(vsd, intgroup = c("Samples","Intimin_Type"), returnData = TRUE)
+head(pcadata12)
+
+```
+
+```{r}
+percentVar.PCAdata12 <- round(100 * attr(pcadata12, "percentVar"))
+
+PCAplot12 <- ggplot(pcadata12, aes(x = PC1, y = PC2, 
+                                 color = Intimin_Type, 
+                                 label= Samples)) +
+  geom_point(size =2) +
+  xlab(paste0("PC1: ", percentVar.PCAdata12[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata12[2], "% variance")) +
+  coord_fixed() +
+  scale_y_continuous(breaks=seq(-12, 12, 2))+
+  scale_x_continuous(breaks=seq(-20, 20, 2))+
+  ggtitle("PCA: Intimin_Type")+ 
+  theme(legend.position="bottom") + 
+  theme(aspect.ratio=25/75) +
+  geom_text(size = 4, hjust=0, vjust=0)#+
+  #scale_colour_manual(values = color_values)
+
+PCAplot12
+```
+
 
 
 ## Hierarchical Clustering
@@ -1006,7 +1066,37 @@ p1 +
   scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
   scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
 ```
+## volcano Plot of Log2FC vs Padj
 
+```{r}
+p2 <- EnhancedVolcano(res3.df,
+    lab = res3.df$symbol,
+    x = 'log2FoldChange',
+    y = 'padj',
+    xlab = bquote(~Log[2]~'FoldChange'),
+    ylab = bquote(~Log[10]~'padj'),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10padj',
+    pointSize = 2.0,
+    labSize = 4.0,
+    boxedLabels = FALSE,
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    colAlpha = 0.5,
+    xlim = c(-6, 9),
+    ylim=c(-2, 12),
+    legendPosition = 'bottom',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = TRUE,
+    widthConnectors = 0.75
+    )
+
+p2 +
+  scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
+  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
+```
 
 ```{r}
 res3.df$diffexpressed <- "NS"
