@@ -1208,7 +1208,7 @@ write.csv(sigs.df ,"~/R/Alina_RNAseq/SignificantGenes_Gendergenesremoved_thresho
 
 ```{r}
 sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ] #UP Regulation Table
-sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)< -1, ]#DOWN Regulation Table
+sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)< -1, ] #DOWN Regulation Table
 ```
 
 ```{r}
@@ -1310,6 +1310,168 @@ Heatmap(mat1.zs,
         row_labels = sigs1.df[rownames(mat1.zs),]$symbol)
 ```
 
+# GO Terms with clusterProfiler
+
+## GO Terms for UP Regulated Genes
+
+
+
+### GO over-representation analysis for UP Regulated Genes
+
+```{r}
+UPgene_ENS_ID <- rownames(sigs.UP.df)
+```
+
+```{r}
+GO_UPReg_results <- enrichGO(gene = UPgene_ENS_ID,
+                       OrgDb = "org.Mm.eg.db",
+                       keyType = "ENSEMBL",
+                       ont = "BP",
+                       pAdjustMethod = "BH",
+                       pvalueCutoff  = 0.01,
+                       qvalueCutoff  = 0.05,
+                       readable      = TRUE
+                       )
+
+GO.UpReg.df <- as.data.frame(GO_UPReg_results)
+GO.UpReg.df
+```
+NOTE: 67 out of 429 ENS Id found!
+
+```{r}
+write.csv(GO.UpReg.df ,"~/R/Alina_RNAseq/GO.UpReg.df_results.csv")
+```
+
+
+```{r}
+GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 9))
+```
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff', 
+       plot = GO_fit_UPReg, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 13))
+```
+
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff', 
+       plot = GO_fit_UPReg_dot, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 7))
+```
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff', 
+       plot = GO_fit_UPReg_cnet, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+library(GOSemSim)
+library(DOSE)
+library(enrichplot)
+d <- godata('org.Mm.eg.db', ont="BP")
+ego2 <- pairwise_termsim(GO_UPReg_results, method="Wang", semData = d)
+```
+
+```{r}
+library(ggnewscale)
+emapplot(ego2, showCategory = 10)
+```
+
+
+
+
+## GO Terms for Down Regulated Genes
+
+### GO over-representation analysis for DOWN Regulated Genes
+
+```{r}
+DOWNgene_ENS_ID <- rownames(sigs.DOWN.df)
+```
+
+```{r}
+DOWNgene_ENS_ID
+```
+
+```{r}
+GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
+                       OrgDb = "org.Mm.eg.db",
+                       keyType = "ENSEMBL",
+                       ont = "BP",
+                       pAdjustMethod = "BH",
+                       pvalueCutoff  = 0.01,
+                       qvalueCutoff  = 0.05,
+                       readable      = TRUE
+                       )
+
+GO.DOWNReg.df <- as.data.frame(GO_DOWNReg_results)
+GO.DOWNReg.df
+```
+
+
+```{r}
+write.csv(GO.UpReg.df ,"~/R/Alina_RNAseq/GO.UpReg.df_results.csv")
+```
+
+
+```{r}
+GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 9))
+```
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff', 
+       plot = GO_fit_UPReg, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 13))
+```
+
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff', 
+       plot = GO_fit.dot, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 7))
+```
+```{r}
+ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff', 
+       plot = GO_fit.cnet, 
+       dpi = 300,
+       width = 12,
+       height = 10,
+       units = "in")
+```
+
+```{r}
+sessionInfo( )
+```
+
+# GO TERMS and PATHWAY ANALYSIS - ReEffort
+
 ## Gene Ontology - Alex Soupir
 
 ```{r}
@@ -1404,81 +1566,4 @@ keggres = gage(exprs = foldchanges,
                same.dir=TRUE)
 lapply(keggres, head)
 ```
-
-## GO Terms with clusterProfiler
-
-```{r}
-UPgene_names <- rownames(sigs.df[sigs.df$log2FoldChange>1,])
-```
-
-Running GO 
-
-### GO over-representation analysis
-
-```{r}
-GO_results <- enrichGO(gene = UPgene_names,
-                       OrgDb = "org.Mm.eg.db",
-                       keyType = "ENSEMBL",
-                       ont = "BP",
-                       pAdjustMethod = "BH",
-                       pvalueCutoff  = 0.01,
-                       qvalueCutoff  = 0.05,
-                       readable      = TRUE
-                       )
-```
-
-```{r}
-GO.df <- as.data.frame(GO_results)
-GO.df
-```
-NOTE: 67 out of 429 ENS Id found!
-
-```{r}
-write.csv(GO.df ,"~/R/Alina_RNAseq/GO_resultse.csv")
-```
-
-
-```{r}
-GO_fit <- plot(barplot(GO_results, showCategory = 9))
-```
-
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_plot.tiff', 
-       plot = GO_fit, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
-
-```{r}
-GO_fit.dot <- plot(dotplot(GO_results, showCategory = 13))
-```
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_dotplot.tiff', 
-       plot = GO_fit.dot, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
-
-
-
-```{r}
-GO_fit.cnet <- plot(cnetplot(GO_results, showCategory = 7))
-```
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_cnet_plot.tiff', 
-       plot = GO_fit.cnet, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
-
-```{r}
-sessionInfo( )
-```
-
 
