@@ -1102,20 +1102,6 @@ p2 +
   scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
   scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
 ```
-
-```{r}
-res3.df$diffexpressed <- "NS"
-# if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
-res3.df$diffexpressed[res3.df$log2FoldChange > 1.0 & res3.df$pvalue < 0.05] <- "UP" 
-# if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
-res3.df$diffexpressed[res3.df$log2FoldChange < -1.0 & res3.df$pvalue < 0.05] <- "DOWN" 
-
-# Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
-res3.df$delabel <- NA
-res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexpressed != "NS"]
-```
-
-
 ## Volcano Plot using ggplot
 ```{r}
 mycolors <- c("blue","red", "black")
@@ -1185,12 +1171,37 @@ ggplot(res3.df, aes(x=log2FoldChange , y = log10(baseMean),
 ```
 ## Significant Differentially Expressed Genes
 
+
+```{r}
+res3.df$diffexpressed <- "NS"
+# if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange > 1.0 & res3.df$pvalue < 0.05] <- "UP" 
+# if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
+res3.df$diffexpressed[res3.df$log2FoldChange < -1.0 & res3.df$pvalue < 0.05] <- "DOWN" 
+
+# Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
+res3.df$delabel <- NA
+res3.df$delabel[res3.df$diffexpressed != "NS"] <- res3.df$symbol[res3.df$diffexpressed != "NS"]
+```
+
 Arrive at relevant genes by imposing thresholds.
 
 ```{r}
 sigs.df <- res3.df[(abs(res3.df$log2FoldChange)>1) & (res3.df$pvalue< 0.05),]
 nrow(sigs.df)
 ```
+
+## Log2FC Table
+
+#by_gene_forlog2FC <- UpGeneFrame_Core50 %>% group_by(symbol) %>% 
+  summarise(log2FoldChange, Strain_name) %>% ungroup()
+head(by_gene_forlog2FC)
+
+```{r}
+summary(res3.df)
+```
+
+
 
 ### Gender Genes Removed from Table
 
@@ -1257,8 +1268,6 @@ Heatmap_ALL_DEGene <- pheatmap(mat.zs,
 Heatmap_ALL_DEGene
 ```
 
-
----------------------------------------------------------------------------------
 ```{r}
 sigs2.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
 
@@ -1282,13 +1291,28 @@ newHP <- Heatmap(mat2.zs,
         raster_quality = 5,
         #width = unit(8, "in"), 
         #height = unit(8, "in")
-        #row_labels = sigs2.df[rownames(mat2.zs),]$symbol
+        row_labels = sigs2.df[rownames(mat2.zs),]$symbol
         )
 newHP
 ```
 
 
 
+```{r fig.height= 75, fig.width= 10}
+newHP1 <- Heatmap(mat2.zs, 
+        cluster_columns = TRUE, 
+        cluster_rows = TRUE, 
+        column_labels = colnames(mat2.zs),
+        row_labels = sigs2.df[rownames(mat2.zs),]$symbol,
+        name = 'Z-Score Heatmap of DE Genes',
+        show_row_names = TRUE, 
+        use_raster = TRUE, 
+        raster_quality = 5,
+        #width = unit(10, "in"), 
+        #height = unit(45, "in")
+        )
+newHP1
+```
 
 ---------------------------------------------------------------------------------
 
