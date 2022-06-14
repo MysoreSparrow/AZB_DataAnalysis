@@ -9,6 +9,7 @@ output:
 ---
 
 ```{r}
+
 library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
@@ -30,7 +31,7 @@ library("apeglm")
 library("ComplexHeatmap")
 library('Rsubread')
 library("clusterProfiler")
-library('PCAtools')
+#library('PCAtools')
 library('ggrepel')
 library('corrplot')
 library(GO.db)
@@ -38,6 +39,10 @@ library(GOstats)
 library(pathview)
 library(gage)
 library(gageData)
+library(GOSemSim)
+library(DOSE)
+library(enrichplot)
+library(ggnewscale)
 ```
 
 # Differential Gene Expression Analysis
@@ -1266,7 +1271,7 @@ head(mat2.zs)
 ```
 
 
-```{r}
+```{r fig.height= 15, fig.width= 15}
 newHP <- Heatmap(mat2.zs, 
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
@@ -1275,8 +1280,8 @@ newHP <- Heatmap(mat2.zs,
         show_row_names = FALSE, 
         use_raster = TRUE, 
         raster_quality = 5,
-        width = unit(12, "cm"), 
-        height = unit(8, "cm")
+        #width = unit(8, "in"), 
+        #height = unit(8, "in")
         #row_labels = sigs2.df[rownames(mat2.zs),]$symbol
         )
 newHP
@@ -1336,15 +1341,20 @@ GO_UPReg_results <- enrichGO(gene = UPgene_ENS_ID,
 GO.UpReg.df <- as.data.frame(GO_UPReg_results)
 GO.UpReg.df
 ```
-NOTE: 67 out of 429 ENS Id found!
+
+```{r}
+GO_UPReg_results
+
+```
+
 
 ```{r}
 write.csv(GO.UpReg.df ,"~/R/Alina_RNAseq/GO.UpReg.df_results.csv")
 ```
 
 
-```{r}
-GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 9))
+```{r fig.height=10, fig.width=10}
+GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 22))
 ```
 ```{r}
 ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff', 
@@ -1355,8 +1365,8 @@ ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff',
        units = "in")
 ```
 
-```{r}
-GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 13))
+```{r fig.height=10, fig.width=10}
+GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 23))
 ```
 
 ```{r}
@@ -1368,8 +1378,8 @@ ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff',
        units = "in")
 ```
 
-```{r}
-GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 7))
+```{r fig.height=10, fig.width=10}
+GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 13))
 ```
 ```{r}
 ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff', 
@@ -1380,21 +1390,13 @@ ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff',
        units = "in")
 ```
 
-```{r}
-library(GOSemSim)
-library(DOSE)
-library(enrichplot)
+```{r fig.height=10, fig.width=10}
+
+
 d <- godata('org.Mm.eg.db', ont="BP")
 ego2 <- pairwise_termsim(GO_UPReg_results, method="Wang", semData = d)
+emapplot(ego2, showCategory = 30)
 ```
-
-```{r}
-library(ggnewscale)
-emapplot(ego2, showCategory = 10)
-```
-
-
-
 
 ## GO Terms for Down Regulated Genes
 
@@ -1405,7 +1407,7 @@ DOWNgene_ENS_ID <- rownames(sigs.DOWN.df)
 ```
 
 ```{r}
-DOWNgene_ENS_ID
+#DOWNgene_ENS_ID
 ```
 
 ```{r}
@@ -1419,151 +1421,13 @@ GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
                        readable      = TRUE
                        )
 
-GO.DOWNReg.df <- as.data.frame(GO_DOWNReg_results)
-GO.DOWNReg.df
+GO_DOWNReg_results
 ```
 
-
-```{r}
-write.csv(GO.UpReg.df ,"~/R/Alina_RNAseq/GO.UpReg.df_results.csv")
-```
-
-
-```{r}
-GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 9))
-```
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff', 
-       plot = GO_fit_UPReg, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
-
-```{r}
-GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 13))
-```
-
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff', 
-       plot = GO_fit.dot, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
-
-```{r}
-GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 7))
-```
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff', 
-       plot = GO_fit.cnet, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
-```
 
 ```{r}
 sessionInfo( )
 ```
 
-# GO TERMS and PATHWAY ANALYSIS - ReEffort
 
-## Gene Ontology - Alex Soupir
-
-```{r}
-selectUPGenes_entrezid = unique(sigs.UP.df['entrez'] )
-selectDOWNGenes_entrezid = unique(sigs.DOWN.df['entrez'] )
-```
-
-```{r}
-UniverseGenes = unique(sigs.df$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
-```
-
-```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-```
-```{r}
-upBP = hyperGTest(upParams)
-summary(upBP)
-```
-
-```{r}
-downBP = hyperGTest(downParams)
-summary(downBP)
-```
-
-## Pathway Analysis
-
-### GO Pathways
-
-```{r}
-foldchanges = sigs.df$log2FoldChange
-names(foldchanges) = sigs.df$entrez
-head(foldchanges)
-```
-Bring in 2 relevant Mm datasets from GO db
-
-```{r}
-data("go.sets.mm")
-data("go.subs.mm")
-```
-
-```{r}
-gobpsets = go.sets.mm[go.subs.mm$BP]
-gobpres = gage(exprs = foldchanges,
-               gsets = gobpsets,
-               same.dir = TRUE)
-```
-
-Look at UP regulated ones
-```{r}
-lapply(gobpres, head)
-```
-Look at down regulated ones
-```{r}
-head(gobpres$less, 20)
-```
-
-```{r}
-head(gobpres$stats, 20)
-```
-
-### KEGG Pathways
-
-```{r}
-foldchanges = sigs.df$log2FoldChange
-names(foldchanges) = sigs.df$entrez
-head(foldchanges)
-```
-```{r}
-data(kegg.sets.mm)
-data(sigmet.idx.mm)
-```
-
-```{r}
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-
-keggres = gage(exprs = foldchanges, 
-               gsets= kegg.sets.mm, 
-               same.dir=TRUE)
-lapply(keggres, head)
-```
 
