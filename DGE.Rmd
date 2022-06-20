@@ -12,7 +12,6 @@ output:
 ---
 
 ```{r}
-
 library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
@@ -63,7 +62,6 @@ head(sample_ID)
 condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
                "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
                "Infected", "Infected", "control", "control")
-
 coldata <- data.frame(sample_ID, condition)
 colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
 # The metadata can be found in a df called coldata!
@@ -80,7 +78,6 @@ head(coldata)
 coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
                                   pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
 coldata$condition <- as.factor(coldata$condition)
-
 ```
 
 ### Changing the names of samples (as per Alina)
@@ -101,7 +98,6 @@ coldata[coldata == '768_R1'] <- 'A68'
 coldata[coldata == '769_R1'] <- 'L69'
 coldata[coldata == 'Ctrl1_R1'] <- 'C1'
 coldata[coldata == 'Ctrl2_R2'] <- 'C2'
-
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
 coldata
@@ -114,20 +110,16 @@ coldata$Epithelial_response <- c ("LowInducer", "LowInducer", "HighInducer",
                                   "HighInducer", "HighInducer", "LowInducer",
                                   "HighInducer", "LowInducer", "HighInducer",
                                   "LowInducer", "LowInducer", 'NR', 'NR')
-
 coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
                               'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
                               'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
                               'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
-
 coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
                            'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
                            'Low', 'NR', 'NR')
-
 coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
                               "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
                               "LI_LM", "LI_LM", 'NR', 'NR')
-
 coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
                                   "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
                                   "EPEC2", "EPEC2", 'NR', 'NR')
@@ -136,7 +128,6 @@ coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2"
 coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
                           "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
                           "beta", 'NR', 'NR')
-
 ```
 
 #### then fix Countsmatrix:
@@ -172,7 +163,6 @@ countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
 colnames(countsmatrix) <- coldata$Sample_Name
 # Display the column names
 colnames(countsmatrix)
-
 # Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
 ```
@@ -263,7 +253,6 @@ distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_cols = sampleDists,
          main = "Sample-to-Sample Euclidean Distance of BL6 - Infected Vs Control",
          col = colors)
-
 distance_plot
 ```
 
@@ -277,7 +266,6 @@ colnames(samplePoisDistMatrix) <- dds_infected$Sample_Name
 
 ```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-
 poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
@@ -308,7 +296,6 @@ percentVar_infected <- (pca_infected$sdev^2 / sum( pca_infected$sdev^2 )) * 100
 percentVar_infected
 ```
 ```{r}
-
 color_values <- c("darkred", "darkred","darkred","darkred", "black","black","darkred","darkred", "darkred",
                   "darkred", "darkred","darkred","darkred", "darkred", "darkred" ,"darkblue")
 ```
@@ -343,9 +330,7 @@ PCAplot_vst <- ggplot(pcaData_infected,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0) +
   scale_colour_manual(values = color_values)
-
 PCAplot_vst
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl.png',
        plot = PCAplot_vst,
        dpi = 300,
@@ -380,9 +365,7 @@ PCAplot_ER <- ggplot(PCAdata_infected_ER,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0) #+ scale_colour_manual(values = color_values)
-
 PCAplot_ER
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_EpithelialResponse.png',
        plot = PCAplot_ER,
        dpi = 300,
@@ -418,9 +401,7 @@ PCAplot_MC <- ggplot(PCAdata_infected_MC,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_MC
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_Microcolonies.png',
        plot = PCAplot_MC,
        dpi = 300,
@@ -456,9 +437,7 @@ PCAplot_CO <- ggplot(PCAdata_infected_CO,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_MC
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_ClinicalOutcome.png',
        plot = PCAplot_CO,
        dpi = 300,
@@ -494,9 +473,7 @@ PCAplot_ERMC <- ggplot(PCAdata_infected_ERMC,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_ERMC
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_ER_Microcolonies.png',
        plot = PCAplot_ERMC,
        dpi = 300,
@@ -532,9 +509,7 @@ PCAplot_PL <- ggplot(PCAdata_infected_PL,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_PL
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_PhylogenomicLineage.png',
        plot = PCAplot_PL,
        dpi = 300,
@@ -569,9 +544,7 @@ PCAplot_PG <- ggplot(PCAdata_infected_PG,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_PG
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_Phylogroup.png',
        plot = PCAplot_PG,
        dpi = 300,
@@ -607,9 +580,7 @@ PCAplot_IT <- ggplot(PCAdata_infected_IT,
   theme(legend.position = "bottom") +
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
-
 PCAplot_IT
-
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_IntiminType.png',
        plot = PCAplot_IT,
        dpi = 300,
@@ -639,14 +610,12 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 
 ```{r}
 ### Plot heatmap
-
 heat.colors <- brewer.pal(6, "RdYlBu")
 Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
                         main = 'Heirarchical Clustering of Samples - InfectedVsControl - Correlation Matrix'
                         #filename = '~/R/Alina_RNAseq/InfectedVsControl/Hclust_plot.tiff'
                        )
-
 Hclust_plot
 ```
 
@@ -752,13 +721,13 @@ hist(res2_infected$pvalue[res2_infected$baseMean > 1], breaks = 50, col = "grey5
 res2df_infected$symbol <- mapIds(org.Mm.eg.db,
                      keys = rownames(dds_infected),
                     column = "SYMBOL",
-                    keytype="ENSEMBL",
-                     multiVals="first")
+                    keytype = "ENSEMBL",
+                     multiVals = "first")
 res2df_infected$entrez <- mapIds(org.Mm.eg.db,
                      keys = rownames(dds_infected),
                     column = "ENTREZID",
-                    keytype="ENSEMBL",
-                     multiVals="first")
+                    keytype = "ENSEMBL",
+                     multiVals = "first")
 ```
 
 ```{r}
@@ -787,7 +756,8 @@ head(resOrdered_infected)
 ```
 
 ```{r}
-write.csv(as.data.frame(resOrdered_infected), file = "~/R/Alina_RNAseq/InfectedVsControl/results_DGE_InfectedVsControl.csv")
+write.csv(as.data.frame(resOrdered_infected),
+          file = "~/R/Alina_RNAseq/InfectedVsControl/results_DGE_InfectedVsControl.csv")
 ```
 
 ## Heatmap of count matrix
@@ -795,15 +765,15 @@ write.csv(as.data.frame(resOrdered_infected), file = "~/R/Alina_RNAseq/InfectedV
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
 ```{r}
-select <- order(rowMeans(counts(dds2_infected,normalized=TRUE)),
-                decreasing=TRUE)[1:20]
+select <- order(rowMeans(counts(dds2_infected,normalized = TRUE)),
+                decreasing = TRUE)[1:20]
 df <- as.data.frame(colData(dds2_infected)[,c("condition","Sample_Name")])
 ```
 
 ```{r}
 pheatmap(assay(vsd)[select,], 
-         cluster_cols=TRUE, 
-         annotation_col=df,
+         cluster_cols = TRUE, 
+         annotation_col = df,
          color = heat.colors,
          show_rownames = FALSE)
 ```
@@ -858,17 +828,16 @@ p1 <- EnhancedVolcano(res3df_infected,
     gridlines.minor = FALSE,
     colAlpha = 0.5,
     xlim = c(-6, 9),
-    ylim=c(-2, 12),
+    ylim = c(-2, 12),
     legendPosition = 'bottom',
     legendLabSize = 12,
     legendIconSize = 4.0,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-
 p1 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
+  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
+  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
 ```
 
 ## volcano Plot of Log2FC vs Padj
@@ -890,17 +859,16 @@ p2 <- EnhancedVolcano(res3df_infected,
     gridlines.minor = FALSE,
     colAlpha = 0.5,
     xlim = c(-6, 9),
-    ylim=c(-2, 12),
+    ylim = c(-2, 12),
     legendPosition = 'bottom',
     legendLabSize = 12,
     legendIconSize = 4.0,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-
 p2 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks=c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks=seq(-6, 9, 1))
+  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
+  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
 ```
 
 ## Significant Differentially Expressed Genes
@@ -911,7 +879,6 @@ res3df_infected$diffexpressed <- "NS"
 res3df_infected$diffexpressed[res3df_infected$log2FoldChange > 1.0 & res3df_infected$pvalue < 0.05] <- "UP"
 # if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
 res3df_infected$diffexpressed[res3df_infected$log2FoldChange < -1.0 & res3df_infected$pvalue < 0.05] <- "DOWN"
-
 # Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
 res3df_infected$delabel <- NA
 res3df_infected$delabel[res3df_infected$diffexpressed != "NS"] <- res3df_infected$symbol[res3df_infected$diffexpressed != "NS"]
@@ -947,58 +914,63 @@ summary(res3df_infected)
 ### Gender Genes Removed from Table
 
 ```{r}
-sigsdf_infected <- filter(sigsdf_infected, symbol != "Xist", symbol !="Jpx", symbol !="Ftx", symbol !="Tsx", symbol != "Cnbp2" )
+sigsdf_infected <- filter(sigsdf_infected, 
+                          symbol != "Xist",
+                          symbol != "Jpx", 
+                          symbol != "Ftx", 
+                          symbol != "Tsx",
+                          symbol != "Cnbp2" )
 ```
 
 ```{r}
 nrow(sigsdf_infected)
+#head(sigsdf_infected)
 ```
 
 Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
-head(sigs.df)
-write.csv(sigs.df ,"~/R/Alina_RNAseq/SignificantGenes_Gendergenesremoved_thresholdimposed.csv")
+
+write.csv(sigsdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/SignificantGenes_InfectedVsControl.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
 
 ```{r}
-sigs.UP.df <- sigs.df[(sigs.df$log2FoldChange)>1, ] #UP Regulation Table
-sigs.DOWN.df <- sigs.df[(sigs.df$log2FoldChange)< -1, ] #DOWN Regulation Table
+sigsdf_infected_UP <- sigsdf_infected[(sigsdf_infected$log2FoldChange) > 1, ] #UP Regulation Table
+sigsdf_infected_DOWN <- sigsdf_infected[(sigsdf_infected$log2FoldChange) < -1, ] #DOWN Regulation Table
 ```
 
 ```{r}
-nrow(sigs.UP.df)
-nrow(sigs.DOWN.df)
+nrow(sigsdf_infected_UP)
+nrow(sigsdf_infected_DOWN)
 ```
 
 ### Determine Top20 UP Genes and Top20 DOWN Genes
 
 ```{r}
-UpGene <- sigs.UP.df[order(-sigs.UP.df$log2FoldChange), ]$symbol
-DownGene <- sigs.DOWN.df[order(-sigs.DOWN.df$log2FoldChange), ]$symbol
-DE_Genes_table <- as.data.frame(cbind(UpGene,DownGene)) # sorted based on highest Log2FC value
+UpGene_Infected <- sigsdf_infected_UP[order(-sigsdf_infected_UP$log2FoldChange), ]$symbol
+DownGene_Infected <- sigsdf_infected_DOWN[order(-sigsdf_infected_DOWN$log2FoldChange), ]$symbol
+DE_Genes_table_Infected <- as.data.frame(cbind(UpGene_Infected,DownGene_Infected)) # sorted based on highest Log2FC value
 ```
 
 ```{r}
-
-write.csv(DE_Genes_table ,"~/R/Alina_RNAseq/DE_Genes_table.csv")
-head(DE_Genes_table, 20)
+write.csv(DE_Genes_table_Infected ,"~/R/Alina_RNAseq/DE_GenesTable_InfectedVsControl.csv")
+head(DE_Genes_table_Infected, 20)
 ```
 
 ## Z-score based Gene Heatmaps
 
 ```{r}
-head(sigs.df)
+head(sigsdf_infected)
 ```
 
 ### with Whole table (all genes together!)
 
 ```{r}
-mat <- counts(dds2, normalized = TRUE)[rownames(sigs.df),]
+mat <- counts(dds2_infected, normalized = TRUE)[rownames(sigsdf_infected),]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
-colnames(mat.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat.zs)
 ```
 
@@ -1012,12 +984,10 @@ Heatmap_ALL_DEGene
 
 ```{r}
 sigs2.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
-
 mat2 <- counts(dds2, normalized = TRUE)[rownames(sigs2.df),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
 head(mat2.zs)
-
 #pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
 
@@ -1062,7 +1032,6 @@ also volcano plots
 
 ```{r}
 sigs1.df <- res2.df[(res2.df$baseMean > 75) & (abs(res2.df$log2FoldChange)>2) & (res2.df$pvalue< 0.05),]
-
 mat1 <- counts(dds2, normalized = TRUE)[rownames(sigs1.df),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
@@ -1098,14 +1067,12 @@ GO_UPReg_results <- enrichGO(gene = UPgene_ENS_ID,
                        qvalueCutoff  = 0.05,
                        readable      = TRUE
                        )
-
 GO.UpReg.df <- as.data.frame(GO_UPReg_results)
 GO.UpReg.df
 ```
 
 ```{r}
 GO_UPReg_results
-
 ```
 
 ```{r}
@@ -1152,8 +1119,6 @@ ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff',
 ```
 
 ```{r fig.height=20, fig.width=10}
-
-
 d <- godata('org.Mm.eg.db', ont="BP")
 ego2 <- pairwise_termsim(GO_UPReg_results, method="Wang", semData = d)
 emapplot(ego2, showCategory = 30)
@@ -1181,7 +1146,6 @@ GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
                        qvalueCutoff  = 0.05,
                        readable      = TRUE
                        )
-
 GO_DOWNReg_results
 ```
 
@@ -1189,5 +1153,3 @@ GO_DOWNReg_results
 sessionInfo( )
 ```
 ```{r}
-
-```
