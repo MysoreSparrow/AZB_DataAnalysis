@@ -983,10 +983,10 @@ Heatmap_ALL_DEGene
 ```
 
 ```{r}
-sigs2.df <- res2.df[(abs(res2.df$log2FoldChange)>1) & (res2.df$pvalue< 0.05),]
-mat2 <- counts(dds2, normalized = TRUE)[rownames(sigs2.df),]
+sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) & (res2df_infected$pvalue < 0.05),]
+mat2 <- counts(dds2_infected, normalized = TRUE)[rownames(sigs2df_infected),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
-colnames(mat2.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat2.zs)
 #pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
@@ -1002,7 +1002,7 @@ newHP <- Heatmap(mat2.zs,
         raster_quality = 5,
         #width = unit(8, "in"), 
         #height = unit(8, "in")
-        row_labels = sigs2.df[rownames(mat2.zs),]$symbol
+        row_labels = sigs2df_infected[rownames(mat2.zs),]$symbol
         )
 newHP
 ```
@@ -1012,13 +1012,11 @@ newHP1 <- Heatmap(mat2.zs,
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
-        row_labels = sigs2.df[rownames(mat2.zs),]$symbol,
+        row_labels = sigs2df_infected[rownames(mat2.zs),]$symbol,
         name = 'Z-Score Heatmap of DE Genes',
         show_row_names = TRUE, 
         use_raster = TRUE, 
         raster_quality = 5,
-        #width = unit(10, "in"), 
-        #height = unit(45, "in")
         )
 newHP1
 ```
@@ -1031,10 +1029,10 @@ also volcano plots
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1.df <- res2.df[(res2.df$baseMean > 75) & (abs(res2.df$log2FoldChange)>2) & (res2.df$pvalue< 0.05),]
-mat1 <- counts(dds2, normalized = TRUE)[rownames(sigs1.df),]
+sigs1df_infected <- res2df_infected[(res2df_infected$baseMean > 75) & (abs(res2df_infected$log2FoldChange) > 2) & (res2df_infected$pvalue< 0.05),]
+mat1 <- counts(dds2_infected, normalized = TRUE)[rownames(sigs1df_infected),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
-colnames(mat1.zs) <- coldata$Samples # need to provide correct sample names for each of the columns
+colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat1.zs)
 ```
 
@@ -1044,7 +1042,7 @@ Heatmap(mat1.zs,
         cluster_rows = TRUE,
         column_labels = colnames(mat1.zs),
         name = 'Z-Score Heatmap of DE Genes',
-        row_labels = sigs1.df[rownames(mat1.zs),]$symbol)
+        row_labels = sigs1df_infected[rownames(mat1.zs),]$symbol)
 ```
 
 # GO Terms with clusterProfiler
@@ -1054,38 +1052,34 @@ Heatmap(mat1.zs,
 ### GO over-representation analysis for UP Regulated Genes
 
 ```{r}
-UPgene_ENS_ID <- rownames(sigs.UP.df)
+UPgene_ENS_ID <- rownames(sigsdf_infected_UP)
 ```
 
 ```{r}
-GO_UPReg_results <- enrichGO(gene = UPgene_ENS_ID,
-                       OrgDb = "org.Mm.eg.db",
-                       keyType = "ENSEMBL",
-                       ont = "BP",
-                       pAdjustMethod = "BH",
-                       pvalueCutoff  = 0.01,
-                       qvalueCutoff  = 0.05,
-                       readable      = TRUE
-                       )
-GO.UpReg.df <- as.data.frame(GO_UPReg_results)
-GO.UpReg.df
+GO_UPRegResults_infected <- enrichGO(gene = UPgene_ENS_ID,
+                             OrgDb = "org.Mm.eg.db",
+                             keyType = "ENSEMBL",
+                             ont = "BP",
+                             pAdjustMethod = "BH",
+                             pvalueCutoff  = 0.01,
+                             qvalueCutoff  = 0.05,
+                             readable      = TRUE)
+GO_UpRegdf_infected <- as.data.frame(GO_UPRegResults_infected)
+GO_UpRegdf_infected
 ```
 
 ```{r}
-GO_UPReg_results
+GO_UPRegResults_infected
 ```
 
 ```{r}
-write.csv(GO.UpReg.df ,"~/R/Alina_RNAseq/GO.UpReg.df_results.csv")
+write.csv(GO_UpRegdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/GO_UpReg_results.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_fit_UPReg <- plot(barplot(GO_UPReg_results, showCategory = 22))
-```
-
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff', 
-       plot = GO_fit_UPReg, 
+GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 22))
+ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Barplot_infected.png', 
+       plot = GO_UPReg_Barplot_infected, 
        dpi = 300,
        width = 12,
        height = 10,
@@ -1093,12 +1087,10 @@ ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_barplot.tiff',
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_fit_UPReg_dot <- plot(dotplot(GO_UPReg_results, showCategory = 23))
-```
+GO_UPReg_Dotplot_infected <- plot(dotplot(GO_UPRegResults_infected, showCategory = 23))
 
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff', 
-       plot = GO_fit_UPReg_dot, 
+ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Dotplot_infected.png', 
+       plot = GO_UPReg_Dotplot_infected, 
        dpi = 300,
        width = 12,
        height = 10,
@@ -1106,12 +1098,10 @@ ggsave(filename = '~/R/Alina_RNAseq/GO_fit_UPReg_dotplot.tiff',
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_fit_UPReg_cnet <- plot(cnetplot(GO_UPReg_results, showCategory = 13))
-```
+GO_UPReg_Cnetplot_infected <- plot(cnetplot(GO_UPRegResults_infected, showCategory = 13))
 
-```{r}
-ggsave(filename = '~/R/Alina_RNAseq/GOfi_UPReg_cnetplot.tiff', 
-       plot = GO_fit_UPReg_cnet, 
+ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Cnetplot_infected.png', 
+       plot = GO_UPReg_Cnetplot_infected, 
        dpi = 300,
        width = 12,
        height = 10,
@@ -1129,7 +1119,7 @@ emapplot(ego2, showCategory = 30)
 ### GO over-representation analysis for DOWN Regulated Genes
 
 ```{r}
-DOWNgene_ENS_ID <- rownames(sigs.DOWN.df)
+DOWNgene_ENS_ID <- rownames(sigsdf_infected_DOWN)
 ```
 
 ```{r}
