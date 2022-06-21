@@ -1,5 +1,5 @@
 ---
-title: ' Differential Gene Expression Analysis Notebook - Epithelial_response_LowInducer_vs_HighInducer'
+title: ' Differential Gene Expression Analysis Notebook - Microcolonies'
 output:
   html_document:
     toc: yes
@@ -105,7 +105,7 @@ coldata
 ## Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$Epithelial_response <- c ("LowInducer", "LowInducer", "HighInducer",
+coldata$microcolonies_response <- c ("LowInducer", "LowInducer", "HighInducer",
                                   "HighInducer", "LowInducer", "LowInducer",
                                   "HighInducer", "HighInducer", "LowInducer",
                                   "HighInducer", "LowInducer", "HighInducer",
@@ -183,10 +183,10 @@ dim(countsmatrix)
 ## Creating the DESeq Data set Object
 
 ```{r}
-dds_epithelial <- DESeqDataSetFromMatrix(countData = countsmatrix,
+dds_microcolonies <- DESeqDataSetFromMatrix(countData = countsmatrix,
                               colData = coldata, 
-                              design = ~ Epithelial_response)
-nrow(dds_epithelial)
+                              design = ~ microcolonies)
+nrow(dds_microcolonies)
 ```
 
 ## Exploratory Data Analysis and Visualization
@@ -201,24 +201,24 @@ Applying the most minimal filtering rule: removing rows of the DESeqDataSet that
 across all samples. Additional weighting/filtering to improve power is applied at a later step in the workflow.
 
 ```{r}
-keep <- rowSums(counts(dds_epithelial)) > 1
-dds_epithelial <- dds_epithelial[keep,]
-nrow(dds_epithelial)
+keep <- rowSums(counts(dds_microcolonies)) > 1
+dds_microcolonies <- dds_microcolonies[keep,]
+nrow(dds_microcolonies)
 ```
 ### The variance stabilizing transformation
 
 ## Applying VST transformation
 
 ```{r}
-vsd <- vst(dds_epithelial, blind = FALSE)
+vsd <- vst(dds_microcolonies, blind = FALSE)
 head(assay(vsd), 3)
 colData(vsd)
 vsd_coldata <- colData(vsd)
 ```
 
 ```{r}
-dds_epithelial <- estimateSizeFactors(dds_epithelial)
-print(dds_epithelial)
+dds_microcolonies <- estimateSizeFactors(dds_microcolonies)
+print(dds_microcolonies)
 ```
 ## Sample Distances
 
@@ -243,25 +243,25 @@ visualize the distances in a heatmap
 
 ```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- vsd$Samples 
-colnames(sampleDistMatrix) <- vsd$Samples
+rownames(sampleDistMatrix) <- vsd$Sample_Name
+colnames(sampleDistMatrix) <- vsd$Sample_Name
 ```
 ```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
-         main = "Sample-to-Sample Euclidean Distance of BL6 - Epithelial Response",
+         main = "Sample-to-Sample Euclidean Distance of BL6 - Low Vs High Microcolonies",
          col = colors)
 distance_plot
 ```
 
 ### Poisson Distance between Samples
 ```{r}
-poisd <- PoissonDistance(t(counts(dds_epithelial))) # raw counts or unnormalised data
+poisd <- PoissonDistance(t(counts(dds_microcolonies))) # raw counts or unnormalised data
 samplePoisDistMatrix <- as.matrix( poisd$dd )
-rownames(samplePoisDistMatrix) <- dds_epithelial$Sample_Name
-colnames(samplePoisDistMatrix) <- dds_epithelial$Sample_Name
+rownames(samplePoisDistMatrix) <- dds_microcolonies$Sample_Name
+colnames(samplePoisDistMatrix) <- dds_microcolonies$Sample_Name
 ```
 
 ```{r}
@@ -269,7 +269,7 @@ colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
-         main = "Sample-to-Sample Poisson Distance of BL6 - Epithelial Response",
+         main = "Sample-to-Sample Poisson Distance of BL6 - Low Vs High Microcolonies",
          col = colors)
          
 poisson_dist_plot
@@ -289,11 +289,11 @@ poisson_dist_plot
 
 ```{r}
 # perform a PCA on the data in assay(x) for the selected genes
-pca_epithelial <- prcomp(t(assay(vsd)[select,]))
-summary(pca_epithelial)
+pca_microcolonies <- prcomp(t(assay(vsd)[select,]))
+summary(pca_microcolonies)
 # the contribution to the total variance for each component
-percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
-percentVar_epithelial
+percentVar_microcolonies <- (pca_microcolonies$sdev^2 / sum( pca_microcolonies$sdev^2 )) * 100
+percentVar_microcolonies
 ```
 ```{r}
 color_values <- c("darkred", "darkred","darkred","darkred", "black","black","darkred","darkred", "darkred",
@@ -303,25 +303,25 @@ color_values <- c("darkred", "darkred","darkred","darkred", "black","black","dar
 #### PCA Plot with VST Data
 
 ```{r}
-pcaData_epithelial <- plotPCA(vsd, intgroup = c("Epithelial_response","Sample_Name"), returnData = TRUE)
-head(pcaData_epithelial)
-percentVar_epithelial <- round(100 * attr(pcaData_epithelial, "percentVar"), digits = 3 )
-percentVar_epithelial
+pcaData_microcolonies <- plotPCA(vsd, intgroup = c("microcolonies","Sample_Name"), returnData = TRUE)
+head(pcaData_microcolonies)
+percentVar_microcolonies <- round(100 * attr(pcaData_microcolonies, "percentVar"), digits = 3 )
+percentVar_microcolonies
 ```
 
 ```{r fig.height=8, fig.width=8}
-PCAplot_vst <- ggplot(pcaData_epithelial,
+PCAplot_vst <- ggplot(pcaData_microcolonies,
                       aes(x = PC1, 
                           y = PC2,
                           color = Sample_Name, 
                           label = Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar_epithelial[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar_epithelial[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar_microcolonies[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_microcolonies[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Epithelial Response") +
+  ggtitle("PCA Plot - High Vs Low Inducer - microcolonies Response") +
   theme_classic() +
   geom_hline(yintercept = 0, color = "gray", size = 1) +
   geom_vline(xintercept = 0, color = "gray", size = 1) +
@@ -331,7 +331,7 @@ PCAplot_vst <- ggplot(pcaData_epithelial,
   geom_text(size = 4, hjust = 0, vjust = 0) +
   scale_colour_manual(values = color_values)
 PCAplot_vst
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_microcolonies.png',
        plot = PCAplot_vst,
        dpi = 300,
        width = 10,
@@ -340,24 +340,24 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ```
 ## PCA Plot for different groupings of metadata
 
-### PCA for Epithelial Response
+### PCA for microcolonies Response
 
 ```{r}
-PCAdata_epithelial_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
-head(PCAdata_epithelial_ER)
-percentVar.PCAdata_epithelial_ER <- round(100 * attr(PCAdata_epithelial_ER, "percentVar"), digits = 4)
+PCAdata_microcolonies_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies_response"), returnData = TRUE)
+head(PCAdata_microcolonies_ER)
+percentVar.PCAdata_microcolonies_ER <- round(100 * attr(PCAdata_microcolonies_ER, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_ER <- ggplot(PCAdata_epithelial_ER,
-                     aes(x = PC1, y = PC2, color = Epithelial_response, label= Sample_Name)) +
+PCAplot_ER <- ggplot(PCAdata_microcolonies_ER,
+                     aes(x = PC1, y = PC2, color = microcolonies_response, label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_ER[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_ER[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_ER[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_ER[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Epithelial Response") +
+  ggtitle("PCA Plot - High Vs Low Inducer - microcolonies Response") +
   theme_classic() +
   geom_hline(yintercept = 0, color = "gray", size = 1) +
   geom_vline(xintercept = 0, color = "gray", size = 1) +
@@ -366,7 +366,7 @@ PCAplot_ER <- ggplot(PCAdata_epithelial_ER,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0) #+ scale_colour_manual(values = color_values)
 PCAplot_ER
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_EpithelialResponse.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies.png',
        plot = PCAplot_ER,
        dpi = 300,
        width = 10,
@@ -377,19 +377,19 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for Microcolonies
 
 ```{r}
-PCAdata_epithelial_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-head(PCAdata_epithelial_MC)
-percentVar.PCAdata_epithelial_MC <- round(100 * attr(PCAdata_epithelial_MC, "percentVar"), digits = 4)
+PCAdata_microcolonies_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
+head(PCAdata_microcolonies_MC)
+percentVar.PCAdata_microcolonies_MC <- round(100 * attr(PCAdata_microcolonies_MC, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
+PCAplot_MC <- ggplot(PCAdata_microcolonies_MC,
                      aes(x = PC1, y = PC2,
                          color = microcolonies,
                          label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_MC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_MC[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_MC[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_MC[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
@@ -402,7 +402,7 @@ PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_Microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_Microcolonies.png',
        plot = PCAplot_MC,
        dpi = 300,
        width = 10,
@@ -413,19 +413,19 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for Clinical Outcome
 
 ```{r}
-PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
-head(PCAdata_epithelial_CO)
-percentVar.PCAdata_epithelial_CO <- round(100 * attr(PCAdata_epithelial_CO, "percentVar"), digits = 4)
+PCAdata_microcolonies_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
+head(PCAdata_microcolonies_CO)
+percentVar.PCAdata_microcolonies_CO <- round(100 * attr(PCAdata_microcolonies_CO, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
+PCAplot_CO <- ggplot(PCAdata_microcolonies_CO,
                      aes(x = PC1, y = PC2,
                          color = clinical_outcome,
                          label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_CO[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_CO[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_CO[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_CO[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
@@ -438,7 +438,7 @@ PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_ClinicalOutcome.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_ClinicalOutcome.png',
        plot = PCAplot_CO,
        dpi = 300,
        width = 10,
@@ -449,23 +449,23 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for ER_Microcolonies
 
 ```{r}
-PCAdata_epithelial_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
-head(PCAdata_epithelial_ERMC)
-percentVar.PCAdata_epithelial_ERMC <- round(100 * attr(PCAdata_epithelial_ERMC, "percentVar"), digits = 4)
+PCAdata_microcolonies_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
+head(PCAdata_microcolonies_ERMC)
+percentVar.PCAdata_microcolonies_ERMC <- round(100 * attr(PCAdata_microcolonies_ERMC, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
+PCAplot_ERMC <- ggplot(PCAdata_microcolonies_ERMC,
                        aes(x = PC1, y = PC2,
                            color = ER_microcolonies,
                            label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_ERMC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_ERMC[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_ERMC[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_ERMC[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - EpithelialResponse_Microcolonies") +
+  ggtitle("PCA Plot - High Vs Low Inducer - LowVsHighMicroccolonies_Microcolonies") +
   theme_classic() +
   geom_hline(yintercept = 0, color = "gray", size = 1) +
   geom_vline(xintercept = 0, color = "gray", size = 1) +
@@ -474,7 +474,7 @@ PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_ERMC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_ER_Microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_ER_Microcolonies.png',
        plot = PCAplot_ERMC,
        dpi = 300,
        width = 10,
@@ -485,19 +485,19 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for Phylogenomic Lineage
 
 ```{r}
-PCAdata_epithelial_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
-head(PCAdata_epithelial_PL)
-percentVar.PCAdata_epithelial_PL <- round(100 * attr(PCAdata_epithelial_PL, "percentVar"), digits = 4)
+PCAdata_microcolonies_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
+head(PCAdata_microcolonies_PL)
+percentVar.PCAdata_microcolonies_PL <- round(100 * attr(PCAdata_microcolonies_PL, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
+PCAplot_PL <- ggplot(PCAdata_microcolonies_PL,
                        aes(x = PC1, y = PC2,
                            color = phylogenomic_lineage,
                            label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_PL[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_PL[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_PL[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_PL[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
@@ -510,7 +510,7 @@ PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_PL
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_PhylogenomicLineage.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_PhylogenomicLineage.png',
        plot = PCAplot_PL,
        dpi = 300,
        width = 10,
@@ -520,19 +520,19 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for Phylogroup
 
 ```{r}
-PCAdata_epithelial_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
-head(PCAdata_epithelial_PG)
-percentVar.PCAdata_epithelial_PG <- round(100 * attr(PCAdata_epithelial_PG, "percentVar"), digits = 4)
+PCAdata_microcolonies_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
+head(PCAdata_microcolonies_PG)
+percentVar.PCAdata_microcolonies_PG <- round(100 * attr(PCAdata_microcolonies_PG, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
+PCAplot_PG <- ggplot(PCAdata_microcolonies_PG,
                      aes(x = PC1, y = PC2,
                          color = phylogroup,
                          label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_PG[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_PG[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_PG[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_PG[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
@@ -545,7 +545,7 @@ PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_PG
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_Phylogroup.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_Phylogroup.png',
        plot = PCAplot_PG,
        dpi = 300,
        width = 10,
@@ -556,19 +556,19 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### PCA for Intimin Group
 
 ```{r}
-PCAdata_epithelial_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
-head(PCAdata_epithelial_IT)
-percentVar.PCAdata_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"), digits = 4)
+PCAdata_microcolonies_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
+head(PCAdata_microcolonies_IT)
+percentVar.PCAdata_microcolonies_IT <- round(100 * attr(PCAdata_microcolonies_IT, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_IT <- ggplot(PCAdata_epithelial_IT,
+PCAplot_IT <- ggplot(PCAdata_microcolonies_IT,
                      aes(x = PC1, y = PC2,
                          color = Intimin_Type,
                          label= Sample_Name)) +
   geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_IT[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_IT[2], "% variance")) +
+  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_IT[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_IT[2], "% variance")) +
   coord_fixed() +
   scale_y_continuous(breaks = seq(-10, 10, 5)) +
   scale_x_continuous(breaks = seq(-20, 20, 5)) +
@@ -581,7 +581,7 @@ PCAplot_IT <- ggplot(PCAdata_epithelial_IT,
   theme(aspect.ratio = 40/40) +
   geom_text(size = 4, hjust = 0, vjust = 0)
 PCAplot_IT
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_IntiminType.png',
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_IntiminType.png',
        plot = PCAplot_IT,
        dpi = 300,
        width = 10,
@@ -594,7 +594,7 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ### applying rlog Transformation
 
 ```{r}
-rld <- rlog(dds_epithelial, blind = FALSE)
+rld <- rlog(dds_microcolonies, blind = FALSE)
 head(assay(rld), 3)
 ```
 ```{r}
@@ -613,8 +613,8 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 heat.colors <- brewer.pal(6, "RdYlBu")
 Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - EpithelialResponse - Correlation Matrix'
-                        #filename = '~/R/Alina_RNAseq/EpithelialResponse/Hclust_plot.tiff'
+                        main = 'Heirarchical Clustering of Samples - LowVsHighMicroccolonies - Correlation Matrix'
+                        #filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/Hclust_plot.tiff'
                        )
 Hclust_plot
 ```
@@ -624,19 +624,19 @@ Hclust_plot
 ### Running the differential expression pipeline
 
 ```{r}
-dds1_epithelial <- DESeq(dds_epithelial)
+dds1_microcolonies <- DESeq(dds_microcolonies)
 #str(dds1)
 ```
 
 ### Building the results table
 
 ```{r}
-res_epithelial <- results(dds1_epithelial)
-head(res_epithelial, 30)
+res_microcolonies <- results(dds1_microcolonies)
+head(res_microcolonies, 30)
 ```
 
 ```{r}
-summary(res_epithelial)
+summary(res_microcolonies)
 ```
 
 A Problem: there a number of rows with padj that has NA.
@@ -668,12 +668,12 @@ independent filtering and outlier removal). Then, only the genes with
 ALL counts set to zero will have NA for pvalues.
 
 ```{r}
-dds2_epithelial <- DESeq(dds_epithelial, minReplicatesForReplace=Inf)
-res2_epithelial <- results(dds2_epithelial, cooksCutoff=FALSE, independentFiltering=FALSE)
+dds2_microcolonies <- DESeq(dds_microcolonies, minReplicatesForReplace=Inf)
+res2_microcolonies <- results(dds2_microcolonies, cooksCutoff=FALSE, independentFiltering=FALSE)
 ```
 
 ```{r}
-head(res2_epithelial, 30)
+head(res2_microcolonies, 30)
 ```
 
 ### Results with thresholds
@@ -681,37 +681,37 @@ head(res2_epithelial, 30)
 Both thresholds Applied!
 
 ```{r}
-res2df_epithelial <- as.data.frame(res2_epithelial) # convert the results table to a df
-head(res2df_epithelial)
+res2df_microcolonies <- as.data.frame(res2_microcolonies) # convert the results table to a df
+head(res2df_microcolonies)
 ```
 
 ## MA Plot
 
 ```{r}
-resultsNames(dds2_epithelial)
+resultsNames(dds2_microcolonies)
 ```
 
 ```{r}
-plotMA_res2_epithelial <- plotMA(res2_epithelial, ylim = c(-2, 2))
+plotMA_res2_microcolonies <- plotMA(res2_microcolonies, ylim = c(-2, 2))
 ```
 
 ```{r}
-res3_epithelial <- lfcShrink(dds2_epithelial, 
-                             coef = "Epithelial_response_LowInducer_vs_HighInducer", 
+res3_microcolonies <- lfcShrink(dds2_microcolonies, 
+                             coef = "microcolonies_response_LowInducer_vs_HighInducer", 
                              type = "apeglm")
-plotMA_res3 <- plotMA(res3_epithelial, ylim = c(-2, 2))
+plotMA_res3 <- plotMA(res3_microcolonies, ylim = c(-2, 2))
 ```
 
 ### Histogram of p-values
 
 ```{r}
-hist(res2_epithelial$pvalue, breaks = 50, col = "grey50", border = "blue")
+hist(res2_microcolonies$pvalue, breaks = 50, col = "grey50", border = "blue")
 ```
 
 Further Filtering: baseMean \> 1
 
 ```{r}
-hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
+hist(res2_microcolonies$pvalue[res2_microcolonies$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
 ```
 
 ## Annotating and Exporting Results
@@ -720,46 +720,46 @@ hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1], breaks = 50, col = "g
 -   adding ENTREZ Id to results table
 
 ```{r}
-res2df_epithelial$symbol <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_epithelial),
+res2df_microcolonies$symbol <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds_microcolonies),
                     column = "SYMBOL",
                     keytype = "ENSEMBL",
                      multiVals = "first")
-res2df_epithelial$entrez <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_epithelial),
+res2df_microcolonies$entrez <- mapIds(org.Mm.eg.db,
+                     keys = rownames(dds_microcolonies),
                     column = "ENTREZID",
                     keytype = "ENSEMBL",
                      multiVals = "first")
 ```
 
 ```{r}
-head(res2df_epithelial)
+head(res2df_microcolonies)
 ```
 
 ```{r}
-str(res2df_epithelial)
-nrow(res2df_epithelial)
+str(res2df_microcolonies)
+nrow(res2df_microcolonies)
 ```
 
 Omit NA values from symbol and respective rows!
 
 ```{r}
-res3df_epithelial <- res2df_epithelial %>% filter(!is.na(symbol) & !is.na(entrez))
+res3df_microcolonies <- res2df_microcolonies %>% filter(!is.na(symbol) & !is.na(entrez))
 ```
 ```{r}
-nrow(res3df_epithelial)
+nrow(res3df_microcolonies)
 ```
 
 ## Saving the Results
 
 ```{r}
-resOrdered_epithelial <- res3df_epithelial[order(res3df_epithelial$pvalue),]
-head(resOrdered_epithelial)
+resOrdered_microcolonies <- res3df_microcolonies[order(res3df_microcolonies$pvalue),]
+head(resOrdered_microcolonies)
 ```
 
 ```{r}
-write.csv(as.data.frame(resOrdered_epithelial),
-          file = "~/R/Alina_RNAseq/EpithelialResponse/results_DGE_EpithelialResponse.csv")
+write.csv(as.data.frame(resOrdered_microcolonies),
+          file = "~/R/Alina_RNAseq/LowVsHighMicroccolonies/results_DGE_LowVsHighMicroccolonies.csv")
 ```
 
 ## Heatmap of count matrix
@@ -767,9 +767,9 @@ write.csv(as.data.frame(resOrdered_epithelial),
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
 ```{r}
-select <- order(rowMeans(counts(dds2_epithelial,normalized = TRUE)),
+select <- order(rowMeans(counts(dds2_microcolonies,normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds2_epithelial)[,c("Epithelial_response","Sample_Name")])
+df <- as.data.frame(colData(dds2_microcolonies)[,c("microcolonies_response","Sample_Name")])
 ```
 
 ```{r}
@@ -786,7 +786,7 @@ pheatmap(assay(vsd)[select,],
 ### Based on Shifted Log Transformation
 
 ```{r}
-ntd <- normTransform(dds2_epithelial)
+ntd <- normTransform(dds2_microcolonies)
 meanSdPlot(assay(ntd))
 ```
 
@@ -807,7 +807,7 @@ meanSdPlot(assay(vsd))
 -   Its a useful diagnostic to plot the dispersion estimates.
 
 ```{r}
-plotDispEsts(dds2_epithelial)
+plotDispEsts(dds2_microcolonies)
 ```
 
 # Volcano Plots
@@ -815,8 +815,8 @@ plotDispEsts(dds2_epithelial)
 ## Volcano Plots based on Enhanced Volcano
 
 ```{r}
-p1 <- EnhancedVolcano(res3df_epithelial,
-    lab = res3df_epithelial$symbol,
+p1 <- EnhancedVolcano(res3df_microcolonies,
+    lab = res3df_microcolonies$symbol,
     x = 'log2FoldChange',
     y = 'pvalue',
     xlab = bquote(~Log[2]~'FoldChange'),
@@ -845,8 +845,8 @@ p1 +
 ## volcano Plot of Log2FC vs Padj
 
 ```{r}
-p2 <- EnhancedVolcano(res3df_epithelial,
-    lab = res3df_epithelial$symbol,
+p2 <- EnhancedVolcano(res3df_microcolonies,
+    lab = res3df_microcolonies$symbol,
     x = 'log2FoldChange',
     y = 'padj',
     xlab = bquote(~Log[2]~'FoldChange'),
@@ -876,14 +876,14 @@ p2 +
 ## Significant Differentially Expressed Genes
 
 ```{r}
-res3df_epithelial$diffexpressed <- "NS"
+res3df_microcolonies$diffexpressed <- "NS"
 # if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
-res3df_epithelial$diffexpressed[res3df_epithelial$log2FoldChange > 1.0 & res3df_epithelial$pvalue < 0.05] <- "UP"
+res3df_microcolonies$diffexpressed[res3df_microcolonies$log2FoldChange > 1.0 & res3df_microcolonies$pvalue < 0.05] <- "UP"
 # if log2Foldchange < 1.0 and pvalue < 0.05, set as "UP"
-res3df_epithelial$diffexpressed[res3df_epithelial$log2FoldChange < -1.0 & res3df_epithelial$pvalue < 0.05] <- "DOWN"
+res3df_microcolonies$diffexpressed[res3df_microcolonies$log2FoldChange < -1.0 & res3df_microcolonies$pvalue < 0.05] <- "DOWN"
 # Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
-res3df_epithelial$delabel <- NA
-res3df_epithelial$delabel[res3df_epithelial$diffexpressed != "NS"] <- res3df_epithelial$symbol[res3df_epithelial$diffexpressed != "NS"]
+res3df_microcolonies$delabel <- NA
+res3df_microcolonies$delabel[res3df_microcolonies$diffexpressed != "NS"] <- res3df_microcolonies$symbol[res3df_microcolonies$diffexpressed != "NS"]
 ```
 
 ```{r}
@@ -898,10 +898,10 @@ res3df_epithelial$delabel[res3df_epithelial$diffexpressed != "NS"] <- res3df_epi
 Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange)>1) & (res3df_epithelial$pvalue< 0.05),]
+sigsdf_microcolonies <- res3df_microcolonies[(abs(res3df_microcolonies$log2FoldChange)>1) & (res3df_microcolonies$pvalue< 0.05),]
 ```
 ```{r}
-nrow(sigsdf_epithelial)
+nrow(sigsdf_microcolonies)
 ```
 ## Log2FC Table
 
@@ -910,13 +910,13 @@ summarise(log2FoldChange, Strain_name) %\>% ungroup()
 head(by_gene_forlog2FC)
 
 ```{r}
-summary(res3df_epithelial)
+summary(res3df_microcolonies)
 ```
 
 ### Gender Genes Removed from Table
 
 ```{r}
-sigsdf_epithelial <- filter(sigsdf_epithelial,
+sigsdf_microcolonies <- filter(sigsdf_microcolonies,
                           symbol != "Xist",
                           symbol != "Jpx", 
                           symbol != "Ftx", 
@@ -925,52 +925,52 @@ sigsdf_epithelial <- filter(sigsdf_epithelial,
 ```
 
 ```{r}
-nrow(sigsdf_epithelial)
-#head(sigsdf_epithelial)
+nrow(sigsdf_microcolonies)
+#head(sigsdf_microcolonies)
 ```
 
 Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/SignificantGenes_EpithelialResponse.csv")
+write.csv(sigsdf_microcolonies ,"~/R/Alina_RNAseq/LowVsHighMicroccolonies/SignificantGenes_LowVsHighMicroccolonies.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
 
 ```{r}
-sigsdf_epithelial_UP <- sigsdf_epithelial[(sigsdf_epithelial$log2FoldChange) > 1, ] #UP Regulation Table
-sigsdf_epithelial_DOWN <- sigsdf_epithelial[(sigsdf_epithelial$log2FoldChange) < -1, ] #DOWN Regulation Table
+sigsdf_microcolonies_UP <- sigsdf_microcolonies[(sigsdf_microcolonies$log2FoldChange) > 1, ] #UP Regulation Table
+sigsdf_microcolonies_DOWN <- sigsdf_microcolonies[(sigsdf_microcolonies$log2FoldChange) < -1, ] #DOWN Regulation Table
 ```
 
 ```{r}
-nrow(sigsdf_epithelial_UP)
-nrow(sigsdf_epithelial_DOWN)
+nrow(sigsdf_microcolonies_UP)
+nrow(sigsdf_microcolonies_DOWN)
 ```
 
 ### Determine Top20 UP Genes and Top20 DOWN Genes
 
 ```{r}
-UpGene_epithelial <- sigsdf_epithelial_UP[order(-sigsdf_epithelial_UP$log2FoldChange), ]$symbol
-DownGene_epithelial <- sigsdf_epithelial_DOWN[order(-sigsdf_epithelial_DOWN$log2FoldChange), ]$symbol
-DE_Genes_table_epithelial <- as.data.frame(cbind(UpGene_epithelial,DownGene_epithelial)) # sorted based on highest Log2FC value
+UpGene_microcolonies <- sigsdf_microcolonies_UP[order(-sigsdf_microcolonies_UP$log2FoldChange), ]$symbol
+DownGene_microcolonies <- sigsdf_microcolonies_DOWN[order(-sigsdf_microcolonies_DOWN$log2FoldChange), ]$symbol
+DE_Genes_table_microcolonies <- as.data.frame(cbind(UpGene_microcolonies,DownGene_microcolonies)) # sorted based on highest Log2FC value
 ```
 
 ```{r}
-write.csv(DE_Genes_table_epithelial ,"~/R/Alina_RNAseq/DE_GenesTable_EpithelialResponse.csv")
-head(DE_Genes_table_epithelial, 20)
+write.csv(DE_Genes_table_microcolonies ,"~/R/Alina_RNAseq/DE_GenesTable_LowVsHighMicroccolonies.csv")
+head(DE_Genes_table_microcolonies, 20)
 ```
 
 ## Z-score based Gene Heatmaps
 
 ```{r}
-head(sigsdf_epithelial)
+head(sigsdf_microcolonies)
 ```
 
 ### with Whole table (all genes together!)
 
 ```{r}
-mat <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigsdf_epithelial),]
+mat <- counts(dds2_microcolonies, normalized = TRUE)[rownames(sigsdf_microcolonies),]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat.zs)
@@ -985,8 +985,8 @@ Heatmap_ALL_DEGene
 ```
 
 ```{r}
-sigs2df_epithelial <- res2df_epithelial[(abs(res2df_epithelial$log2FoldChange) > 1) & (res2df_epithelial$pvalue < 0.05),]
-mat2 <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigs2df_epithelial),]
+sigs2df_microcolonies <- res2df_microcolonies[(abs(res2df_microcolonies$log2FoldChange) > 1) & (res2df_microcolonies$pvalue < 0.05),]
+mat2 <- counts(dds2_microcolonies, normalized = TRUE)[rownames(sigs2df_microcolonies),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat2.zs)
@@ -1004,7 +1004,7 @@ newHP <- Heatmap(mat2.zs,
         raster_quality = 5,
         #width = unit(8, "in"), 
         #height = unit(8, "in")
-        row_labels = sigs2df_epithelial[rownames(mat2.zs),]$symbol
+        row_labels = sigs2df_microcolonies[rownames(mat2.zs),]$symbol
         )
 newHP
 ```
@@ -1014,8 +1014,8 @@ newHP1 <- Heatmap(mat2.zs,
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
-        row_labels = sigs2df_epithelial[rownames(mat2.zs),]$symbol,
-        name = 'Z-Score Heatmap of DE Genes - Epithelial Response',
+        row_labels = sigs2df_microcolonies[rownames(mat2.zs),]$symbol,
+        name = 'Z-Score Heatmap of DE Genes - microcolonies Response',
         show_row_names = TRUE, 
         use_raster = TRUE, 
         raster_quality = 5,
@@ -1031,8 +1031,8 @@ also volcano plots
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1df_epithelial <- res2df_epithelial[(res2df_epithelial$baseMean > 75) & (abs(res2df_epithelial$log2FoldChange) > 2) & (res2df_epithelial$pvalue < 0.05),]
-mat1 <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigs1df_epithelial),]
+sigs1df_microcolonies <- res2df_microcolonies[(res2df_microcolonies$baseMean > 75) & (abs(res2df_microcolonies$log2FoldChange) > 2) & (res2df_microcolonies$pvalue < 0.05),]
+mat1 <- counts(dds2_microcolonies, normalized = TRUE)[rownames(sigs1df_microcolonies),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat1.zs)
@@ -1044,7 +1044,7 @@ Heatmap(mat1.zs,
         cluster_rows = TRUE,
         column_labels = colnames(mat1.zs),
         name = 'Z-Score Heatmap of DE Genes',
-        row_labels = sigs1df_epithelial[rownames(mat1.zs),]$symbol)
+        row_labels = sigs1df_microcolonies[rownames(mat1.zs),]$symbol)
 ```
 
 # GO Terms with clusterProfiler
@@ -1054,11 +1054,11 @@ Heatmap(mat1.zs,
 ### GO over-representation analysis for UP Regulated Genes
 
 ```{r}
-UPgene_ENS_ID <- rownames(sigsdf_epithelial_UP)
+UPgene_ENS_ID <- rownames(sigsdf_microcolonies_UP)
 ```
 
 ```{r}
-GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
+GO_UPRegResults_microcolonies <- enrichGO(gene = UPgene_ENS_ID,
                              OrgDb = "org.Mm.eg.db",
                              keyType = "ENSEMBL",
                              ont = "BP",
@@ -1066,22 +1066,22 @@ GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
                              pvalueCutoff  = 0.01,
                              qvalueCutoff  = 0.05,
                              readable      = TRUE)
-GO_UpRegdf_epithelial <- as.data.frame(GO_UPRegResults_epithelial)
-GO_UpRegdf_epithelial
+GO_UpRegdf_microcolonies <- as.data.frame(GO_UPRegResults_microcolonies)
+GO_UpRegdf_microcolonies
 ```
 
 ```{r}
-GO_UPRegResults_epithelial
+GO_UPRegResults_microcolonies
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/GO_UpReg_results_Epithelial.csv")
+write.csv(GO_UpRegdf_microcolonies ,"~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UpReg_results_microcolonies.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Barplot_epithelial <- plot(barplot(GO_UPRegResults_epithelial, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Barplot_epithelial.png',
-       plot = GO_UPReg_Barplot_epithelial,
+GO_UPReg_Barplot_microcolonies <- plot(barplot(GO_UPRegResults_microcolonies, showCategory = 22))
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Barplot_microcolonies.png',
+       plot = GO_UPReg_Barplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1089,10 +1089,10 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Barplot_epitheli
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Dotplot_epithelial <- plot(dotplot(GO_UPRegResults_epithelial, showCategory = 23))
+GO_UPReg_Dotplot_microcolonies <- plot(dotplot(GO_UPRegResults_microcolonies, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Dotplot_epithelial.png',
-       plot = GO_UPReg_Dotplot_epithelial,
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Dotplot_microcolonies.png',
+       plot = GO_UPReg_Dotplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1100,10 +1100,10 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Dotplot_epitheli
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Cnetplot_epithelial <- plot(cnetplot(GO_UPRegResults_epithelial, showCategory = 13))
+GO_UPReg_Cnetplot_microcolonies <- plot(cnetplot(GO_UPRegResults_microcolonies, showCategory = 13))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Cnetplot_epithelial.png',
-       plot = GO_UPReg_Cnetplot_epithelial,
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Cnetplot_microcolonies.png',
+       plot = GO_UPReg_Cnetplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1121,7 +1121,7 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Cnetplot_epithel
 ### GO over-representation analysis for DOWN Regulated Genes
 
 ```{r}
-DOWNgene_ENS_ID <- rownames(sigsdf_epithelial_DOWN)
+DOWNgene_ENS_ID <- rownames(sigsdf_microcolonies_DOWN)
 ```
 
 ```{r}
@@ -1129,7 +1129,7 @@ DOWNgene_ENS_ID <- rownames(sigsdf_epithelial_DOWN)
 ```
 
 ```{r}
-GO_DOWNRegResults_epithelial <- enrichGO(gene = DOWNgene_ENS_ID,
+GO_DOWNRegResults_microcolonies <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
                        keyType = "ENSEMBL",
                        ont = "BP",
@@ -1138,20 +1138,20 @@ GO_DOWNRegResults_epithelial <- enrichGO(gene = DOWNgene_ENS_ID,
                        qvalueCutoff  = 0.05,
                        readable      = TRUE
                        )
-GO_DOWNRegdf_epithelial <- as.data.frame(GO_DOWNRegResults_epithelial)
-GO_DOWNRegdf_epithelial
+GO_DOWNRegdf_microcolonies <- as.data.frame(GO_DOWNRegResults_microcolonies)
+GO_DOWNRegdf_microcolonies
 ```
 
 
 ```{r}
-write.csv(GO_DOWNRegdf_epithelial,
-          "~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_results_Epithelial.csv")
+write.csv(GO_DOWNRegdf_microcolonies,
+          "~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_results_microcolonies.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Barplot_epithelial.png',
-       plot = GO_DOWNReg_Barplot_epithelial,
+GO_DOWNReg_Barplot_microcolonies <- plot(barplot(GO_DOWNRegResults_microcolonies, showCategory = 22))
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Barplot_microcolonies.png',
+       plot = GO_DOWNReg_Barplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1159,10 +1159,10 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Barplot_epithe
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial, showCategory = 23))
+GO_DOWNReg_Dotplot_microcolonies <- plot(dotplot(GO_DOWNRegResults_microcolonies, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Dotplot_epithelial.png',
-       plot = GO_DOWNReg_Dotplot_epithelial,
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Dotplot_microcolonies.png',
+       plot = GO_DOWNReg_Dotplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1170,10 +1170,10 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Dotplot_epithe
 ```
 
 ```{r fig.height=15, fig.width=10}
-GO_DOWNReg_Cnetplot_epithelial <- plot(cnetplot(GO_DOWNRegResults_epithelial, showCategory = 13))
+GO_DOWNReg_Cnetplot_microcolonies <- plot(cnetplot(GO_DOWNRegResults_microcolonies, showCategory = 13))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epithelial.png',
-       plot = GO_DOWNReg_Cnetplot_epithelial,
+ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Cnetplot_microcolonies.png',
+       plot = GO_DOWNReg_Cnetplot_microcolonies,
        dpi = 300,
        width = 12,
        height = 10,
@@ -1188,8 +1188,8 @@ kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
 head(kegg.sets.mm, 2)
 ```
 ```{r}
-foldchanges = sigsdf_epithelial_DOWN$log2FoldChange
-names(foldchanges) = sigsdf_epithelial_DOWN$entrez
+foldchanges = sigsdf_microcolonies_DOWN$log2FoldChange
+names(foldchanges) = sigsdf_microcolonies_DOWN$entrez
 head(foldchanges)
 ```
 
@@ -1245,12 +1245,12 @@ sessionInfo( )
 ## Gene Ontology - Alex Soupir
 
 ```{r}
-selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
+selectUPGenes_entrezid = unique(sigsdf_microcolonies_UP['entrez'] )
+selectDOWNGenes_entrezid = unique(sigsdf_microcolonies_DOWN['entrez'] )
 ```
 
 ```{r}
-UniverseGenes = unique(sigsdf_epithelial$entrez)
+UniverseGenes = unique(sigsdf_microcolonies$entrez)
 cutOff = 0.01 # setting the cutoff at 1%
 ```
 
@@ -1285,8 +1285,8 @@ summary(downBP)
 ### GO Pathways
 
 ```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
+foldchanges = sigsdf_microcolonies$log2FoldChange
+names(foldchanges) = sigsdf_microcolonies$entrez
 head(foldchanges)
 ```
 Bring in 2 relevant Mm datasets from GO db
@@ -1319,8 +1319,8 @@ head(gobpres$stats, 20)
 ### KEGG Pathways
 
 ```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
+foldchanges = sigsdf_microcolonies$log2FoldChange
+names(foldchanges) = sigsdf_microcolonies$entrez
 head(foldchanges)
 ```
 ```{r}
