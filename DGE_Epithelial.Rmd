@@ -11,7 +11,7 @@ output:
     number_sections: yes
 ---
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
@@ -53,7 +53,7 @@ DESeq2 needs sample information (metadata) for performing DGE analysis.
 Let's create the sample information
 
 ```{r}
-# Read the csv file and change the column name 
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
 sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
 head(sample_ID)
 ```
@@ -105,7 +105,7 @@ coldata
 ## Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$Epithelial_response <- c ("LowInducer", "LowInducer", "HighInducer",
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
                                   "HighInducer", "LowInducer", "LowInducer",
                                   "HighInducer", "HighInducer", "LowInducer",
                                   "HighInducer", "LowInducer", "HighInducer",
@@ -236,6 +236,8 @@ from all genes, we use it on the VST data.
 
 ```{r}
 sampleDists <- dist(t(assay(vsd)))
+```
+```{r}
 head(sampleDists)
 ```
 
@@ -243,8 +245,8 @@ visualize the distances in a heatmap
 
 ```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- vsd$Samples 
-colnames(sampleDistMatrix) <- vsd$Samples
+rownames(sampleDistMatrix) <- vsd$Sample_Name
+colnames(sampleDistMatrix) <- vsd$Sample_Name
 ```
 ```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
@@ -286,7 +288,7 @@ poisson_dist_plot
   # select the ntop genes by variance
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
 ```
-
+Calculating the variance for each PCA value
 ```{r}
 # perform a PCA on the data in assay(x) for the selected genes
 pca_epithelial <- prcomp(t(assay(vsd)[select,]))
@@ -296,8 +298,25 @@ percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) 
 percentVar_epithelial
 ```
 ```{r}
-color_values <- c("darkred", "darkred","darkred","darkred", "black","black","darkred","darkred", "darkred",
-                  "darkred", "darkred","darkred","darkred", "darkred", "darkred" ,"darkblue")
+color_values <- c("red", "red","red","red", "black","black","red","red", "red",
+                  "red", "red","red","red", "red", "red" ,"blue")
+
+# the basic set of common aesthetic settings for PCA plots, 
+theme.my.own <- list(theme_bw() ,
+                      geom_point(size = 3),
+                      coord_fixed() ,
+                      scale_y_continuous(breaks = seq(-10, 10, 5), sec.axis = sec_axis(~. *1)) ,
+                      scale_x_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
+                      theme_classic() ,
+                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
+                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
+                      theme(text = element_text(size = 15),
+                            axis.text = element_text(size = 15),
+                            legend.position = "right",
+                            aspect.ratio = 50/50) ,
+                      geom_text(size = 4, hjust = 0, vjust = 0)
+  )
+
 ```
 
 #### PCA Plot with VST Data
@@ -309,100 +328,52 @@ percentVar_epithelial <- round(100 * attr(pcaData_epithelial, "percentVar"), dig
 percentVar_epithelial
 ```
 
+
 ```{r fig.height=8, fig.width=8}
-PCAplot_vst <- ggplot(pcaData_epithelial,
-                      aes(x = PC1, 
+(PCAplot_vst <- ggplot(pcaData_epithelial,
+                      aes(x = PC1,
                           y = PC2,
-                          color = Sample_Name, 
+                          color = Sample_Name,
                           label = Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar_epithelial[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar_epithelial[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Epithelial Response") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") + 
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) +
-  scale_colour_manual(values = color_values)
-PCAplot_vst
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse.png',
+        xlab(paste0("PC1: ", percentVar_epithelial[1], "% variance")) +
+   
+        ylab(paste0("PC2: ", percentVar_epithelial[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer") +
+        scale_colour_manual(values = color_values) +
+        theme.my.own )
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_EpithelialResponse.png',
        plot = PCAplot_vst,
        dpi = 300,
        width = 10,
        height = 10,
        units = "in")
+
+```
+```{r}
+
 ```
 ## PCA Plot for different groupings of metadata
-
-### PCA for Epithelial Response
-
-```{r}
-PCAdata_epithelial_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
-head(PCAdata_epithelial_ER)
-percentVar.PCAdata_epithelial_ER <- round(100 * attr(PCAdata_epithelial_ER, "percentVar"), digits = 4)
-```
-
-```{r}
-PCAplot_ER <- ggplot(PCAdata_epithelial_ER,
-                     aes(x = PC1, y = PC2, color = Epithelial_response, label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_ER[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_ER[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Epithelial Response") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) #+ scale_colour_manual(values = color_values)
-PCAplot_ER
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_EpithelialResponse.png',
-       plot = PCAplot_ER,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
 
 ### PCA for Microcolonies
 
 ```{r}
 PCAdata_epithelial_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
 head(PCAdata_epithelial_MC)
-percentVar.PCAdata_epithelial_MC <- round(100 * attr(PCAdata_epithelial_MC, "percentVar"), digits = 4)
+percentVar_epithelial_MC <- round(100 * attr(PCAdata_epithelial_MC, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
+(PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
                      aes(x = PC1, y = PC2,
                          color = microcolonies,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_MC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_MC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_Microcolonies.png',
+        xlab(paste0("PC1: ", percentVar_epithelial_MC[1], "% variance")) +
+   
+        ylab(paste0("PC2: ", percentVar_epithelial_MC[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Microcolonies.png',
        plot = PCAplot_MC,
        dpi = 300,
        width = 10,
@@ -415,30 +386,20 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ```{r}
 PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
 head(PCAdata_epithelial_CO)
-percentVar.PCAdata_epithelial_CO <- round(100 * attr(PCAdata_epithelial_CO, "percentVar"), digits = 4)
+percentVar_epithelial_CO <- round(100 * attr(PCAdata_epithelial_CO, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
+(PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
                      aes(x = PC1, y = PC2,
                          color = clinical_outcome,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_CO[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_CO[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_ClinicalOutcome.png',
+        xlab(paste0("PC1: ", percentVar_epithelial_CO[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_epithelial_CO[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_ClinicalOutcome.png',
        plot = PCAplot_CO,
        dpi = 300,
        width = 10,
@@ -451,30 +412,20 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ```{r}
 PCAdata_epithelial_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
 head(PCAdata_epithelial_ERMC)
-percentVar.PCAdata_epithelial_ERMC <- round(100 * attr(PCAdata_epithelial_ERMC, "percentVar"), digits = 4)
+percentVar_epithelial_ERMC <- round(100 * attr(PCAdata_epithelial_ERMC, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
+(PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
                        aes(x = PC1, y = PC2,
                            color = ER_microcolonies,
                            label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_ERMC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_ERMC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - EpithelialResponse_Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_ERMC
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_ER_Microcolonies.png',
+        xlab(paste0("PC1: ", percentVar_epithelial_ERMC[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_epithelial_ERMC[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - ER_Microcolonies") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Microcolonies.png',
        plot = PCAplot_ERMC,
        dpi = 300,
        width = 10,
@@ -487,65 +438,46 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ```{r}
 PCAdata_epithelial_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
 head(PCAdata_epithelial_PL)
-percentVar.PCAdata_epithelial_PL <- round(100 * attr(PCAdata_epithelial_PL, "percentVar"), digits = 4)
+percentVar_epithelial_PL <- round(100 * attr(PCAdata_epithelial_PL, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
+(PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
                        aes(x = PC1, y = PC2,
                            color = phylogenomic_lineage,
-                           label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_PL[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_PL[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PL
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_PhylogenomicLineage.png',
+                           label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_epithelial_PL[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_epithelial_PL[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_PhylogenomicLineage.png',
        plot = PCAplot_PL,
        dpi = 300,
        width = 10,
        height = 10,
        units = "in")
 ```
+
 ### PCA for Phylogroup
 
 ```{r}
 PCAdata_epithelial_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
 head(PCAdata_epithelial_PG)
-percentVar.PCAdata_epithelial_PG <- round(100 * attr(PCAdata_epithelial_PG, "percentVar"), digits = 4)
+percentVar_epithelial_PG <- round(100 * attr(PCAdata_epithelial_PG, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
+(PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
                      aes(x = PC1, y = PC2,
                          color = phylogroup,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_PG[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_PG[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Phylogroup") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PG
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_Phylogroup.png',
+        xlab(paste0("PC1: ", percentVar_epithelial_PG[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_epithelial_PG[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Phylogroup.png',
        plot = PCAplot_PG,
        dpi = 300,
        width = 10,
@@ -558,35 +490,26 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialRespons
 ```{r}
 PCAdata_epithelial_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
 head(PCAdata_epithelial_IT)
-percentVar.PCAdata_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"), digits = 4)
+percentVar_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_IT <- ggplot(PCAdata_epithelial_IT,
+(PCAplot_IT <- ggplot(PCAdata_epithelial_IT,
                      aes(x = PC1, y = PC2,
                          color = Intimin_Type,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_epithelial_IT[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_epithelial_IT[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Intimin Type") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_IT
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_EpithelialResponse_IntiminType.png',
+                         label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_epithelial_IT[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_epithelial_IT[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Intimin type") +
+        theme.my.own)
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_IntiminType.png',
        plot = PCAplot_IT,
        dpi = 300,
        width = 10,
        height = 10,
-       units = "in")
+       units = "in"
+       )
 ```
 
 ## Hierarchical Clustering
@@ -898,16 +821,11 @@ res3df_epithelial$delabel[res3df_epithelial$diffexpressed != "NS"] <- res3df_epi
 Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange)>1) & (res3df_epithelial$pvalue< 0.05),]
+sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange) > 1) & (res3df_epithelial$pvalue < 0.05),]
 ```
 ```{r}
 nrow(sigsdf_epithelial)
 ```
-## Log2FC Table
-
-#by_gene_forlog2FC \<- UpGeneFrame_Core50 %\>% group_by(symbol) %\>%
-summarise(log2FoldChange, Strain_name) %\>% ungroup()
-head(by_gene_forlog2FC)
 
 ```{r}
 summary(res3df_epithelial)
@@ -1055,30 +973,27 @@ Heatmap(mat1.zs,
 
 ```{r}
 UPgene_ENS_ID <- rownames(sigsdf_epithelial_UP)
+
+GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
+                                       OrgDb = "org.Mm.eg.db",
+                                       keyType = "ENSEMBL",
+                                       ont = "BP",
+                                       pAdjustMethod = "BH",
+                                       pvalueCutoff  = 0.01,
+                                       qvalueCutoff  = 0.05,
+                                       readable      = TRUE)
 ```
 
 ```{r}
-GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
-                             OrgDb = "org.Mm.eg.db",
-                             keyType = "ENSEMBL",
-                             ont = "BP",
-                             pAdjustMethod = "BH",
-                             pvalueCutoff  = 0.01,
-                             qvalueCutoff  = 0.05,
-                             readable      = TRUE)
 GO_UpRegdf_epithelial <- as.data.frame(GO_UPRegResults_epithelial)
 GO_UpRegdf_epithelial
-```
-
-```{r}
-GO_UPRegResults_epithelial
 ```
 
 ```{r}
 write.csv(GO_UpRegdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/GO_UpReg_results_Epithelial.csv")
 ```
 
-```{r fig.height=10, fig.width=10}
+```{r}
 GO_UPReg_Barplot_epithelial <- plot(barplot(GO_UPRegResults_epithelial, showCategory = 22))
 ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Barplot_epithelial.png',
        plot = GO_UPReg_Barplot_epithelial,
@@ -1123,11 +1038,6 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Cnetplot_epithel
 ```{r}
 DOWNgene_ENS_ID <- rownames(sigsdf_epithelial_DOWN)
 ```
-
-```{r}
-#DOWNgene_ENS_ID
-```
-
 ```{r}
 GO_DOWNRegResults_epithelial <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
@@ -1180,22 +1090,76 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epith
        units = "in")
 ```
 
+
+
+############### Untested and incomplete code for evverything down below ############################
+
+
+
+### GO GSEA
+
+cluster profiler provides gseGO() for gene set enrichment analysis using gene ontology.
+
 ```{r}
-#kegg.gsets(species = "mmu", id.type = "entrez")
+# Create a sorted/ordered gene list
+head(sigsdf_epithelial)
+## feature 1: numeric vector
+## assume 1st column is ID
+## 2nd column is log2FC values
+genelist <- sigsdf_epithelial$log2FoldChange
+## feature 2: named vector
+names(geneList) <- as.character(d[, 1])
 ```
 ```{r}
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-head(kegg.sets.mm, 2)
+gseGO_UP <- gseGO(geneList = order(sigsdf_epithelial$log2FoldChange,
+                                   decreasing = TRUE),
+                  OrgDb = org.Mm.eg.db,
+                  ont = "BP",
+                  minGSSize = 100,
+                  maxGSSize = 500,
+                  pvalueCutoff = 0.05,
+                  keyType = "SYMBOL",
+                  pAdjustMethod = "BH",
+                  verbose = TRUE,
+                  by = "fgsea")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+kg.mmu <- kegg.gsets("mmu")
+names(kg.mmu)
+kegg.gs <- kg.mmu$kg.sets[kg.mmu$sigmet.idx]
 ```
 ```{r}
-foldchanges = sigsdf_epithelial_DOWN$log2FoldChange
-names(foldchanges) = sigsdf_epithelial_DOWN$entrez
+head(kegg.gs, 2)
+```
+```{r}
+foldchanges <- sigsdf_epithelial_DOWN$log2FoldChange
+#names(foldchanges) = sigsdf_epithelial_DOWN$entrez
+#head(foldchanges)
+foldchanges <- sigsdf_epithelial_DOWN$entrez
 head(foldchanges)
 ```
 
 ```{r}
 # Get the results
-keggres = gage(foldchanges, gsets = kegg.sets.mmu, same.dir = TRUE)
+keggres <- gage(foldchanges,
+               gsets = kegg.gs, 
+               same.dir = TRUE)
 # Look at both up (greater), down (less), and statatistics.
 lapply(keggres, head)
 ```
@@ -1219,12 +1183,8 @@ keggresids
 
 ```{r}
 # Define plotting function for applying later
-plot_pathway = function(pid) 
-
-pathview(gene.data = foldchanges, 
-         pathway.id = pid, 
-         species = "mmu", 
-         new.signature = FALSE)
+plot_pathway = function(pid)  pathview(gene.data = foldchanges, pathway.id = pid, 
+                                       species = "mmu", new.signature = FALSE)
 ```
 
 
@@ -1233,6 +1193,7 @@ pathview(gene.data = foldchanges,
 tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
                                                 pathway.id = pid, 
                                                 species = "mmu"))
+tmp
 ```
 
 
@@ -1292,8 +1253,8 @@ head(foldchanges)
 Bring in 2 relevant Mm datasets from GO db
 
 ```{r}
-data("go.sets.mm")
-data("go.subs.mm")
+data("go.sets.mmu")
+data("go.subs.mmu")
 ```
 
 ```{r}
