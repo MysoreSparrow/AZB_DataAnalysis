@@ -43,6 +43,7 @@ library('GOSemSim')
 library('DOSE')
 library('enrichplot')
 library('ggnewscale')
+library('glue')
 ```
 
 # Differential Gene Expression Analysis
@@ -294,9 +295,10 @@ Calculating the variance for each PCA value
 pca_epithelial <- prcomp(t(assay(vsd)[select,]))
 summary(pca_epithelial)
 # the contribution to the total variance for each component
-percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
-percentVar_epithelial
+#percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
+#percentVar_epithelial
 ```
+### Function for calculating percentvar
 ```{r}
 color_values <- c("red", "red","red","red", "black","black","red","red", "red",
                   "red", "red","red","red", "red", "red" ,"blue")
@@ -314,21 +316,40 @@ theme.my.own <- list(theme_bw() ,
                             axis.text = element_text(size = 15),
                             legend.position = "right",
                             aspect.ratio = 50/50) ,
-                      geom_text(size = 4, hjust = 0, vjust = 0)
+                      #geom_text(size = 4, hjust = 0, vjust = 0),
+                      geom_text_repel(min.segment.length = 0.5)
   )
 
+```
+```{r}
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+```
+```{r}
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
 ```
 
 #### PCA Plot with VST Data
 
 ```{r}
-pcaData_epithelial <- plotPCA(vsd, intgroup = c("Epithelial_response","Sample_Name"), returnData = TRUE)
-head(pcaData_epithelial)
-percentVar_epithelial <- round(100 * attr(pcaData_epithelial, "percentVar"), digits = 3 )
-percentVar_epithelial
+pcaData_epithelial <- plotPCA(vsd, intgroup = c("Epithelial_response",
+                                                "Sample_Name"), 
+                              returnData = TRUE)
+percentVar_epithelial <- percentvar_calculation(pcaData_epithelial)
 ```
-
-
 ```{r fig.height=8, fig.width=8}
 (PCAplot_vst <- ggplot(pcaData_epithelial,
                       aes(x = PC1,
@@ -341,27 +362,16 @@ percentVar_epithelial
         ggtitle("PCA Plot - High Vs Low Inducer") +
         scale_colour_manual(values = color_values) +
         theme.my.own )
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_EpithelialResponse.png',
-       plot = PCAplot_vst,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
 
+savingFunction(PCAplot_vst, "Epithelial_response")
 ```
-```{r}
 
-```
 ## PCA Plot for different groupings of metadata
-
 ### PCA for Microcolonies
-
 ```{r}
 PCAdata_epithelial_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-head(PCAdata_epithelial_MC)
-percentVar_epithelial_MC <- round(100 * attr(PCAdata_epithelial_MC, "percentVar"), digits = 4)
+percentVar_epithelial_MC <- percentvar_calculation(PCAdata_epithelial_MC)
 ```
-
 ```{r}
 (PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
                      aes(x = PC1, y = PC2,
@@ -373,22 +383,13 @@ percentVar_epithelial_MC <- round(100 * attr(PCAdata_epithelial_MC, "percentVar"
         ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Microcolonies.png',
-       plot = PCAplot_MC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_MC, "microcolonies")
 ```
-
 ### PCA for Clinical Outcome
-
 ```{r}
 PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
-head(PCAdata_epithelial_CO)
-percentVar_epithelial_CO <- round(100 * attr(PCAdata_epithelial_CO, "percentVar"), digits = 4)
+percentVar_epithelial_CO <- percentvar_calculation(PCAdata_epithelial_CO)
 ```
-
 ```{r}
 (PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
                      aes(x = PC1, y = PC2,
@@ -399,22 +400,13 @@ percentVar_epithelial_CO <- round(100 * attr(PCAdata_epithelial_CO, "percentVar"
         ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_ClinicalOutcome.png',
-       plot = PCAplot_CO,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_CO, "clinical_outcome")
 ```
-
 ### PCA for ER_Microcolonies
-
 ```{r}
 PCAdata_epithelial_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
-head(PCAdata_epithelial_ERMC)
-percentVar_epithelial_ERMC <- round(100 * attr(PCAdata_epithelial_ERMC, "percentVar"), digits = 4)
+percentVar_epithelial_ERMC <- percentvar_calculation(PCAdata_epithelial_ERMC)
 ```
-
 ```{r}
 (PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
                        aes(x = PC1, y = PC2,
@@ -425,22 +417,15 @@ percentVar_epithelial_ERMC <- round(100 * attr(PCAdata_epithelial_ERMC, "percent
         ggtitle("PCA Plot - High Vs Low Inducer - ER_Microcolonies") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Microcolonies.png',
-       plot = PCAplot_ERMC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_ERMC, "ER_microcolonies")
 ```
-
 ### PCA for Phylogenomic Lineage
-
 ```{r}
-PCAdata_epithelial_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
-head(PCAdata_epithelial_PL)
-percentVar_epithelial_PL <- round(100 * attr(PCAdata_epithelial_PL, "percentVar"), digits = 4)
+PCAdata_epithelial_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "phylogenomic_lineage"), 
+                                 returnData = TRUE)
+percentVar_epithelial_PL <- percentvar_calculation(PCAdata_epithelial_PL)
 ```
-
 ```{r}
 (PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
                        aes(x = PC1, y = PC2,
@@ -451,22 +436,14 @@ percentVar_epithelial_PL <- round(100 * attr(PCAdata_epithelial_PL, "percentVar"
         ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_PhylogenomicLineage.png',
-       plot = PCAplot_PL,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```
-
 ### PCA for Phylogroup
 
 ```{r}
 PCAdata_epithelial_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
-head(PCAdata_epithelial_PG)
-percentVar_epithelial_PG <- round(100 * attr(PCAdata_epithelial_PG, "percentVar"), digits = 4)
+percentVar_epithelial_PG <- percentvar_calculation(PCAdata_epithelial_PG)
 ```
-
 ```{r}
 (PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
                      aes(x = PC1, y = PC2,
@@ -474,15 +451,10 @@ percentVar_epithelial_PG <- round(100 * attr(PCAdata_epithelial_PG, "percentVar"
                          label= Sample_Name)) +
         xlab(paste0("PC1: ", percentVar_epithelial_PG[1], "% variance")) +
         ylab(paste0("PC2: ", percentVar_epithelial_PG[2], "% variance")) +
-        ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
+        ggtitle("PCA Plot - High Vs Low Inducer - Phylogroup") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_Phylogroup.png',
-       plot = PCAplot_PG,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_PG, "phylogroup")
 ```
 
 ### PCA for Intimin Group
@@ -503,13 +475,7 @@ percentVar_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"
         ggtitle("PCA Plot - High Vs Low Inducer - Intimin type") +
         theme.my.own)
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_IntiminType.png',
-       plot = PCAplot_IT,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in"
-       )
+savingFunction(PCAplot_IT, "Intimin_Type")
 ```
 
 ## Hierarchical Clustering
@@ -1123,21 +1089,6 @@ gseGO_UP <- gseGO(geneList = order(sigsdf_epithelial$log2FoldChange,
                   verbose = TRUE,
                   by = "fgsea")
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ```{r}
 kg.mmu <- kegg.gsets("mmu")
