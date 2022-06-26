@@ -317,6 +317,33 @@ summary(pca_epithelial)
 #percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
 #percentVar_epithelial
 ```
+### PCA Plot with VST Data
+```{r}
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
+
+
+```{r}
+pcaData_infected <- plotPCA(vsd, intgroup = c("condition","Sample_Name"), returnData = TRUE)
+head(pcaData_infected)
+percentVar_infected <- percentvar_calculation(pcaData_infected)
+```
+
 ### Functions for Plot aethetics and saving PCA Plots
 
 ```{r}
@@ -342,30 +369,8 @@ theme.my.own <- list(theme_bw() ,
                       geom_text_repel(size = 5,min.segment.length = 0.01)
   )
 
-percentvar_calculation <- function(pcaData_variable){
-  # function to calculate percentvar for different variables
-  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
-  return(percentvar_variable)
-}
-
-savingFunction <- function(plotname, metadatacolumn){
-  # Function to save the PCA plots
-  ggsave(filename = 
-           glue('~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_{metadatacolumn}.png'),
-       plot = plotname,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-}
 ```
-#### PCA Plot with VST Data
 
-```{r}
-pcaData_infected <- plotPCA(vsd, intgroup = c("condition","Sample_Name"), returnData = TRUE)
-head(pcaData_infected)
-percentVar_infected <- percentvar_calculation(pcaData_infected)
-```
 ```{r fig.height=8, fig.width=8}
 (PCAplot_vst <- ggplot(pcaData_infected,
                       aes(x = PC1,
@@ -387,7 +392,7 @@ savingFunction(PCAplot_vst, "Sample_Name")
 PCAdata_infected_ER <- plotPCA(vsd, intgroup = c("Sample_Name", 
                                                  "Epithelial_response"), 
                                returnData = TRUE)
-#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
+percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
 
 (PCAplot_ER <- ggplot(PCAdata_infected_ER,
                       aes(x = PC1,
