@@ -1,5 +1,5 @@
 ---
-title: ' Differential Gene Expression Analysis Notebook - Microcolonies'
+title: ' Differential Gene Expression Analysis Notebook - Low Vs High Microcolonies'
 output:
   html_document:
     toc: yes
@@ -11,38 +11,40 @@ output:
     number_sections: yes
 ---
 
-```{r}
-library("DESeq2")
-library("PoiClaClu")
-library("pheatmap")
-library("RColorBrewer")
-library('tidyverse')
-library("PoiClaClu")
-library("vsn")
-library('EnhancedVolcano')
-library('gplots')
-library('org.Mm.eg.db')
-library('stringr')
-library("genefilter")
-library("dplyr")
-library("ggplot2")
-library("glmpca")
-library('org.Mm.eg.db')
-library("AnnotationDbi")
-library("apeglm")
-library("ComplexHeatmap")
-library("clusterProfiler")
-library('ggrepel')
-library('corrplot')
-library("GO.db")
-library('GOstats')
-library('pathview')
-library("gage")
-library("gageData")
-library('GOSemSim')
-library('DOSE')
-library('enrichplot')
-library('ggnewscale')
+```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
 ```
 
 # Differential Gene Expression Analysis
@@ -53,7 +55,7 @@ DESeq2 needs sample information (metadata) for performing DGE analysis.
 Let's create the sample information
 
 ```{r}
-# Read the csv file and change the column name 
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
 sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
 head(sample_ID)
 ```
@@ -105,7 +107,7 @@ coldata
 ## Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$microcolonies_response <- c ("LowInducer", "LowInducer", "HighInducer",
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
                                   "HighInducer", "LowInducer", "LowInducer",
                                   "HighInducer", "HighInducer", "LowInducer",
                                   "HighInducer", "LowInducer", "HighInducer",
@@ -166,6 +168,26 @@ colnames(countsmatrix)
 # Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
 ```
+
+# Calculating CPM Values
+
+```{r}
+# as DGEList
+dge_er <- DGEList(counts = countsmatrix)
+
+dim(dge_er)
+colnames(dge_er)
+#dge_er$samples
+
+## calculate norm. factors
+nr <- calcNormFactors(dge_er)
+
+## get normalized counts
+cpmvalues <- cpm(nr)
+cpmvalues_d <- cpm.default(nr)
+```
+
+
 # Differential Gene Expression analysis using DESeq2
 
 Now, construct DESeqDataSet for DGE analysis.
@@ -236,24 +258,17 @@ from all genes, we use it on the VST data.
 
 ```{r}
 sampleDists <- dist(t(assay(vsd)))
-head(sampleDists)
-```
-
-visualize the distances in a heatmap
-
-```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- vsd$Sample_Name
 colnames(sampleDistMatrix) <- vsd$Sample_Name
-```
-```{r}
+
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-distance_plot <- pheatmap(sampleDistMatrix,
+(distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          main = "Sample-to-Sample Euclidean Distance of BL6 - Low Vs High Microcolonies",
-         col = colors)
-distance_plot
+         col = colors))
+#distance_plot
 ```
 
 ### Poisson Distance between Samples
@@ -262,295 +277,196 @@ poisd <- PoissonDistance(t(counts(dds_microcolonies))) # raw counts or unnormali
 samplePoisDistMatrix <- as.matrix( poisd$dd )
 rownames(samplePoisDistMatrix) <- dds_microcolonies$Sample_Name
 colnames(samplePoisDistMatrix) <- dds_microcolonies$Sample_Name
-```
 
-```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+(poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
          main = "Sample-to-Sample Poisson Distance of BL6 - Low Vs High Microcolonies",
-         col = colors)
+         col = colors))
          
-poisson_dist_plot
 ```
 
-## PCA Plot
+# PCA Plot
 
-### Calculating all PCA Values
-
-```{r}
- # calculate the variance for each gene
-  rv <- rowVars(assay(vsd))
-  ntop <- 500
-  # select the ntop genes by variance
-  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-```
+## Calculating all PCA Values
 
 ```{r}
+# calculate the variance for each gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+
 # perform a PCA on the data in assay(x) for the selected genes
 pca_microcolonies <- prcomp(t(assay(vsd)[select,]))
 summary(pca_microcolonies)
 # the contribution to the total variance for each component
-percentVar_microcolonies <- (pca_microcolonies$sdev^2 / sum( pca_microcolonies$sdev^2 )) * 100
-percentVar_microcolonies
-```
-```{r}
-color_values <- c("darkred", "darkred","darkred","darkred", "black","black","darkred","darkred", "darkred",
-                  "darkred", "darkred","darkred","darkred", "darkred", "darkred" ,"darkblue")
+#percentVar_microcolonies <- (pca_microcolonies$sdev^2 / sum( pca_microcolonies$sdev^2 )) * 100
+#percentVar_microcolonies
 ```
 
-#### PCA Plot with VST Data
+## PCA Plot with VST Data
+### Function for calculating percentvar
+```{r}
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/Microcolonies/PCAplot_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
 
 ```{r}
-pcaData_microcolonies <- plotPCA(vsd, intgroup = c("microcolonies","Sample_Name"), returnData = TRUE)
-head(pcaData_microcolonies)
-percentVar_microcolonies <- round(100 * attr(pcaData_microcolonies, "percentVar"), digits = 3 )
-percentVar_microcolonies
+pcaData_microcolonies <- plotPCA(vsd, intgroup = c("microcolonies",
+                                                "Sample_Name"), 
+                              returnData = TRUE)
+percentVar_microcolonies <- percentvar_calculation(pcaData_microcolonies)
+```
+### Functions for Plot aethetics and saving PCA Plots
+
+```{r}
+color_values <- c("red", "red","red","red", "black","black","red","red", "red",
+                  "red", "red","red","red", "red", "red" ,"blue")
+
+# the basic set of common aesthetic settings for PCA plots, 
+theme.my.own <- list(theme_bw() ,
+                      geom_point(size = 3),
+                      coord_fixed() ,
+                      scale_y_continuous(breaks = seq(-10, 10, 5), sec.axis = sec_axis(~. *1)) ,
+                      scale_x_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
+                      theme_classic() ,
+                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
+                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
+                      theme(text = element_text(size = 15),
+                            axis.text = element_text(size = 15),
+                            legend.position = "right",
+                            aspect.ratio = 50/50) ,
+                      #geom_text(size = 4, hjust = 0, vjust = 0)
+                      geom_text_repel(size = 5,min.segment.length = 0.5)
+  )
+
 ```
 
 ```{r fig.height=8, fig.width=8}
-PCAplot_vst <- ggplot(pcaData_microcolonies,
-                      aes(x = PC1, 
+(PCAplot_vst <- ggplot(pcaData_microcolonies,
+                      aes(x = PC1,
                           y = PC2,
-                          color = Sample_Name, 
+                          color = Sample_Name,
                           label = Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar_microcolonies[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar_microcolonies[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - microcolonies Response") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") + 
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) +
-  scale_colour_manual(values = color_values)
-PCAplot_vst
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_microcolonies.png',
-       plot = PCAplot_vst,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+        xlab(paste0("PC1: ", percentVar_microcolonies[1], "% variance")) +
+   
+        ylab(paste0("PC2: ", percentVar_microcolonies[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer") +
+        scale_colour_manual(values = color_values) +
+        theme.my.own )
+
+#savingFunction(PCAplot_vst, "microcolonies")
 ```
+
 ## PCA Plot for different groupings of metadata
-
-### PCA for microcolonies Response
-
-```{r}
-PCAdata_microcolonies_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies_response"), returnData = TRUE)
-head(PCAdata_microcolonies_ER)
-percentVar.PCAdata_microcolonies_ER <- round(100 * attr(PCAdata_microcolonies_ER, "percentVar"), digits = 4)
-```
-
-```{r}
-PCAplot_ER <- ggplot(PCAdata_microcolonies_ER,
-                     aes(x = PC1, y = PC2, color = microcolonies_response, label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_ER[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_ER[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - microcolonies Response") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) #+ scale_colour_manual(values = color_values)
-PCAplot_ER
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies.png',
-       plot = PCAplot_ER,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
-
 ### PCA for Microcolonies
-
 ```{r}
-PCAdata_microcolonies_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-head(PCAdata_microcolonies_MC)
-percentVar.PCAdata_microcolonies_MC <- round(100 * attr(PCAdata_microcolonies_MC, "percentVar"), digits = 4)
+PCAdata_microcolonies_ER <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                      "Epithelial_response"),
+                                    returnData = TRUE)
+percentVar_microcolonies_ER <- percentvar_calculation(PCAdata_microcolonies_ER)
 ```
-
 ```{r}
-PCAplot_MC <- ggplot(PCAdata_microcolonies_MC,
+(PCAplot_ER <- ggplot(PCAdata_microcolonies_ER,
                      aes(x = PC1, y = PC2,
-                         color = microcolonies,
+                         color = Epithelial_response,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_MC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_MC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_Microcolonies.png',
-       plot = PCAplot_MC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
+        xlab(paste0("PC1: ", percentVar_microcolonies_ER[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_ER[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
+        theme.my.own)
 
+#savingFunction(PCAplot_ER, "Epithelial_response")
+```
 ### PCA for Clinical Outcome
-
 ```{r}
-PCAdata_microcolonies_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
-head(PCAdata_microcolonies_CO)
-percentVar.PCAdata_microcolonies_CO <- round(100 * attr(PCAdata_microcolonies_CO, "percentVar"), digits = 4)
+PCAdata_microcolonies_CO <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "clinical_outcome"), 
+                                 returnData = TRUE)
+percentVar_microcolonies_CO <- percentvar_calculation(PCAdata_microcolonies_CO)
 ```
-
 ```{r}
-PCAplot_CO <- ggplot(PCAdata_microcolonies_CO,
+(PCAplot_CO <- ggplot(PCAdata_microcolonies_CO,
                      aes(x = PC1, y = PC2,
                          color = clinical_outcome,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_CO[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_CO[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_ClinicalOutcome.png',
-       plot = PCAplot_CO,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
+        xlab(paste0("PC1: ", percentVar_microcolonies_CO[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_CO[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
+        theme.my.own)
 
+#savingFunction(PCAplot_CO, "clinical_outcome")
+```
 ### PCA for ER_Microcolonies
-
 ```{r}
-PCAdata_microcolonies_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
-head(PCAdata_microcolonies_ERMC)
-percentVar.PCAdata_microcolonies_ERMC <- round(100 * attr(PCAdata_microcolonies_ERMC, "percentVar"), digits = 4)
+PCAdata_microcolonies_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), 
+                                      returnData = TRUE)
+percentVar_microcolonies_ERMC <- percentvar_calculation(PCAdata_microcolonies_ERMC)
 ```
-
 ```{r}
-PCAplot_ERMC <- ggplot(PCAdata_microcolonies_ERMC,
+(PCAplot_ERMC <- ggplot(PCAdata_microcolonies_ERMC,
                        aes(x = PC1, y = PC2,
                            color = ER_microcolonies,
                            label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_ERMC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_ERMC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - LowVsHighMicroccolonies_Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_ERMC
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_ER_Microcolonies.png',
-       plot = PCAplot_ERMC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
+        xlab(paste0("PC1: ", percentVar_microcolonies_ERMC[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_ERMC[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - ER_Microcolonies") +
+        theme.my.own)
 
+#savingFunction(PCAplot_ERMC, "ER_microcolonies")
+```
 ### PCA for Phylogenomic Lineage
-
 ```{r}
-PCAdata_microcolonies_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
-head(PCAdata_microcolonies_PL)
-percentVar.PCAdata_microcolonies_PL <- round(100 * attr(PCAdata_microcolonies_PL, "percentVar"), digits = 4)
+PCAdata_microcolonies_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "phylogenomic_lineage"), 
+                                 returnData = TRUE)
+percentVar_microcolonies_PL <- percentvar_calculation(PCAdata_microcolonies_PL)
 ```
-
 ```{r}
-PCAplot_PL <- ggplot(PCAdata_microcolonies_PL,
+(PCAplot_PL <- ggplot(PCAdata_microcolonies_PL,
                        aes(x = PC1, y = PC2,
                            color = phylogenomic_lineage,
-                           label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_PL[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_PL[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PL
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_PhylogenomicLineage.png',
-       plot = PCAplot_PL,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+                           label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_microcolonies_PL[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_PL[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Phylogenomic Lineage") +
+        theme.my.own)
+
+#savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```
 ### PCA for Phylogroup
 
 ```{r}
 PCAdata_microcolonies_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
-head(PCAdata_microcolonies_PG)
-percentVar.PCAdata_microcolonies_PG <- round(100 * attr(PCAdata_microcolonies_PG, "percentVar"), digits = 4)
+percentVar_microcolonies_PG <- percentvar_calculation(PCAdata_microcolonies_PG)
 ```
-
 ```{r}
-PCAplot_PG <- ggplot(PCAdata_microcolonies_PG,
+(PCAplot_PG <- ggplot(PCAdata_microcolonies_PG,
                      aes(x = PC1, y = PC2,
                          color = phylogroup,
                          label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_PG[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_PG[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Phylogroup") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PG
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_Phylogroup.png',
-       plot = PCAplot_PG,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+        xlab(paste0("PC1: ", percentVar_microcolonies_PG[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_PG[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Phylogroup") +
+        theme.my.own)
+
+#savingFunction(PCAplot_PG, "phylogroup")
 ```
 
 ### PCA for Intimin Group
@@ -558,35 +474,20 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMic
 ```{r}
 PCAdata_microcolonies_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
 head(PCAdata_microcolonies_IT)
-percentVar.PCAdata_microcolonies_IT <- round(100 * attr(PCAdata_microcolonies_IT, "percentVar"), digits = 4)
+percentVar_microcolonies_IT <- round(100 * attr(PCAdata_microcolonies_IT, "percentVar"), digits = 4)
 ```
 
 ```{r}
-PCAplot_IT <- ggplot(PCAdata_microcolonies_IT,
+(PCAplot_IT <- ggplot(PCAdata_microcolonies_IT,
                      aes(x = PC1, y = PC2,
                          color = Intimin_Type,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_microcolonies_IT[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_microcolonies_IT[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - High Vs Low Inducer - Intimin Type") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_IT
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/PCAplot_LowVsHighMicroccolonies_IntiminType.png',
-       plot = PCAplot_IT,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+                         label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_microcolonies_IT[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_microcolonies_IT[2], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer - Intimin type") +
+        theme.my.own)
+
+#savingFunction(PCAplot_IT, "Intimin_Type")
 ```
 
 ## Hierarchical Clustering
@@ -613,16 +514,14 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 heat.colors <- brewer.pal(6, "RdYlBu")
 Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - LowVsHighMicroccolonies - Correlation Matrix'
-                        #filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/Hclust_plot.tiff'
+                        main = 'Heirarchical Clustering of Samples - LowVsHighMicrocolonies - Correlation Matrix'
+                        #filename = '~/R/Alina_RNAseq/LowVsHighMicrocolonies/Hclust_plot.tiff'
                        )
 Hclust_plot
 ```
-
 ## DGE Results
 
 ### Running the differential expression pipeline
-
 ```{r}
 dds1_microcolonies <- DESeq(dds_microcolonies)
 #str(dds1)
@@ -697,7 +596,7 @@ plotMA_res2_microcolonies <- plotMA(res2_microcolonies, ylim = c(-2, 2))
 
 ```{r}
 res3_microcolonies <- lfcShrink(dds2_microcolonies, 
-                             coef = "microcolonies_response_LowInducer_vs_HighInducer", 
+                             coef = "microcolonies_Low_vs_High", 
                              type = "apeglm")
 plotMA_res3 <- plotMA(res3_microcolonies, ylim = c(-2, 2))
 ```
@@ -711,7 +610,8 @@ hist(res2_microcolonies$pvalue, breaks = 50, col = "grey50", border = "blue")
 Further Filtering: baseMean \> 1
 
 ```{r}
-hist(res2_microcolonies$pvalue[res2_microcolonies$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
+hist(res2_microcolonies$pvalue[res2_microcolonies$baseMean > 1],
+     breaks = 50, col = "grey50", border = "blue")
 ```
 
 ## Annotating and Exporting Results
@@ -721,15 +621,15 @@ hist(res2_microcolonies$pvalue[res2_microcolonies$baseMean > 1], breaks = 50, co
 
 ```{r}
 res2df_microcolonies$symbol <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_microcolonies),
-                    column = "SYMBOL",
-                    keytype = "ENSEMBL",
-                     multiVals = "first")
+                                   keys = rownames(dds_microcolonies),
+                                  column = "SYMBOL",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
 res2df_microcolonies$entrez <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_microcolonies),
-                    column = "ENTREZID",
-                    keytype = "ENSEMBL",
-                     multiVals = "first")
+                                   keys = rownames(dds_microcolonies),
+                                  column = "ENTREZID",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
 ```
 
 ```{r}
@@ -759,7 +659,7 @@ head(resOrdered_microcolonies)
 
 ```{r}
 write.csv(as.data.frame(resOrdered_microcolonies),
-          file = "~/R/Alina_RNAseq/LowVsHighMicroccolonies/results_DGE_LowVsHighMicroccolonies.csv")
+          file = "~/R/Alina_RNAseq/Microcolonies/results_DGE_microcoloniesResponse.csv")
 ```
 
 ## Heatmap of count matrix
@@ -769,7 +669,7 @@ To explore a count matrix, it is often instructive to look at it as a heatmap.
 ```{r}
 select <- order(rowMeans(counts(dds2_microcolonies,normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds2_microcolonies)[,c("microcolonies_response","Sample_Name")])
+df <- as.data.frame(colData(dds2_microcolonies)[,c("Epithelial_response","Sample_Name")])
 ```
 
 ```{r}
@@ -822,7 +722,7 @@ p1 <- EnhancedVolcano(res3df_microcolonies,
     xlab = bquote(~Log[2]~'FoldChange'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Pvalue',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -837,9 +737,17 @@ p1 <- EnhancedVolcano(res3df_microcolonies,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p1 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+(volcano1 <- p1 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/Volcano1_L2fcVsPvalue.png',
+       plot = volcano1,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
 
 ## volcano Plot of Log2FC vs Padj
@@ -850,10 +758,10 @@ p2 <- EnhancedVolcano(res3df_microcolonies,
     x = 'log2FoldChange',
     y = 'padj',
     xlab = bquote(~Log[2]~'FoldChange'),
-    ylab = bquote(~Log[10]~'padj'),
+    ylab = bquote(~Log[10]~'Padj'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10padj',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Padj',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -868,10 +776,23 @@ p2 <- EnhancedVolcano(res3df_microcolonies,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p2 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+
+(volcano2 <- p2 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/Volcano2_L2fcVsPadj.png',
+       plot = volcano2,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
+```{r}
+
+```
+
 
 ## Significant Differentially Expressed Genes
 
@@ -898,16 +819,11 @@ res3df_microcolonies$delabel[res3df_microcolonies$diffexpressed != "NS"] <- res3
 Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_microcolonies <- res3df_microcolonies[(abs(res3df_microcolonies$log2FoldChange)>1) & (res3df_microcolonies$pvalue< 0.05),]
+sigsdf_microcolonies <- res3df_microcolonies[(abs(res3df_microcolonies$log2FoldChange) > 1) & (res3df_microcolonies$pvalue < 0.05),]
 ```
 ```{r}
 nrow(sigsdf_microcolonies)
 ```
-## Log2FC Table
-
-#by_gene_forlog2FC \<- UpGeneFrame_Core50 %\>% group_by(symbol) %\>%
-summarise(log2FoldChange, Strain_name) %\>% ungroup()
-head(by_gene_forlog2FC)
 
 ```{r}
 summary(res3df_microcolonies)
@@ -922,9 +838,7 @@ sigsdf_microcolonies <- filter(sigsdf_microcolonies,
                           symbol != "Ftx", 
                           symbol != "Tsx",
                           symbol != "Cnbp2" )
-```
 
-```{r}
 nrow(sigsdf_microcolonies)
 #head(sigsdf_microcolonies)
 ```
@@ -933,7 +847,7 @@ Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_microcolonies ,"~/R/Alina_RNAseq/LowVsHighMicroccolonies/SignificantGenes_LowVsHighMicroccolonies.csv")
+write.csv(sigsdf_microcolonies ,"~/R/Alina_RNAseq/Microcolonies/SignificantGenes_microcoloniesResponse.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
@@ -957,7 +871,7 @@ DE_Genes_table_microcolonies <- as.data.frame(cbind(UpGene_microcolonies,DownGen
 ```
 
 ```{r}
-write.csv(DE_Genes_table_microcolonies ,"~/R/Alina_RNAseq/DE_GenesTable_LowVsHighMicroccolonies.csv")
+write.csv(DE_Genes_table_microcolonies ,"~/R/Alina_RNAseq/Microcolonies/DE_GenesTable_microcoloniesResponse.csv")
 head(DE_Genes_table_microcolonies, 20)
 ```
 
@@ -1015,15 +929,13 @@ newHP1 <- Heatmap(mat2.zs,
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
         row_labels = sigs2df_microcolonies[rownames(mat2.zs),]$symbol,
-        name = 'Z-Score Heatmap of DE Genes - microcolonies Response',
+        name = 'Z-Score Heatmap of DE Genes - Microcolonies',
         show_row_names = TRUE, 
         use_raster = TRUE, 
         raster_quality = 5,
         )
 newHP1
 ```
-
-------------------------------------------------------------------------
 
 Need to filter these results to accommodate better the heat maps and
 also volcano plots
@@ -1055,32 +967,29 @@ Heatmap(mat1.zs,
 
 ```{r}
 UPgene_ENS_ID <- rownames(sigsdf_microcolonies_UP)
+
+GO_UPRegResults_microcolonies <- enrichGO(gene = UPgene_ENS_ID,
+                                       OrgDb = "org.Mm.eg.db",
+                                       keyType = "ENSEMBL",
+                                       ont = "BP",
+                                       pAdjustMethod = "BH",
+                                       pvalueCutoff  = 0.01,
+                                       qvalueCutoff  = 0.05,
+                                       readable      = TRUE)
 ```
 
 ```{r}
-GO_UPRegResults_microcolonies <- enrichGO(gene = UPgene_ENS_ID,
-                             OrgDb = "org.Mm.eg.db",
-                             keyType = "ENSEMBL",
-                             ont = "BP",
-                             pAdjustMethod = "BH",
-                             pvalueCutoff  = 0.01,
-                             qvalueCutoff  = 0.05,
-                             readable      = TRUE)
 GO_UpRegdf_microcolonies <- as.data.frame(GO_UPRegResults_microcolonies)
 GO_UpRegdf_microcolonies
 ```
 
 ```{r}
-GO_UPRegResults_microcolonies
+write.csv(GO_UpRegdf_microcolonies ,"~/R/Alina_RNAseq/Microcolonies/GO_UpReg_results_microcolonies.csv")
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_microcolonies ,"~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UpReg_results_microcolonies.csv")
-```
-
-```{r fig.height=10, fig.width=10}
 GO_UPReg_Barplot_microcolonies <- plot(barplot(GO_UPRegResults_microcolonies, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Barplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_UPReg_Barplot_microcolonies.png',
        plot = GO_UPReg_Barplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1091,7 +1000,7 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Barplot_mic
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Dotplot_microcolonies <- plot(dotplot(GO_UPRegResults_microcolonies, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Dotplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_UPReg_Dotplot_microcolonies.png',
        plot = GO_UPReg_Dotplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1102,7 +1011,7 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Dotplot_mic
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Cnetplot_microcolonies <- plot(cnetplot(GO_UPRegResults_microcolonies, showCategory = 13))
 
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Cnetplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_UPReg_Cnetplot_microcolonies.png',
        plot = GO_UPReg_Cnetplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1123,11 +1032,6 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_UPReg_Cnetplot_mi
 ```{r}
 DOWNgene_ENS_ID <- rownames(sigsdf_microcolonies_DOWN)
 ```
-
-```{r}
-#DOWNgene_ENS_ID
-```
-
 ```{r}
 GO_DOWNRegResults_microcolonies <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
@@ -1145,12 +1049,12 @@ GO_DOWNRegdf_microcolonies
 
 ```{r}
 write.csv(GO_DOWNRegdf_microcolonies,
-          "~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_results_microcolonies.csv")
+          "~/R/Alina_RNAseq/Microcolonies/GO_DOWNReg_results_microcolonies.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_DOWNReg_Barplot_microcolonies <- plot(barplot(GO_DOWNRegResults_microcolonies, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Barplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_DOWNReg_Barplot_microcolonies.png',
        plot = GO_DOWNReg_Barplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1161,7 +1065,7 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Barplot_m
 ```{r fig.height=10, fig.width=10}
 GO_DOWNReg_Dotplot_microcolonies <- plot(dotplot(GO_DOWNRegResults_microcolonies, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Dotplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_DOWNReg_Dotplot_microcolonies.png',
        plot = GO_DOWNReg_Dotplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1172,7 +1076,7 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Dotplot_m
 ```{r fig.height=15, fig.width=10}
 GO_DOWNReg_Cnetplot_microcolonies <- plot(cnetplot(GO_DOWNRegResults_microcolonies, showCategory = 13))
 
-ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Cnetplot_microcolonies.png',
+ggsave(filename = '~/R/Alina_RNAseq/Microcolonies/GO_DOWNReg_Cnetplot_microcolonies.png',
        plot = GO_DOWNReg_Cnetplot_microcolonies,
        dpi = 300,
        width = 12,
@@ -1180,162 +1084,12 @@ ggsave(filename = '~/R/Alina_RNAseq/LowVsHighMicroccolonies/GO_DOWNReg_Cnetplot_
        units = "in")
 ```
 
-```{r}
-#kegg.gsets(species = "mmu", id.type = "entrez")
-```
-```{r}
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-head(kegg.sets.mm, 2)
-```
-```{r}
-foldchanges = sigsdf_microcolonies_DOWN$log2FoldChange
-names(foldchanges) = sigsdf_microcolonies_DOWN$entrez
-head(foldchanges)
-```
-
-```{r}
-# Get the results
-keggres = gage(foldchanges, gsets = kegg.sets.mmu, same.dir = TRUE)
-# Look at both up (greater), down (less), and statatistics.
-lapply(keggres, head)
-```
-
-```{r}
-# Get the pathways
-keggrespathways = data.frame(id = rownames(keggres$greater), 
-                             keggres$greater) %>% 
-  tbl_df() %>% 
-  filter(row_number() <= 5) %>% 
-  .$id %>% 
-  as.character()
-keggrespathways
-```
-
-```{r}
-# Get the IDs.
-keggresids = substr(keggrespathways, start = 1, stop = 8)
-keggresids
-```
-
-```{r}
-# Define plotting function for applying later
-plot_pathway = function(pid) 
-
-pathview(gene.data = foldchanges, 
-         pathway.id = pid, 
-         species = "mmu", 
-         new.signature = FALSE)
-```
 
 
-```{r}
-# plot multiple pathways (plots saved to disk and returns a throwaway list object)
-tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-                                                pathway.id = pid, 
-                                                species = "mmu"))
-```
+############### Untested and incomplete code for evverything down below ############################
 
 
-```{r}
-sessionInfo( )
-```
 
-# GO TERMS and PATHWAY ANALYSIS - ReEffort
 
-## Gene Ontology - Alex Soupir
-
-```{r}
-selectUPGenes_entrezid = unique(sigsdf_microcolonies_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_microcolonies_DOWN['entrez'] )
-```
-
-```{r}
-UniverseGenes = unique(sigsdf_microcolonies$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
-```
-
-```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-```
-```{r}
-upBP = hyperGTest(upParams)
-summary(upBP)
-```
-
-```{r}
-downBP = hyperGTest(downParams)
-summary(downBP)
-```
-
-## Pathway Analysis
-
-### GO Pathways
-
-```{r}
-foldchanges = sigsdf_microcolonies$log2FoldChange
-names(foldchanges) = sigsdf_microcolonies$entrez
-head(foldchanges)
-```
-Bring in 2 relevant Mm datasets from GO db
-
-```{r}
-data("go.sets.mm")
-data("go.subs.mm")
-```
-
-```{r}
-gobpsets = go.sets.mm[go.subs.mm$BP]
-gobpres = gage(exprs = foldchanges,
-               gsets = gobpsets,
-               same.dir = TRUE)
-```
-
-Look at UP regulated ones
-```{r}
-lapply(gobpres, head)
-```
-Look at down regulated ones
-```{r}
-head(gobpres$less, 20)
-```
-
-```{r}
-head(gobpres$stats, 20)
-```
-
-### KEGG Pathways
-
-```{r}
-foldchanges = sigsdf_microcolonies$log2FoldChange
-names(foldchanges) = sigsdf_microcolonies$entrez
-head(foldchanges)
-```
-```{r}
-data(kegg.sets.mm)
-data(sigmet.idx.mm)
-```
-
-```{r}
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-
-keggres = gage(exprs = foldchanges, 
-               gsets= kegg.sets.mm, 
-               same.dir=TRUE)
-lapply(keggres, head)
-
-```
 
 
