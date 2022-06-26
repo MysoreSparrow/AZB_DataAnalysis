@@ -12,38 +12,39 @@ output:
 ---
 
 ```{r, message = FALSE, warning = FALSE}
-library("DESeq2")
-library("PoiClaClu")
-library("pheatmap")
-library("RColorBrewer")
-library('tidyverse')
-library("PoiClaClu")
-library("vsn")
-library('EnhancedVolcano')
-library('gplots')
-library('org.Mm.eg.db')
-library('stringr')
-library("genefilter")
-library("dplyr")
-library("ggplot2")
-library("glmpca")
-library('org.Mm.eg.db')
-library("AnnotationDbi")
-library("apeglm")
-library("ComplexHeatmap")
-library("clusterProfiler")
-library('ggrepel')
-library('corrplot')
-library("GO.db")
-library('GOstats')
-library('pathview')
-library("gage")
-library("gageData")
-library('GOSemSim')
-library('DOSE')
-library('enrichplot')
-library('ggnewscale')
-library('glue')
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
 ```
 
 # Differential Gene Expression Analysis
@@ -167,6 +168,26 @@ colnames(countsmatrix)
 # Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
 ```
+
+# Calculating CPM Values
+
+```{r}
+# as DGEList
+dge_er <- DGEList(counts = countsmatrix)
+
+dim(dge_er)
+colnames(dge_er)
+#dge_er$samples
+
+## calculate norm. factors
+nr <- calcNormFactors(dge_er)
+
+## get normalized counts
+cpmvalues <- cpm(nr)
+cpmvalues_d <- cpm.default(nr)
+```
+
+
 # Differential Gene Expression analysis using DESeq2
 
 Now, construct DESeqDataSet for DGE analysis.
@@ -237,26 +258,17 @@ from all genes, we use it on the VST data.
 
 ```{r}
 sampleDists <- dist(t(assay(vsd)))
-```
-```{r}
-head(sampleDists)
-```
-
-visualize the distances in a heatmap
-
-```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- vsd$Sample_Name
 colnames(sampleDistMatrix) <- vsd$Sample_Name
-```
-```{r}
+
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-distance_plot <- pheatmap(sampleDistMatrix,
+(distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
-         main = "Sample-to-Sample Euclidean Distance of BL6 - Epithelial Response",
-         col = colors)
-distance_plot
+         main = "Sample-to-Sample Euclidean Distance of BL6 - LowInducer_vs_HighInducer",
+         col = colors))
+#distance_plot
 ```
 
 ### Poisson Distance between Samples
@@ -265,32 +277,27 @@ poisd <- PoissonDistance(t(counts(dds_epithelial))) # raw counts or unnormalised
 samplePoisDistMatrix <- as.matrix( poisd$dd )
 rownames(samplePoisDistMatrix) <- dds_epithelial$Sample_Name
 colnames(samplePoisDistMatrix) <- dds_epithelial$Sample_Name
-```
 
-```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+(poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
          clustering_distance_cols = poisd$dd,
-         main = "Sample-to-Sample Poisson Distance of BL6 - Epithelial Response",
-         col = colors)
+         main = "Sample-to-Sample Poisson Distance of BL6 - LowInducer_vs_HighInducer",
+         col = colors))
          
-poisson_dist_plot
 ```
 
-## PCA Plot
+# PCA Plot
 
-### Calculating all PCA Values
+## Calculating all PCA Values
 
 ```{r}
- # calculate the variance for each gene
-  rv <- rowVars(assay(vsd))
-  ntop <- 500
-  # select the ntop genes by variance
-  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-```
-Calculating the variance for each PCA value
-```{r}
+# calculate the variance for each gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+
 # perform a PCA on the data in assay(x) for the selected genes
 pca_epithelial <- prcomp(t(assay(vsd)[select,]))
 summary(pca_epithelial)
@@ -298,7 +305,36 @@ summary(pca_epithelial)
 #percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
 #percentVar_epithelial
 ```
+
+## PCA Plot with VST Data
 ### Function for calculating percentvar
+```{r}
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
+
+```{r}
+pcaData_epithelial <- plotPCA(vsd, intgroup = c("Epithelial_response",
+                                                "Sample_Name"), 
+                              returnData = TRUE)
+percentVar_epithelial <- percentvar_calculation(pcaData_epithelial)
+```
+### Functions for Plot aethetics and saving PCA Plots
+
 ```{r}
 color_values <- c("red", "red","red","red", "black","black","red","red", "red",
                   "red", "red","red","red", "red", "red" ,"blue")
@@ -316,40 +352,12 @@ theme.my.own <- list(theme_bw() ,
                             axis.text = element_text(size = 15),
                             legend.position = "right",
                             aspect.ratio = 50/50) ,
-                      #geom_text(size = 4, hjust = 0, vjust = 0),
-                      geom_text_repel(min.segment.length = 0.5)
+                      #geom_text(size = 4, hjust = 0, vjust = 0)
+                      geom_text_repel(size = 5,min.segment.length = 0.5)
   )
 
 ```
-```{r}
-percentvar_calculation <- function(pcaData_variable){
-  # function to calculate percentvar for different variables
-  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
-  return(percentvar_variable)
-}
 
-```
-```{r}
-savingFunction <- function(plotname, metadatacolumn){
-  # Function to save the PCA plots
-  ggsave(filename = 
-           glue('~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
-       plot = plotname,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-}
-```
-
-#### PCA Plot with VST Data
-
-```{r}
-pcaData_epithelial <- plotPCA(vsd, intgroup = c("Epithelial_response",
-                                                "Sample_Name"), 
-                              returnData = TRUE)
-percentVar_epithelial <- percentvar_calculation(pcaData_epithelial)
-```
 ```{r fig.height=8, fig.width=8}
 (PCAplot_vst <- ggplot(pcaData_epithelial,
                       aes(x = PC1,
@@ -378,7 +386,6 @@ percentVar_epithelial_MC <- percentvar_calculation(PCAdata_epithelial_MC)
                          color = microcolonies,
                          label= Sample_Name)) +
         xlab(paste0("PC1: ", percentVar_epithelial_MC[1], "% variance")) +
-   
         ylab(paste0("PC2: ", percentVar_epithelial_MC[2], "% variance")) +
         ggtitle("PCA Plot - High Vs Low Inducer - Microcolonies") +
         theme.my.own)
@@ -387,7 +394,9 @@ savingFunction(PCAplot_MC, "microcolonies")
 ```
 ### PCA for Clinical Outcome
 ```{r}
-PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
+PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "clinical_outcome"), 
+                                 returnData = TRUE)
 percentVar_epithelial_CO <- percentvar_calculation(PCAdata_epithelial_CO)
 ```
 ```{r}
@@ -507,11 +516,9 @@ Hclust_plot <- pheatmap(rld_cor,
                        )
 Hclust_plot
 ```
-
 ## DGE Results
 
 ### Running the differential expression pipeline
-
 ```{r}
 dds1_epithelial <- DESeq(dds_epithelial)
 #str(dds1)
@@ -600,7 +607,8 @@ hist(res2_epithelial$pvalue, breaks = 50, col = "grey50", border = "blue")
 Further Filtering: baseMean \> 1
 
 ```{r}
-hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1], breaks = 50, col = "grey50", border = "blue")
+hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1],
+     breaks = 50, col = "grey50", border = "blue")
 ```
 
 ## Annotating and Exporting Results
@@ -610,15 +618,15 @@ hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1], breaks = 50, col = "g
 
 ```{r}
 res2df_epithelial$symbol <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_epithelial),
-                    column = "SYMBOL",
-                    keytype = "ENSEMBL",
-                     multiVals = "first")
+                                   keys = rownames(dds_epithelial),
+                                  column = "SYMBOL",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
 res2df_epithelial$entrez <- mapIds(org.Mm.eg.db,
-                     keys = rownames(dds_epithelial),
-                    column = "ENTREZID",
-                    keytype = "ENSEMBL",
-                     multiVals = "first")
+                                   keys = rownames(dds_epithelial),
+                                  column = "ENTREZID",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
 ```
 
 ```{r}
@@ -711,7 +719,7 @@ p1 <- EnhancedVolcano(res3df_epithelial,
     xlab = bquote(~Log[2]~'FoldChange'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Pvalue',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -726,9 +734,17 @@ p1 <- EnhancedVolcano(res3df_epithelial,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p1 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+(volcano1 <- p1 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano1_L2fcVsPvalue.png',
+       plot = volcano1,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
 
 ## volcano Plot of Log2FC vs Padj
@@ -739,10 +755,10 @@ p2 <- EnhancedVolcano(res3df_epithelial,
     x = 'log2FoldChange',
     y = 'padj',
     xlab = bquote(~Log[2]~'FoldChange'),
-    ylab = bquote(~Log[10]~'padj'),
+    ylab = bquote(~Log[10]~'Padj'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10padj',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Padj',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -757,10 +773,23 @@ p2 <- EnhancedVolcano(res3df_epithelial,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p2 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+
+(volcano2 <- p2 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano2_L2fcVsPadj.png',
+       plot = volcano2,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
+```{r}
+
+```
+
 
 ## Significant Differentially Expressed Genes
 
@@ -806,9 +835,7 @@ sigsdf_epithelial <- filter(sigsdf_epithelial,
                           symbol != "Ftx", 
                           symbol != "Tsx",
                           symbol != "Cnbp2" )
-```
 
-```{r}
 nrow(sigsdf_epithelial)
 #head(sigsdf_epithelial)
 ```
@@ -841,7 +868,7 @@ DE_Genes_table_epithelial <- as.data.frame(cbind(UpGene_epithelial,DownGene_epit
 ```
 
 ```{r}
-write.csv(DE_Genes_table_epithelial ,"~/R/Alina_RNAseq/DE_GenesTable_EpithelialResponse.csv")
+write.csv(DE_Genes_table_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/DE_GenesTable_EpithelialResponse.csv")
 head(DE_Genes_table_epithelial, 20)
 ```
 
@@ -906,8 +933,6 @@ newHP1 <- Heatmap(mat2.zs,
         )
 newHP1
 ```
-
-------------------------------------------------------------------------
 
 Need to filter these results to accommodate better the heat maps and
 also volcano plots
@@ -1062,192 +1087,6 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epith
 
 
 
-### GO GSEA
 
-cluster profiler provides gseGO() for gene set enrichment analysis using gene ontology.
-
-```{r}
-# Create a sorted/ordered gene list
-head(sigsdf_epithelial)
-## feature 1: numeric vector
-## assume 1st column is ID
-## 2nd column is log2FC values
-genelist <- sigsdf_epithelial$log2FoldChange
-## feature 2: named vector
-names(geneList) <- as.character(d[, 1])
-```
-```{r}
-gseGO_UP <- gseGO(geneList = order(sigsdf_epithelial$log2FoldChange,
-                                   decreasing = TRUE),
-                  OrgDb = org.Mm.eg.db,
-                  ont = "BP",
-                  minGSSize = 100,
-                  maxGSSize = 500,
-                  pvalueCutoff = 0.05,
-                  keyType = "SYMBOL",
-                  pAdjustMethod = "BH",
-                  verbose = TRUE,
-                  by = "fgsea")
-```
-
-```{r}
-kg.mmu <- kegg.gsets("mmu")
-names(kg.mmu)
-kegg.gs <- kg.mmu$kg.sets[kg.mmu$sigmet.idx]
-```
-```{r}
-head(kegg.gs, 2)
-```
-```{r}
-foldchanges <- sigsdf_epithelial_DOWN$log2FoldChange
-#names(foldchanges) = sigsdf_epithelial_DOWN$entrez
-#head(foldchanges)
-foldchanges <- sigsdf_epithelial_DOWN$entrez
-head(foldchanges)
-```
-
-```{r}
-# Get the results
-keggres <- gage(foldchanges,
-               gsets = kegg.gs, 
-               same.dir = TRUE)
-# Look at both up (greater), down (less), and statatistics.
-lapply(keggres, head)
-```
-
-```{r}
-# Get the pathways
-keggrespathways = data.frame(id = rownames(keggres$greater), 
-                             keggres$greater) %>% 
-  tbl_df() %>% 
-  filter(row_number() <= 5) %>% 
-  .$id %>% 
-  as.character()
-keggrespathways
-```
-
-```{r}
-# Get the IDs.
-keggresids = substr(keggrespathways, start = 1, stop = 8)
-keggresids
-```
-
-```{r}
-# Define plotting function for applying later
-plot_pathway = function(pid)  pathview(gene.data = foldchanges, pathway.id = pid, 
-                                       species = "mmu", new.signature = FALSE)
-```
-
-
-```{r}
-# plot multiple pathways (plots saved to disk and returns a throwaway list object)
-tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-                                                pathway.id = pid, 
-                                                species = "mmu"))
-tmp
-```
-
-
-```{r}
-sessionInfo( )
-```
-
-# GO TERMS and PATHWAY ANALYSIS - ReEffort
-
-## Gene Ontology - Alex Soupir
-
-```{r}
-selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
-```
-
-```{r}
-UniverseGenes = unique(sigsdf_epithelial$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
-```
-
-```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-```
-```{r}
-upBP = hyperGTest(upParams)
-summary(upBP)
-```
-
-```{r}
-downBP = hyperGTest(downParams)
-summary(downBP)
-```
-
-## Pathway Analysis
-
-### GO Pathways
-
-```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
-head(foldchanges)
-```
-Bring in 2 relevant Mm datasets from GO db
-
-```{r}
-data("go.sets.mmu")
-data("go.subs.mmu")
-```
-
-```{r}
-gobpsets = go.sets.mm[go.subs.mm$BP]
-gobpres = gage(exprs = foldchanges,
-               gsets = gobpsets,
-               same.dir = TRUE)
-```
-
-Look at UP regulated ones
-```{r}
-lapply(gobpres, head)
-```
-Look at down regulated ones
-```{r}
-head(gobpres$less, 20)
-```
-
-```{r}
-head(gobpres$stats, 20)
-```
-
-### KEGG Pathways
-
-```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
-head(foldchanges)
-```
-```{r}
-data(kegg.sets.mm)
-data(sigmet.idx.mm)
-```
-
-```{r}
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
-
-keggres = gage(exprs = foldchanges, 
-               gsets= kegg.sets.mm, 
-               same.dir=TRUE)
-lapply(keggres, head)
-
-```
 
 
