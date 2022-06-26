@@ -12,39 +12,39 @@ output:
 ---
 
 ```{r, message = FALSE, warning = FALSE}
-library("DESeq2")
-library("PoiClaClu")
-library("pheatmap")
-library("RColorBrewer")
-library('tidyverse')
-library("PoiClaClu")
-library("vsn")
-library('EnhancedVolcano')
-library('gplots')
-library('org.Mm.eg.db')
-library('stringr')
-library("genefilter")
-library("dplyr")
-library("ggplot2")
-library("glmpca")
-library('org.Mm.eg.db')
-library("AnnotationDbi")
-library("apeglm")
-library("ComplexHeatmap")
-library("clusterProfiler")
-library('ggrepel')
-library('corrplot')
-library("GO.db")
-library('edgeR')
-library('GOstats')
-library('pathview')
-library("gage")
-library("gageData")
-library('GOSemSim')
-library('DOSE')
-library('enrichplot')
-library('ggnewscale')
-library('glue')
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
 ```
 
 # Differential Gene Expression Analysis
@@ -302,17 +302,14 @@ poisson_dist_plot
 ### Calculating all PCA Values
 
 ```{r}
- # calculate the variance for each gene
-  rv <- rowVars(assay(vsd))
-  ntop <- 500
-  # select the ntop genes by variance
-  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-```
-### Calculating the variance for each PCA value
-```{r}
+# calculate the variance for each gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
 # perform a PCA on the data in assay(x) for the selected genes
-pca_epithelial <- prcomp(t(assay(vsd)[select,]))
-summary(pca_epithelial)
+pca_infected <- prcomp(t(assay(vsd)[select,]))
+summary(pca_infected)
 # the contribution to the total variance for each component
 #percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
 #percentVar_epithelial
@@ -1066,4 +1063,3 @@ GO_DOWNReg_results
 ```{r}
 sessionInfo( )
 ```
-```{r}
