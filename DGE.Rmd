@@ -11,7 +11,7 @@ output:
     number_sections: yes
 ---
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 library("DESeq2")
 library("PoiClaClu")
 library("pheatmap")
@@ -35,6 +35,7 @@ library("clusterProfiler")
 library('ggrepel')
 library('corrplot')
 library("GO.db")
+library('edgeR')
 library('GOstats')
 library('pathview')
 library("gage")
@@ -43,6 +44,7 @@ library('GOSemSim')
 library('DOSE')
 library('enrichplot')
 library('ggnewscale')
+library('glue')
 ```
 
 # Differential Gene Expression Analysis
@@ -105,7 +107,7 @@ coldata
 ## Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$Epithelial_response <- c ("LowInducer", "LowInducer", "HighInducer",
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
                                   "HighInducer", "LowInducer", "LowInducer",
                                   "HighInducer", "HighInducer", "LowInducer",
                                   "HighInducer", "LowInducer", "HighInducer",
@@ -166,8 +168,31 @@ colnames(countsmatrix)
 # Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
 class(countsmatrix) <- "numeric"
 ```
-# Differential Gene Expression analysis using DESeq2
+# Calculating CPM Values
 
+```{r}
+# as DGEList
+dge_er <- DGEList(counts = countsmatrix)
+```
+```{r}
+dim(dge_er)
+colnames(dge_er)
+dge_er$samples
+```
+
+```{r}
+## calculate norm. factors
+nr <- calcNormFactors(dge_er)
+nr
+```
+```{r}
+## get normalized counts
+cpmvalues <- cpm(nr)
+cpmvalues_d <- cpm.default(nr)
+```
+
+
+# Differential Gene Expression analysis using DESeq2
 Now, construct DESeqDataSet for DGE analysis.
 
 But before that, a sanity check : It is essential to have the name of
@@ -243,10 +268,9 @@ visualize the distances in a heatmap
 
 ```{r}
 sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- vsd$Samples 
-colnames(sampleDistMatrix) <- vsd$Samples
-```
-```{r}
+rownames(sampleDistMatrix) <- vsd$Sample_Name 
+colnames(sampleDistMatrix) <- vsd$Sample_Name
+
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 distance_plot <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
@@ -262,9 +286,7 @@ poisd <- PoissonDistance(t(counts(dds_infected))) # raw counts or unnormalised d
 samplePoisDistMatrix <- as.matrix( poisd$dd )
 rownames(samplePoisDistMatrix) <- dds_infected$Sample_Name
 colnames(samplePoisDistMatrix) <- dds_infected$Sample_Name
-```
 
-```{r}
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
@@ -286,307 +308,198 @@ poisson_dist_plot
   # select the ntop genes by variance
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
 ```
-
+### Calculating the variance for each PCA value
 ```{r}
 # perform a PCA on the data in assay(x) for the selected genes
-pca_infected <- prcomp(t(assay(vsd)[select,]))
-summary(pca_infected)
+pca_epithelial <- prcomp(t(assay(vsd)[select,]))
+summary(pca_epithelial)
 # the contribution to the total variance for each component
-percentVar_infected <- (pca_infected$sdev^2 / sum( pca_infected$sdev^2 )) * 100
-percentVar_infected
+#percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
+#percentVar_epithelial
 ```
-```{r}
-color_values <- c("darkred", "darkred","darkred","darkred", "black","black","darkred","darkred", "darkred",
-                  "darkred", "darkred","darkred","darkred", "darkred", "darkred" ,"darkblue")
-```
+### Functions for Plot aethetics and saving PCA Plots
 
+```{r}
+color_values <- c("red", "red","red","red", "black","black","red","red", "red",
+                  "red", "red","red","red", "red", "red" ,"blue")
+
+# the basic set of common aesthetic settings for PCA plots, 
+theme.my.own <- list(theme_bw() ,
+                      geom_point(size = 3),
+                      coord_fixed() ,
+                      xlab(paste0("PC1: ", percentVar_infected[1], "% variance")),
+                      ylab(paste0("PC2: ", percentVar_infected[2], "% variance")),
+                      scale_y_continuous(breaks = seq(-10, 10, 5), sec.axis = sec_axis(~. *1)) ,
+                      scale_x_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
+                      theme_classic() ,
+                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
+                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
+                      theme(text = element_text(size = 15),
+                            axis.text = element_text(size = 15),
+                            legend.position = "right",
+                            aspect.ratio = 50/50) ,
+                      #geom_text(size = 4, hjust = 0, vjust = 0)
+                      geom_text_repel(size = 5,min.segment.length = 0.01)
+  )
+
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
 #### PCA Plot with VST Data
 
 ```{r}
 pcaData_infected <- plotPCA(vsd, intgroup = c("condition","Sample_Name"), returnData = TRUE)
 head(pcaData_infected)
-percentVar_infected <- round(100 * attr(pcaData_infected, "percentVar"), digits = 3 )
-percentVar_infected
+percentVar_infected <- percentvar_calculation(pcaData_infected)
+```
+```{r fig.height=8, fig.width=8}
+(PCAplot_vst <- ggplot(pcaData_infected,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = Sample_Name,
+                          label = Sample_Name)) +
+        ggtitle("PCA Plot: BL6-Infected Vs Control") +
+        scale_colour_manual(values = color_values) +
+        theme.my.own )
+
+savingFunction(PCAplot_vst, "Sample_Name")
 ```
 
-```{r fig.height=8, fig.width=8}
-PCAplot_vst <- ggplot(pcaData_infected, 
-                      aes(x = PC1, 
-                          y = PC2,
-                          color = Sample_Name, 
-                          label = Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar_infected[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") + 
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) +
-  scale_colour_manual(values = color_values)
-PCAplot_vst
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl.png',
-       plot = PCAplot_vst,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-```
 ## PCA Plot for different groupings of metadata
 
 ### PCA for Epithelial Response
 
-```{r}
-PCAdata_infected_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
-head(PCAdata_infected_ER)
-percentVar.PCAdata_infected_ER <- round(100 * attr(PCAdata_infected_ER, "percentVar"), digits = 4)
-```
+```{r fig.height=8, fig.width=8}
+PCAdata_infected_ER <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                 "Epithelial_response"), 
+                               returnData = TRUE)
+#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
 
-```{r}
-PCAplot_ER <- ggplot(PCAdata_infected_ER,
-                     aes(x = PC1, y = PC2, color = Epithelial_response, label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_ER[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_ER[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Epithelial Response") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0) #+ scale_colour_manual(values = color_values)
-PCAplot_ER
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_EpithelialResponse.png',
-       plot = PCAplot_ER,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_ER <- ggplot(PCAdata_infected_ER,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = Epithelial_response,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Epithelial_response") +
+                      theme.my.own )
+
+savingFunction(PCAplot_ER, "Epithelial_response")
 ```
 
 ### PCA for Microcolonies
 
 ```{r}
 PCAdata_infected_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-head(PCAdata_infected_MC)
-percentVar.PCAdata_infected_MC <- round(100 * attr(PCAdata_infected_MC, "percentVar"), digits = 4)
-```
+#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
 
-```{r}
-PCAplot_MC <- ggplot(PCAdata_infected_MC,
-                     aes(x = PC1, y = PC2,
-                         color = microcolonies,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_MC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_MC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_Microcolonies.png',
-       plot = PCAplot_MC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_MC <- ggplot(PCAdata_infected_MC,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = microcolonies,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Microcolonies") +
+                      theme.my.own )
+
+savingFunction(PCAplot_MC, "microcolonies")
 ```
 
 ### PCA for Clinical Outcome
 
 ```{r}
 PCAdata_infected_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
-head(PCAdata_infected_CO)
-percentVar.PCAdata_infected_CO <- round(100 * attr(PCAdata_infected_CO, "percentVar"), digits = 4)
-```
+#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
 
-```{r}
-PCAplot_CO <- ggplot(PCAdata_infected_CO,
-                     aes(x = PC1, y = PC2,
-                         color = clinical_outcome,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_CO[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_CO[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Clinical Outcome") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_MC
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_ClinicalOutcome.png',
-       plot = PCAplot_CO,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_CO <- ggplot(PCAdata_infected_CO,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = clinical_outcome,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Clinical Outcome") +
+                      theme.my.own )
+
+savingFunction(PCAplot_CO, "clinical_outcome")
 ```
 
 ### PCA for ER_Microcolonies
 
 ```{r}
-PCAdata_infected_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
-head(PCAdata_infected_ERMC)
-percentVar.PCAdata_infected_ERMC <- round(100 * attr(PCAdata_infected_ERMC, "percentVar"), digits = 4)
-```
+PCAdata_infected_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "ER_microcolonies"), 
+                                 returnData = TRUE)
 
-```{r}
-PCAplot_ERMC <- ggplot(PCAdata_infected_ERMC,
-                       aes(x = PC1, y = PC2,
-                           color = ER_microcolonies,
-                           label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_ERMC[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_ERMC[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - EpithelialResponse_Microcolonies") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_ERMC
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_ER_Microcolonies.png',
-       plot = PCAplot_ERMC,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_ERMC <- ggplot(PCAdata_infected_ERMC,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = ER_microcolonies,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - ER_Microcolonies") +
+                      theme.my.own )
+
+savingFunction(PCAplot_ERMC, "ER_microcolonies")
 ```
 
 ### PCA for Phylogenomic Lineage
 
 ```{r}
-PCAdata_infected_PL <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogenomic_lineage"), returnData = TRUE)
-head(PCAdata_infected_PL)
-percentVar.PCAdata_infected_PL <- round(100 * attr(PCAdata_infected_PL, "percentVar"), digits = 4)
-```
+PCAdata_infected_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                 "phylogenomic_lineage"),
+                               returnData = TRUE)
+(PCAplot_PL <- ggplot(PCAdata_infected_PL,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = phylogenomic_lineage,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Phylogenomic Lineage") +
+                      theme.my.own )
 
-```{r}
-PCAplot_PL <- ggplot(PCAdata_infected_PL,
-                       aes(x = PC1, y = PC2,
-                           color = phylogenomic_lineage,
-                           label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_PL[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_PL[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Phylogenomic Lineage") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PL
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_PhylogenomicLineage.png',
-       plot = PCAplot_PL,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```
 ### PCA for Phylogroup
 
 ```{r}
-PCAdata_infected_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
-head(PCAdata_infected_PG)
-percentVar.PCAdata_infected_PG <- round(100 * attr(PCAdata_infected_PG, "percentVar"), digits = 4)
-```
+PCAdata_infected_PG <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                 "phylogroup"), 
+                               returnData = TRUE)
+(PCAplot_PG <- ggplot(PCAdata_infected_PG,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = phylogroup,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Phylogroup") +
+                      theme.my.own )
 
-```{r}
-PCAplot_PG <- ggplot(PCAdata_infected_PG,
-                     aes(x = PC1, y = PC2,
-                         color = phylogroup,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_PG[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_PG[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Phylogroup") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_PG
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_Phylogroup.png',
-       plot = PCAplot_PG,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_PG, "phylogroup")
 ```
 
 ### PCA for Intimin Group
 
 ```{r}
-PCAdata_infected_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
-head(PCAdata_infected_IT)
-percentVar.PCAdata_infected_IT <- round(100 * attr(PCAdata_infected_IT, "percentVar"), digits = 4)
-```
+PCAdata_infected_IT <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                 "Intimin_Type"), 
+                               returnData = TRUE)
+(PCAplot_IT <- ggplot(PCAdata_infected_IT,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = Intimin_Type,
+                          label = Sample_Name)) +
+                      ggtitle("PCA Plot: BL6-Infected Vs Control - Intimin Type") +
+                      theme.my.own )
 
-```{r}
-PCAplot_IT <- ggplot(PCAdata_infected_IT,
-                     aes(x = PC1, y = PC2,
-                         color = Intimin_Type,
-                         label= Sample_Name)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar.PCAdata_infected_IT[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar.PCAdata_infected_IT[2], "% variance")) +
-  coord_fixed() +
-  scale_y_continuous(breaks = seq(-10, 10, 5)) +
-  scale_x_continuous(breaks = seq(-20, 20, 5)) +
-  ggtitle("PCA Plot - Infected Vs Control - Intimin Type") +
-  theme_classic() +
-  geom_hline(yintercept = 0, color = "gray", size = 1) +
-  geom_vline(xintercept = 0, color = "gray", size = 1) +
-  theme(text = element_text(size = 15), axis.text = element_text(size = 15)) +
-  theme(legend.position = "bottom") +
-  theme(aspect.ratio = 40/40) +
-  geom_text(size = 4, hjust = 0, vjust = 0)
-PCAplot_IT
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_IntiminType.png',
-       plot = PCAplot_IT,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+savingFunction(PCAplot_IT, "Intimin_Type")
 ```
 
 ## Hierarchical Clustering
@@ -596,8 +509,6 @@ ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_
 ```{r}
 rld <- rlog(dds_infected, blind = FALSE)
 head(assay(rld), 3)
-```
-```{r}
 ### Extract the rlog matrix from the object
 rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
 ```
@@ -668,8 +579,10 @@ independent filtering and outlier removal). Then, only the genes with
 ALL counts set to zero will have NA for pvalues.
 
 ```{r}
-dds2_infected <- DESeq(dds_infected, minReplicatesForReplace=Inf)
-res2_infected <- results(dds2_infected, cooksCutoff=FALSE, independentFiltering=FALSE)
+dds2_infected <- DESeq(dds_infected, minReplicatesForReplace = Inf)
+res2_infected <- results(dds2_infected, 
+                         cooksCutoff = FALSE, 
+                         independentFiltering = FALSE)
 ```
 
 ```{r}
@@ -696,8 +609,10 @@ plotMA_res2_infected <- plotMA(res2_infected, ylim = c(-2, 2))
 ```
 
 ```{r}
-res3_infected <- lfcShrink(dds2_infected, coef="condition_Infected_vs_control", type="apeglm")
-plotMA_res3 <-plotMA(res3_infected, ylim = c(-2, 2))
+res3_infected <- lfcShrink(dds2_infected, 
+                           coef = "condition_Infected_vs_control", 
+                           type = "apeglm")
+plotMA_res3 <- plotMA(res3_infected, ylim = c(-2, 2))
 ```
 
 ### Histogram of p-values
@@ -896,16 +811,13 @@ res3df_infected$delabel[res3df_infected$diffexpressed != "NS"] <- res3df_infecte
 Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_infected <- res3df_infected[(abs(res3df_infected$log2FoldChange)>1) & (res3df_infected$pvalue< 0.05),]
+sigsdf_infected <- res3df_infected[(abs(res3df_infected$log2FoldChange) > 1 ) & 
+                                     (res3df_infected$pvalue < 0.05),]
 ```
 ```{r}
 nrow(sigsdf_infected)
 ```
 ## Log2FC Table
-
-#by_gene_forlog2FC \<- UpGeneFrame_Core50 %\>% group_by(symbol) %\>%
-summarise(log2FoldChange, Strain_name) %\>% ungroup()
-head(by_gene_forlog2FC)
 
 ```{r}
 summary(res3df_infected)
@@ -955,7 +867,7 @@ DE_Genes_table_Infected <- as.data.frame(cbind(UpGene_Infected,DownGene_Infected
 ```
 
 ```{r}
-write.csv(DE_Genes_table_Infected ,"~/R/Alina_RNAseq/DE_GenesTable_InfectedVsControl.csv")
+write.csv(DE_Genes_table_Infected ,"~/R/Alina_RNAseq/InfectedVsControl/DE_GenesTable_InfectedVsControl.csv")
 head(DE_Genes_table_Infected, 20)
 ```
 
@@ -983,7 +895,8 @@ Heatmap_ALL_DEGene
 ```
 
 ```{r}
-sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) & (res2df_infected$pvalue < 0.05),]
+sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) & 
+                                      (res2df_infected$pvalue < 0.05),]
 mat2 <- counts(dds2_infected, normalized = TRUE)[rownames(sigs2df_infected),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
@@ -1029,7 +942,7 @@ also volcano plots
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1df_infected <- res2df_infected[(res2df_infected$baseMean > 75) & (abs(res2df_infected$log2FoldChange) > 2) & (res2df_infected$pvalue< 0.05),]
+sigs1df_infected <- res2df_infected[(res2df_infected$baseMean > 75) & (abs(res2df_infected$log2FoldChange) > 2) & (res2df_infected$pvalue < 0.05),]
 mat1 <- counts(dds2_infected, normalized = TRUE)[rownames(sigs1df_infected),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
@@ -1067,17 +980,28 @@ GO_UPRegResults_infected <- enrichGO(gene = UPgene_ENS_ID,
 GO_UpRegdf_infected <- as.data.frame(GO_UPRegResults_infected)
 GO_UpRegdf_infected
 ```
-
-```{r}
-GO_UPRegResults_infected
-```
-
 ```{r}
 write.csv(GO_UpRegdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/GO_UpReg_results.csv")
 ```
 
+```{r}
+savingGOPlots <- function(plot){
+  # Function to save the GO Plots
+  ggsave(filename = glue('~/R/Alina_RNAseq/InfectedVsControl/{plot}.png'),
+       plot = plot,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in",
+       device = "png"
+       )
+}
+```
+
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 22))
+GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, 
+                                           showCategory = 23))
+#savingGOPlots(UPReg_Barplot_infected)
 ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Barplot_infected.png', 
        plot = GO_UPReg_Barplot_infected, 
        dpi = 300,
@@ -1121,11 +1045,6 @@ ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Cnetplot_infected
 ```{r}
 DOWNgene_ENS_ID <- rownames(sigsdf_infected_DOWN)
 ```
-
-```{r}
-#DOWNgene_ENS_ID
-```
-
 ```{r}
 GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
