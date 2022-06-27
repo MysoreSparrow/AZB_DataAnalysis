@@ -1,11 +1,13 @@
 ---
 title: ' Differential Gene Expression Analysis Notebook - Epithelial_response_LowInducer_vs_HighInducer'
 output:
-  html_document:
+  html_document: 
     toc: yes
-    fig_width: 10
-    fig_height: 10
+    fig_width: 12
+    fig_height: 12
     fig_caption: yes
+    number_sections: yes
+    toc_depth: 4
   pdf_document: 
     toc: yes
     number_sections: yes
@@ -738,7 +740,7 @@ plotDispEsts(dds2_epithelial)
 
 ## Volcano Plots based on Enhanced Volcano
 
-```{r}
+```{r fig.height= 10, fig.width= 10}
 p1 <- EnhancedVolcano(res3df_epithelial,
     lab = res3df_epithelial$symbol,
     x = 'log2FoldChange',
@@ -776,7 +778,7 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano1_L2fcVsPvalue.png
 
 ## volcano Plot of Log2FC vs Padj
 
-```{r}
+```{r fig.height= 10, fig.width= 10}
 p2 <- EnhancedVolcano(res3df_epithelial,
     lab = res3df_epithelial$symbol,
     x = 'log2FoldChange',
@@ -948,7 +950,7 @@ newHP
 ```
 
 ```{r fig.height= 160, fig.width= 10}
-newHP1 <- Heatmap(mat2.zs, 
+LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
@@ -958,7 +960,8 @@ newHP1 <- Heatmap(mat2.zs,
         use_raster = TRUE, 
         raster_quality = 5,
         )
-#newHP1
+LongHeatMap_Allgenes
+#saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
 ```
 
 Need to filter these results to accommodate better the heat maps and
@@ -1191,13 +1194,19 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
                                                 species = "mouse"))
 ```
 
-```{r}
-(pathwayplots <- sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-                                                pathway.id = pid, 
-                                                species = "mouse")))
-```
+![mmu04144](pathwayimages/mmu04510.pathview.png)
+![mmu04144](pathwayimages/mmu04512.pathview.png)
+![mmu04144](pathwayimages/mmu04270.pathview.png)
 
+![mmu04144](pathwayimages/mmu04810.pathview.png)
 
+![mmu04144](pathwayimages/mmu04610.pathview.png)
+
+![mmu04144](pathwayimages/mmu04020.pathview.png)
+![mmu04144](pathwayimages/mmu04640.pathview.png)
+
+![mmu04144](pathwayimages/mmu04514.pathview.png)
+![mmu04144](pathwayimages/mmu04062.pathview.png)
 ```{r}
 sessionInfo()
 ```
