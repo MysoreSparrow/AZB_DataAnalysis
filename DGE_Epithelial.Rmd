@@ -978,7 +978,7 @@ GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
 
 ```{r}
 GO_UpRegdf_epithelial <- as.data.frame(GO_UPRegResults_epithelial)
-GO_UpRegdf_epithelial
+head(GO_UpRegdf_epithelial)
 ```
 
 ```{r}
@@ -1058,7 +1058,7 @@ GO_DOWNRegResults_epithelial <- enrichGO(gene = DOWNgene_ENS_ID,
                        readable      = TRUE
                        )
 GO_DOWNRegdf_epithelial <- as.data.frame(GO_DOWNRegResults_epithelial)
-GO_DOWNRegdf_epithelial
+head(GO_DOWNRegdf_epithelial)
 ```
 
 
@@ -1123,84 +1123,8 @@ plot(heatplot(GO_DOWNRegResults_epithelial))
 edox1 <- pairwise_termsim(GO_DOWNRegResults_epithelial)
 plot(treeplot(edox1))
 ```
-############### Untested and incomplete code for evverything down below ############################
-
-
-## Gene Ontology - Alex Soupir
-
-```{r}
-selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
-```
-
-```{r}
-UniverseGenes = unique(sigsdf_epithelial$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
-```
-
-```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-```
-```{r}
-upBP = hyperGTest(upParams)
-summary(upBP)
-```
-
-
-```{r}
-downBP = hyperGTest(downParams)
-summary(downBP)
-```
 
 ## Pathway Analysis
-
-### GO Pathways
-
-```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
-head(foldchanges)
-```
-Bring in 2 relevant Mm datasets from GO db
-
-```{r}
-# But isnt the mus musculus code is mmu ?
-data("go.sets.mm")
-data("go.subs.mm")
-```
-
-```{r}
-gobpsets = go.sets.mm[go.subs.mm$BP]
-gobpres = gage(exprs = foldchanges,
-               gsets = gobpsets,
-               same.dir = TRUE)
-```
-
-Look at UP regulated ones
-```{r}
-lapply(gobpres, head)
-```
-Look at down regulated ones
-```{r}
-head(gobpres$less, 20)
-```
-
-```{r}
-head(gobpres$stats, 20)
-```
 
 ### KEGG Pathways
 
@@ -1233,13 +1157,13 @@ keggres = gage(exprs = foldchanges,
 lapply(keggres, head)
 
 ```
-Now, process the results to pull out the top 20 upregulated pathways, then further process that just to get the IDs. I can use these KEGG pathway IDs downstream for plotting.
+Now, process the results to pull out the top 20 up-regulated pathways, then further process that just to get the IDs. I can use these KEGG pathway IDs downstream for plotting.
 
 ```{r}
 # Get the pathways
 keggrespathways = data.frame(id = rownames(keggres$greater),
                              keggres$greater) %>% 
-                  tbl_df() %>% 
+                  tibble::as_tibble() %>% 
                   filter(row_number() <= 10) %>% 
                   .$id %>% 
                   as.character()
@@ -1268,14 +1192,15 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
                                                 species = "mouse"))
 ```
 
-
 ```{r}
-# Plot specific KEGG pathways (with fold change) 
-## pathway.id : KEGG pathway identifier
-pathview(gene.data = foldchanges, 
-         pathway.id = "04510", 
-         species = "mouse")
+(pathwayplots <- sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
+                                                pathway.id = pid, 
+                                                species = "mouse")))
 ```
 
+
+```{r}
+sessionInfo()
+```
 
 
