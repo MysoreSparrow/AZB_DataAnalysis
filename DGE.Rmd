@@ -1,11 +1,13 @@
 ---
 title: ' Differential Gene Expression Analysis Notebook'
 output:
-  html_document:
+  html_document: 
     toc: yes
-    fig_width: 10
-    fig_height: 10
+    fig_width: 12
+    fig_height: 12
     fig_caption: yes
+    number_sections: yes
+    toc_depth: 4
   pdf_document: 
     toc: yes
     number_sections: yes
@@ -191,6 +193,19 @@ cpmvalues <- cpm(nr)
 cpmvalues_d <- cpm.default(nr)
 ```
 
+```{r}
+# Function to save generic plots
+saveplot <- function(plot,name ){
+  # Function to save the plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/InfectedVsControl/{name}.png'),
+       plot = plot,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
 
 # Differential Gene Expression analysis using DESeq2
 Now, construct DESeqDataSet for DGE analysis.
@@ -311,8 +326,8 @@ select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
 pca_infected <- prcomp(t(assay(vsd)[select,]))
 summary(pca_infected)
 # the contribution to the total variance for each component
-#percentVar_epithelial <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
-#percentVar_epithelial
+#percentVar_infected <- (pca_infected$sdev^2 / sum( pca_infected$sdev^2 )) * 100
+#percentVar_infected
 ```
 ### PCA Plot with VST Data
 ```{r}
@@ -389,7 +404,7 @@ savingFunction(PCAplot_vst, "Sample_Name")
 PCAdata_infected_ER <- plotPCA(vsd, intgroup = c("Sample_Name", 
                                                  "Epithelial_response"), 
                                returnData = TRUE)
-percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
+percentVar_infected <- percentvar_calculation(PCAdata_infected_ER)
 
 (PCAplot_ER <- ggplot(PCAdata_infected_ER,
                       aes(x = PC1,
@@ -406,7 +421,7 @@ savingFunction(PCAplot_ER, "Epithelial_response")
 
 ```{r}
 PCAdata_infected_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
+#percentVar_infected <- percentvar_calculation(PCAdata_infected_ER)
 
 (PCAplot_MC <- ggplot(PCAdata_infected_MC,
                       aes(x = PC1,
@@ -423,7 +438,7 @@ savingFunction(PCAplot_MC, "microcolonies")
 
 ```{r}
 PCAdata_infected_CO <- plotPCA(vsd, intgroup = c("Sample_Name", "clinical_outcome"), returnData = TRUE)
-#percentVar_epithelial <- percentvar_calculation(PCAdata_infected_ER)
+#percentVar_infected <- percentvar_calculation(PCAdata_infected_ER)
 
 (PCAplot_CO <- ggplot(PCAdata_infected_CO,
                       aes(x = PC1,
@@ -737,7 +752,7 @@ p1 <- EnhancedVolcano(res3df_infected,
     xlab = bquote(~Log[2]~'FoldChange'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10pValue',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Pvalue',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -752,9 +767,17 @@ p1 <- EnhancedVolcano(res3df_infected,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p1 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+(volcano1 <- p1 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/Volcano2_L2fcVsPvalue.png',
+       plot = volcano1,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
 
 ## volcano Plot of Log2FC vs Padj
@@ -768,7 +791,7 @@ p2 <- EnhancedVolcano(res3df_infected,
     ylab = bquote(~Log[10]~'padj'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10padj',
+    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Padj',
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -783,9 +806,18 @@ p2 <- EnhancedVolcano(res3df_infected,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-p2 +
-  scale_y_continuous(limits = c(-1, 8) ,breaks = c(-1,0,1,2,3,4,5,6,7,8)) 
-  scale_x_continuous(limits = c(-6, 9) , breaks = seq(-6, 9, 1))
+
+(volcano2 <- p2 + scale_y_continuous(limits = c(-1, 8),
+                                    breaks = seq(-1, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 9), 
+                                     breaks = seq(-6, 9, 1)))
+
+ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/Volcano2_L2fcVsPadj.png',
+       plot = volcano2,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
 ```
 
 ## Significant Differentially Expressed Genes
@@ -923,17 +955,16 @@ newHP
 ```
 
 ```{r fig.height= 75, fig.width= 10}
-newHP1 <- Heatmap(mat2.zs, 
+LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
         row_labels = sigs2df_infected[rownames(mat2.zs),]$symbol,
-        name = 'Z-Score Heatmap of DE Genes',
+        name = 'Z-Score Heatmap of DE Genes - Infected Vs Control',
         show_row_names = TRUE, 
         use_raster = TRUE, 
         raster_quality = 5,
         )
-newHP1
 ```
 
 ------------------------------------------------------------------------
@@ -968,77 +999,63 @@ Heatmap(mat1.zs,
 
 ```{r}
 UPgene_ENS_ID <- rownames(sigsdf_infected_UP)
-```
-
-```{r}
 GO_UPRegResults_infected <- enrichGO(gene = UPgene_ENS_ID,
-                             OrgDb = "org.Mm.eg.db",
-                             keyType = "ENSEMBL",
-                             ont = "BP",
-                             pAdjustMethod = "BH",
-                             pvalueCutoff  = 0.01,
-                             qvalueCutoff  = 0.05,
-                             readable      = TRUE)
+                                       OrgDb = "org.Mm.eg.db",
+                                       keyType = "ENSEMBL",
+                                       ont = "BP",
+                                       pAdjustMethod = "BH",
+                                       pvalueCutoff  = 0.01,
+                                       qvalueCutoff  = 0.05,
+                                       readable      = TRUE)
+```
+
+```{r}
 GO_UpRegdf_infected <- as.data.frame(GO_UPRegResults_infected)
-GO_UpRegdf_infected
-```
-```{r}
-write.csv(GO_UpRegdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/GO_UpReg_results.csv")
+head(GO_UpRegdf_infected)
 ```
 
 ```{r}
-savingGOPlots <- function(plot){
-  # Function to save the GO Plots
-  ggsave(filename = glue('~/R/Alina_RNAseq/InfectedVsControl/{plot}.png'),
-       plot = plot,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in",
-       device = "png"
-       )
-}
+write.csv(GO_UpRegdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/GO_UpReg_results_infected.csv")
 ```
-
-```{r fig.height=10, fig.width=10}
-GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, 
-                                           showCategory = 23))
-#savingGOPlots(UPReg_Barplot_infected)
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Barplot_infected.png', 
-       plot = GO_UPReg_Barplot_infected, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+```{r}
+GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 22))
+saveplot(GO_UPReg_Barplot_infected, "GO_UPReg_Barplot_infected")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Dotplot_infected <- plot(dotplot(GO_UPRegResults_infected, showCategory = 23))
-
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Dotplot_infected.png', 
-       plot = GO_UPReg_Dotplot_infected, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_UPReg_Dotplot_infected, "GO_UPReg_Dotplot_infected")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Cnetplot_infected <- plot(cnetplot(GO_UPRegResults_infected, showCategory = 13))
+saveplot(GO_UPReg_Cnetplot_infected, "GO_UPReg_Cnetplot_infected")
+```
+### Upset Plot
 
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Cnetplot_infected.png', 
-       plot = GO_UPReg_Cnetplot_infected, 
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+```{r fig.height= 8, fig.width=8}
+GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_infected))
+saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
 
-```{r fig.height=20, fig.width=10}
-#d <- godata('org.Mm.eg.db', ont="BP")
-#ego2 <- pairwise_termsim(GO_UPReg_results, method="Wang", semData = d)
-#emapplot(ego2, showCategory = 30)
+### Heatplot
+
+The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
+
+```{r fig.height= 8, fig.width=13}
+GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_infected))
+saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+edox2 <- pairwise_termsim(GO_UPRegResults_infected)
+GO_UPReg_enrichtreeplot <- plot(treeplot(edox2))
+saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
+```
+
+
 
 ## GO Terms for Down Regulated Genes
 
@@ -1048,7 +1065,7 @@ ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/GO_UPReg_Cnetplot_infected
 DOWNgene_ENS_ID <- rownames(sigsdf_infected_DOWN)
 ```
 ```{r}
-GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
+GO_DOWNRegResults_infected <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
                        keyType = "ENSEMBL",
                        ont = "BP",
@@ -1057,9 +1074,175 @@ GO_DOWNReg_results <- enrichGO(gene = DOWNgene_ENS_ID,
                        qvalueCutoff  = 0.05,
                        readable      = TRUE
                        )
-GO_DOWNReg_results
+GO_DOWNRegdf_infected <- as.data.frame(GO_DOWNRegResults_infected)
+head(GO_DOWNRegdf_infected)
+```
+
+
+```{r}
+write.csv(GO_DOWNRegdf_infected,
+          "~/R/Alina_RNAseq/InfectedVsControl/GO_DOWNReg_results_infected.csv")
+```
+
+```{r fig.height=10, fig.width=10}
+#GO_DOWNReg_Barplot_infected <- plot(barplot(GO_DOWNRegResults_infected, showCategory = 22))
+#saveplot(GO_DOWNReg_Barplot_infected, "GO_DOWNReg_Barplot_infected")
+```
+
+```{r fig.height=10, fig.width=10}
+#GO_DOWNReg_Dotplot_infected <- plot(dotplot(GO_DOWNRegResults_infected, showCategory = 23))
+#saveplot(GO_DOWNReg_Dotplot_infected, "GO_DOWNReg_Dotplot_infected")
+```
+
+```{r fig.height=25, fig.width=20}
+#GO_DOWNReg_Cnetplot_infected <- plot(cnetplot(GO_DOWNRegResults_infected))
+#saveplot(GO_DOWNReg_Cnetplot_infected, "GO_DOWNReg_Cnetplot_infected")
+```
+
+### Upset Plot
+
+The upsetplot is an alternative to cnetplot for visualizing the complex association between genes and gene sets. It emphasizes the gene overlapping among different gene sets.
+
+```{r fig.height= 8, fig.width=15}
+#GO_DOWNReg_Upsetplot <- plot( upsetplot(GO_DOWNRegResults_infected))
+#saveplot(GO_DOWNReg_Upsetplot, "GO_DOWNReg_Upsetplot")
+```
+
+### Heat Plot
+```{r fig.height= 20, fig.width=25}
+#GO_DOWNReg_Heatplot <- plot(heatplot(GO_DOWNRegResults_infected))
+#saveplot(GO_DOWNReg_Heatplot, "GO_DOWNReg_Heatplot")
+```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+#edox1 <- pairwise_termsim(GO_DOWNRegResults_infected)
+#GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
+#saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
+```
+
+## Pathway Analysis
+
+### KEGG Pathways
+
+
+1. The gageData package has pre-compiled databases mapping genes to KEGG pathways and GO terms for common organisms. 
+2. kegg.sets.mm is a named list. Each element is a character vector of member gene Entrez IDs for a single KEGG pathway. sigmet.idx.hs is an index of numbers of sinaling and metabolic pathways in kegg.set.gs. 
+3. In other words, KEGG pathway include other types of pathway definitions, like “Global Map” and “Human Diseases”, which may be undesirable in pathway analysis. Therefore, kegg.sets.mm[sigmet.idx.mm] gives the “cleaner” gene sets of sinaling and metabolic pathways only.
+
+The gage() function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+```{r}
+foldchanges = sigsdf_infected$log2FoldChange
+names(foldchanges) = sigsdf_infected$entrez
+head(foldchanges)
+```
+```{r}
+data(kegg.sets.mm)
+data(sigmet.idx.mm)
+kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
+```
+
+Here, I am  using same.dir = TRUE, which will give us separate lists for pathways that are upregulated versus pathways that are downregulated. Let’s look at the first few results from each.
+```{r}
+# Get the results
+keggres = gage(exprs = foldchanges, 
+               gsets = kegg.sets.mm, 
+               same.dir = TRUE)
+```
+```{r}
+# Look at both up (greater), down (less), and statatistics.
+lapply(keggres, head)
+```
+Now, process the results to pull out the top 10 up-regulated pathways, then further process that just to get the IDs. I can use these KEGG pathway IDs downstream for plotting.
+
+```{r}
+# Get the pathways
+keggrespathways = data.frame(id = rownames(keggres$greater),
+                             keggres$greater) %>% 
+                  tibble::as_tibble() %>% 
+                  filter(row_number() <= 10) %>% 
+                  .$id %>% 
+                  as.character()
+keggrespathways
 ```
 
 ```{r}
-sessionInfo( )
+# Get the IDs.
+keggresids = substr(keggrespathways, start = 1, stop = 8)
+keggresids
 ```
+
+The pathview() function in the pathview package makes the plots. The function is written below to loop through and draw plots for the top 10 pathways we created above.
+
+```{r}
+# Define plotting function for applying later
+plot_pathway = function(pid) pathview(gene.data = foldchanges, 
+                                      pathway.id = pid, 
+                                      species = "mouse", 
+                                      new.signature = FALSE)
+# plot multiple pathways (plots saved to disk and returns a throwaway list object)
+tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
+                                                pathway.id = pid, 
+                                                species = "mouse"))
+```
+![mmu04144](pathwayimages/mmu04144.pathview.png)
+![mmu04144](pathwayimages/mmu03008.pathview.png)
+![mmu04144](pathwayimages/mmu04141.pathview.png)
+![mmu04144](pathwayimages/mmu04740.pathview.png)
+![mmu04144](pathwayimages/mmu03010.pathview.png)
+
+![mmu04144](pathwayimages/mmu04622.pathview.png)
+![mmu04144](pathwayimages/mmu04744.pathview.png)
+
+![mmu04144](pathwayimages/mmu04062.pathview.png)
+![mmu04144](pathwayimages/mmu04666.pathview.png)
+
+![mmu04144](pathwayimages/mmu00190.pathview.png)
+
+```{r}
+sessionInfo()
+```
+
+############### Untested and incomplete code for evverything down below ############################
+
+
+## Gene Ontology - Alex Soupir
+
+```{r}
+selectUPGenes_entrezid = unique(sigsdf_infected_UP['entrez'] )
+selectDOWNGenes_entrezid = unique(sigsdf_infected_DOWN['entrez'] )
+```
+
+```{r}
+UniverseGenes = unique(sigsdf_infected$entrez)
+cutOff = 0.01 # setting the cutoff at 1%
+```
+
+```{r}
+upParams = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+downParams = new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+```
+```{r}
+upBP = hyperGTest(upParams)
+summary(upBP)
+```
+
+
+```{r}
+downBP = hyperGTest(downParams)
+summary(downBP)
+```
+
