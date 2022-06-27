@@ -212,6 +212,22 @@ dds_epithelial <- DESeqDataSetFromMatrix(countData = countsmatrix,
 nrow(dds_epithelial)
 ```
 
+
+
+```{r}
+# Function to save generic plots
+saveplot <- function(plot,name ){
+  # Function to save the plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/EpithelialResponse/{name}.png'),
+       plot = plot,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
+
 ## Exploratory Data Analysis and Visualization
 
 ### Pre-filtering the dataset
@@ -264,12 +280,15 @@ rownames(sampleDistMatrix) <- vsd$Sample_Name
 colnames(sampleDistMatrix) <- vsd$Sample_Name
 
 colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-(distance_plot <- pheatmap(sampleDistMatrix,
+(EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          main = "Sample-to-Sample Euclidean Distance of BL6 - LowInducer_vs_HighInducer",
          col = colors))
-#distance_plot
+
+```
+```{r}
+#saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
 ```
 
 ### Poisson Distance between Samples
@@ -287,7 +306,9 @@ colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
          col = colors))
          
 ```
-
+```{r}
+#saveplot(poisson_dist_plot, "poisson_dist_plot")
+```
 # PCA Plot
 
 ## Calculating all PCA Values
@@ -510,13 +531,18 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 ```{r}
 ### Plot heatmap
 heat.colors <- brewer.pal(6, "RdYlBu")
-Hclust_plot <- pheatmap(rld_cor, 
+(Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
                         main = 'Heirarchical Clustering of Samples - EpithelialResponse - Correlation Matrix'
                         #filename = '~/R/Alina_RNAseq/EpithelialResponse/Hclust_plot.tiff'
-                       )
-Hclust_plot
+                       ))
+#Hclust_plot
 ```
+```{r}
+#saveplot(Hclust_plot, "Hclust_plot")
+```
+
+
 ## DGE Results
 
 ### Running the differential expression pipeline
@@ -984,42 +1010,27 @@ head(GO_UpRegdf_epithelial)
 ```{r}
 write.csv(GO_UpRegdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/GO_UpReg_results_Epithelial.csv")
 ```
-
 ```{r}
 GO_UPReg_Barplot_epithelial <- plot(barplot(GO_UPRegResults_epithelial, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Barplot_epithelial.png',
-       plot = GO_UPReg_Barplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_UPReg_Barplot_epithelial, "GO_UPReg_Barplot_epithelial")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Dotplot_epithelial <- plot(dotplot(GO_UPRegResults_epithelial, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Dotplot_epithelial.png',
-       plot = GO_UPReg_Dotplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_UPReg_Dotplot_epithelial, "GO_UPReg_Dotplot_epithelial")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_UPReg_Cnetplot_epithelial <- plot(cnetplot(GO_UPRegResults_epithelial, showCategory = 13))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Cnetplot_epithelial.png',
-       plot = GO_UPReg_Cnetplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_UPReg_Cnetplot_epithelial, "GO_UPReg_Cnetplot_epithelial")
 ```
 ### Upset Plot
 
 ```{r fig.height= 8, fig.width=8}
-plot( upsetplot(GO_UPRegResults_epithelial))
+GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_epithelial))
+saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
 
 ### Heatplot
@@ -1027,15 +1038,16 @@ plot( upsetplot(GO_UPRegResults_epithelial))
 The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
 
 ```{r fig.height= 8, fig.width=13}
-plot( heatplot(GO_UPRegResults_epithelial))
-
+GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_epithelial))
+saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
 
 ### Tree Plot of Enriched Terms
 
 ```{r fig.height= 10, fig.width=15}
 edox2 <- pairwise_termsim(GO_UPRegResults_epithelial)
-plot(treeplot(edox2))
+GO_UPReg_enrichtreeplot <- plot(treeplot(edox2))
+saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
 ```
 
 
@@ -1069,38 +1081,23 @@ write.csv(GO_DOWNRegdf_epithelial,
 
 ```{r fig.height=10, fig.width=10}
 GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial, showCategory = 22))
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Barplot_epithelial.png',
-       plot = GO_DOWNReg_Barplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_DOWNReg_Barplot_epithelial, "GO_DOWNReg_Barplot_epithelial")
 ```
 
 ```{r fig.height=10, fig.width=10}
 GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial, showCategory = 23))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Dotplot_epithelial.png',
-       plot = GO_DOWNReg_Dotplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_DOWNReg_Dotplot_epithelial, "GO_DOWNReg_Dotplot_epithelial")
 ```
 
 ```{r fig.height=25, fig.width=20}
 GO_DOWNReg_Cnetplot_epithelial <- plot(cnetplot(GO_DOWNRegResults_epithelial, 
                                                 showCategory = 13, 
-                                                circular = TRUE, 
+                                                circular = FALSE, 
                                                 colorEdge = TRUE
                                                 ))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epithelial.png',
-       plot = GO_DOWNReg_Cnetplot_epithelial,
-       dpi = 300,
-       width = 12,
-       height = 10,
-       units = "in")
+saveplot(GO_DOWNReg_Cnetplot_epithelial, "GO_DOWNReg_Cnetplot_epithelial")
 ```
 
 ### Upset Plot
@@ -1108,20 +1105,22 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epith
 The upsetplot is an alternative to cnetplot for visualizing the complex association between genes and gene sets. It emphasizes the gene overlapping among different gene sets.
 
 ```{r fig.height= 8, fig.width=15}
-
-plot( upsetplot(GO_DOWNRegResults_epithelial))
+GO_DOWNReg_Upsetplot <- plot( upsetplot(GO_DOWNRegResults_epithelial))
+saveplot(GO_DOWNReg_Upsetplot, "GO_DOWNReg_Upsetplot")
 ```
 
 ### Heat Plot
 ```{r fig.height= 20, fig.width=25}
-plot(heatplot(GO_DOWNRegResults_epithelial))
+GO_DOWNReg_Heatplot <- plot(heatplot(GO_DOWNRegResults_epithelial))
+saveplot(GO_DOWNReg_Heatplot, "GO_DOWNReg_Heatplot")
 ```
 
 ### Tree Plot of Enriched Terms
 
 ```{r fig.height= 10, fig.width=15}
 edox1 <- pairwise_termsim(GO_DOWNRegResults_epithelial)
-plot(treeplot(edox1))
+GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
+saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
 ```
 
 ## Pathway Analysis
@@ -1203,4 +1202,79 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
 sessionInfo()
 ```
 
+############### Untested and incomplete code for evverything down below ############################
+
+
+## Gene Ontology - Alex Soupir
+
+```{r}
+selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
+selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
+```
+
+```{r}
+UniverseGenes = unique(sigsdf_epithelial$entrez)
+cutOff = 0.01 # setting the cutoff at 1%
+```
+
+```{r}
+upParams = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+downParams = new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+```
+```{r}
+upBP = hyperGTest(upParams)
+summary(upBP)
+```
+
+
+```{r}
+downBP = hyperGTest(downParams)
+summary(downBP)
+```
+
+### GO Pathways
+
+```{r}
+foldchanges = sigsdf_epithelial$log2FoldChange
+names(foldchanges) = sigsdf_epithelial$entrez
+head(foldchanges)
+```
+Bring in 2 relevant Mm datasets from GO db
+
+```{r}
+data("go.sets.mm")
+data("go.subs.mm")
+```
+
+```{r}
+gobpsets = go.sets.mm[go.subs.mm$BP]
+gobpres = gage(exprs = foldchanges,
+               gsets = gobpsets,
+               same.dir = TRUE)
+```
+
+Look at UP regulated ones
+```{r}
+lapply(gobpres, head)
+```
+Look at down regulated ones
+```{r}
+head(gobpres$less, 20)
+```
+
+```{r}
+head(gobpres$stats, 20)
+```
 
