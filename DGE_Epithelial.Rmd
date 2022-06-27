@@ -240,7 +240,7 @@ vsd_coldata <- colData(vsd)
 
 ```{r}
 dds_epithelial <- estimateSizeFactors(dds_epithelial)
-print(dds_epithelial)
+dds_epithelial
 ```
 ## Sample Distances
 
@@ -365,7 +365,6 @@ theme.my.own <- list(theme_bw() ,
                           color = Sample_Name,
                           label = Sample_Name)) +
         xlab(paste0("PC1: ", percentVar_epithelial[1], "% variance")) +
-   
         ylab(paste0("PC2: ", percentVar_epithelial[2], "% variance")) +
         ggtitle("PCA Plot - High Vs Low Inducer") +
         scale_colour_manual(values = color_values) +
@@ -394,8 +393,9 @@ savingFunction(PCAplot_MC, "microcolonies")
 ```
 ### PCA for Clinical Outcome
 ```{r}
-PCAdata_epithelial_CO <- plotPCA(vsd, intgroup = c("Sample_Name", 
-                                                   "clinical_outcome"), 
+PCAdata_epithelial_CO <- plotPCA(vsd, 
+                                 intgroup = c("Sample_Name",
+                                              "clinical_outcome"), 
                                  returnData = TRUE)
 percentVar_epithelial_CO <- percentvar_calculation(PCAdata_epithelial_CO)
 ```
@@ -403,7 +403,7 @@ percentVar_epithelial_CO <- percentvar_calculation(PCAdata_epithelial_CO)
 (PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
                      aes(x = PC1, y = PC2,
                          color = clinical_outcome,
-                         label= Sample_Name)) +
+                         label = Sample_Name)) +
         xlab(paste0("PC1: ", percentVar_epithelial_CO[1], "% variance")) +
         ylab(paste0("PC2: ", percentVar_epithelial_CO[2], "% variance")) +
         ggtitle("PCA Plot - High Vs Low Inducer - Clinical Outcome") +
@@ -420,7 +420,7 @@ percentVar_epithelial_ERMC <- percentvar_calculation(PCAdata_epithelial_ERMC)
 (PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
                        aes(x = PC1, y = PC2,
                            color = ER_microcolonies,
-                           label= Sample_Name)) +
+                           label = Sample_Name)) +
         xlab(paste0("PC1: ", percentVar_epithelial_ERMC[1], "% variance")) +
         ylab(paste0("PC2: ", percentVar_epithelial_ERMC[2], "% variance")) +
         ggtitle("PCA Plot - High Vs Low Inducer - ER_Microcolonies") +
@@ -1085,6 +1085,147 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epith
 
 ############### Untested and incomplete code for evverything down below ############################
 
+
+## Gene Ontology - Alex Soupir
+
+```{r}
+selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
+selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
+```
+
+```{r}
+UniverseGenes = unique(sigsdf_epithelial$entrez)
+cutOff = 0.01 # setting the cutoff at 1%
+```
+
+```{r}
+upParams = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+downParams = new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+```
+```{r}
+upBP = hyperGTest(upParams)
+summary(upBP)
+```
+
+```{r}
+downBP = hyperGTest(downParams)
+summary(downBP)
+```
+
+## Pathway Analysis
+
+### GO Pathways
+
+```{r}
+foldchanges = sigsdf_epithelial$log2FoldChange
+names(foldchanges) = sigsdf_epithelial$entrez
+head(foldchanges)
+```
+Bring in 2 relevant Mm datasets from GO db
+
+```{r}
+# But isnt the mus musculus code is mmu ?
+data("go.sets.mm")
+data("go.subs.mm")
+```
+
+```{r}
+gobpsets = go.sets.mm[go.subs.mm$BP]
+gobpres = gage(exprs = foldchanges,
+               gsets = gobpsets,
+               same.dir = TRUE)
+```
+
+Look at UP regulated ones
+```{r}
+lapply(gobpres, head)
+```
+Look at down regulated ones
+```{r}
+head(gobpres$less, 20)
+```
+
+```{r}
+head(gobpres$stats, 20)
+```
+
+### KEGG Pathways
+
+
+1. The gageData package has pre-compiled databases mapping genes to KEGG pathways and GO terms for common organisms. 
+2. kegg.sets.mm is a named list. Each element is a character vector of member gene Entrez IDs for a single KEGG pathway. sigmet.idx.hs is an index of numbers of sinaling and metabolic pathways in kegg.set.gs. 
+3. In other words, KEGG pathway include other types of pathway definitions, like “Global Map” and “Human Diseases”, which may be undesirable in pathway analysis. Therefore, kegg.sets.mm[sigmet.idx.mm] gives the “cleaner” gene sets of sinaling and metabolic pathways only.
+
+The gage() function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+```{r}
+foldchanges = sigsdf_epithelial$log2FoldChange
+names(foldchanges) = sigsdf_epithelial$entrez
+head(foldchanges)
+```
+```{r}
+data(kegg.sets.mm)
+data(sigmet.idx.mm)
+kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
+```
+
+Here, I am  using same.dir = TRUE, which will give us separate lists for pathways that are upregulated versus pathways that are downregulated. Let’s look at the first few results from each.
+```{r}
+# Get the results
+keggres = gage(exprs = foldchanges, 
+               gsets = kegg.sets.mm, 
+               same.dir = TRUE)
+```
+```{r}
+# Look at both up (greater), down (less), and statatistics.
+lapply(keggres, head)
+
+```
+Now, process the results to pull out the top 20 upregulated pathways, then further process that just to get the IDs. I can use these KEGG pathway IDs downstream for plotting.
+
+```{r}
+# Get the pathways
+keggrespathways = data.frame(id = rownames(keggres$greater),
+                             keggres$greater) %>% 
+                  tbl_df() %>% 
+                  filter(row_number() <= 20) %>% 
+                  .$id %>% 
+                  as.character()
+keggrespathways
+```
+
+```{r}
+# Get the IDs.
+keggresids = substr(keggrespathways, start = 1, stop = 8)
+keggresids
+```
+
+The pathview() function in the pathview package makes the plots. The function is written below to loop through and draw plots for the top 20 pathways we created above.
+
+```{r}
+# Define plotting function for applying later
+plot_pathway = function(pid) pathview(gene.data = foldchanges, 
+                                      pathway.id = pid, 
+                                      species = "mmu", 
+                                      new.signature = FALSE)
+
+
+# plot multiple pathways (plots saved to disk and returns a throwaway list object)
+tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
+                                                pathway.id = pid, 
+                                                species = "mmu"))
+```
 
 
 
