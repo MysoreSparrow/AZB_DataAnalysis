@@ -45,6 +45,7 @@ suppressPackageStartupMessages(library('DOSE'))
 suppressPackageStartupMessages(library('enrichplot'))
 suppressPackageStartupMessages(library('ggnewscale'))
 suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("ggupset"))
 ```
 
 # Differential Gene Expression Analysis
@@ -931,7 +932,7 @@ newHP1 <- Heatmap(mat2.zs,
         use_raster = TRUE, 
         raster_quality = 5,
         )
-newHP1
+#newHP1
 ```
 
 Need to filter these results to accommodate better the heat maps and
@@ -1015,12 +1016,29 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_UPReg_Cnetplot_epithel
        height = 10,
        units = "in")
 ```
+### Upset Plot
 
-```{r fig.height=20, fig.width=10}
-#d <- godata('org.Mm.eg.db', ont="BP")
-#ego2 <- pairwise_termsim(GO_UPReg_results, method="Wang", semData = d)
-#emapplot(ego2, showCategory = 30)
+```{r fig.height= 8, fig.width=8}
+plot( upsetplot(GO_UPRegResults_epithelial))
 ```
+
+### Heatplot
+
+The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
+
+```{r fig.height= 8, fig.width=13}
+plot( heatplot(GO_UPRegResults_epithelial))
+
+```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+edox2 <- pairwise_termsim(GO_UPRegResults_epithelial)
+plot(treeplot(edox2))
+```
+
+
 
 ## GO Terms for Down Regulated Genes
 
@@ -1070,8 +1088,12 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Dotplot_epithe
        units = "in")
 ```
 
-```{r fig.height=15, fig.width=10}
-GO_DOWNReg_Cnetplot_epithelial <- plot(cnetplot(GO_DOWNRegResults_epithelial, showCategory = 13))
+```{r fig.height=25, fig.width=20}
+GO_DOWNReg_Cnetplot_epithelial <- plot(cnetplot(GO_DOWNRegResults_epithelial, 
+                                                showCategory = 13, 
+                                                circular = TRUE, 
+                                                colorEdge = TRUE
+                                                ))
 
 ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epithelial.png',
        plot = GO_DOWNReg_Cnetplot_epithelial,
@@ -1081,8 +1103,26 @@ ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_Cnetplot_epith
        units = "in")
 ```
 
+### Upset Plot
 
+The upsetplot is an alternative to cnetplot for visualizing the complex association between genes and gene sets. It emphasizes the gene overlapping among different gene sets.
 
+```{r fig.height= 8, fig.width=15}
+
+plot( upsetplot(GO_DOWNRegResults_epithelial))
+```
+
+### Heat Plot
+```{r fig.height= 20, fig.width=25}
+plot(heatplot(GO_DOWNRegResults_epithelial))
+```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+edox1 <- pairwise_termsim(GO_DOWNRegResults_epithelial)
+plot(treeplot(edox1))
+```
 ############### Untested and incomplete code for evverything down below ############################
 
 
@@ -1118,6 +1158,7 @@ downParams = new("GOHyperGParams",
 upBP = hyperGTest(upParams)
 summary(upBP)
 ```
+
 
 ```{r}
 downBP = hyperGTest(downParams)
@@ -1199,7 +1240,7 @@ Now, process the results to pull out the top 20 upregulated pathways, then furth
 keggrespathways = data.frame(id = rownames(keggres$greater),
                              keggres$greater) %>% 
                   tbl_df() %>% 
-                  filter(row_number() <= 20) %>% 
+                  filter(row_number() <= 10) %>% 
                   .$id %>% 
                   as.character()
 keggrespathways
@@ -1211,23 +1252,30 @@ keggresids = substr(keggrespathways, start = 1, stop = 8)
 keggresids
 ```
 
-The pathview() function in the pathview package makes the plots. The function is written below to loop through and draw plots for the top 20 pathways we created above.
+The pathview() function in the pathview package makes the plots. The function is written below to loop through and draw plots for the top 10 pathways we created above.
 
 ```{r}
 # Define plotting function for applying later
 plot_pathway = function(pid) pathview(gene.data = foldchanges, 
                                       pathway.id = pid, 
-                                      species = "mmu", 
+                                      species = "mouse", 
                                       new.signature = FALSE)
 
 
 # plot multiple pathways (plots saved to disk and returns a throwaway list object)
 tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
                                                 pathway.id = pid, 
-                                                species = "mmu"))
+                                                species = "mouse"))
 ```
 
 
+```{r}
+# Plot specific KEGG pathways (with fold change) 
+## pathway.id : KEGG pathway identifier
+pathview(gene.data = foldchanges, 
+         pathway.id = "04510", 
+         species = "mouse")
+```
 
 
 
