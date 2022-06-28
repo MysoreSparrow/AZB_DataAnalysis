@@ -367,7 +367,7 @@ color_values <- c("red", "red","red","red", "black","black","red","red", "red",
 theme.my.own <- list(theme_bw() ,
                       geom_point(size = 3),
                       coord_fixed() ,
-                      scale_y_continuous(breaks = seq(-10, 10, 5), sec.axis = sec_axis(~. *1)) ,
+                      scale_y_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
                       scale_x_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
                       theme_classic() ,
                       geom_hline(yintercept = 0, color = "gray", size = 1) ,
@@ -375,7 +375,7 @@ theme.my.own <- list(theme_bw() ,
                       theme(text = element_text(size = 15),
                             axis.text = element_text(size = 15),
                             legend.position = "right",
-                            aspect.ratio = 50/50) ,
+                            aspect.ratio = 1) ,
                       #geom_text(size = 4, hjust = 0, vjust = 0)
                       geom_text_repel(size = 5,min.segment.length = 0.5)
   )
@@ -755,18 +755,18 @@ p1 <- EnhancedVolcano(res3df_epithelial,
     gridlines.major = FALSE,
     gridlines.minor = FALSE,
     colAlpha = 0.5,
-    xlim = c(-6, 9),
-    ylim = c(-2, 12),
+    xlim = c(-6, 6),
+    ylim = c(0, 12),
     legendPosition = 'bottom',
     legendLabSize = 12,
     legendIconSize = 4.0,
     drawConnectors = TRUE,
     widthConnectors = 0.75
     )
-(volcano1 <- p1 + scale_y_continuous(limits = c(-1, 8),
-                                    breaks = seq(-1, 8, 1)) +
-                  scale_x_continuous(limits = c(-6, 9), 
-                                     breaks = seq(-6, 9, 1)))
+(volcano1 <- p1 + scale_y_continuous(limits = c(0, 8),
+                                    breaks = seq(0, 8, 1)) +
+                  scale_x_continuous(limits = c(-6, 6), 
+                                     breaks = seq(-6, 6, 1)))
 
 ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano1_L2fcVsPvalue.png',
        plot = volcano1,
@@ -1136,15 +1136,26 @@ saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
 3. In other words, KEGG pathway include other types of pathway definitions, like “Global Map” and “Human Diseases”, which may be undesirable in pathway analysis. Therefore, kegg.sets.mm[sigmet.idx.mm] gives the “cleaner” gene sets of sinaling and metabolic pathways only.
 
 The gage() function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+
+
+clusterProfiler requires the genes to be identified using Entrez IDs for all genes in our results dataset. We also need to remove the NA values and duplicates (due to gene ID conversion) prior to the analysis
 ```{r}
-foldchanges = sigsdf_epithelial$log2FoldChange
-names(foldchanges) = sigsdf_epithelial$entrez
+## Remove any NA values (reduces the data by quite a bit) and Remove any Entrez duplicates
+entrez <- unique(dplyr::filter(sigsdf_epithelial, entrez != "NA"))
+```
+extract and name the fold changes
+```{r}
+foldchanges <-  sigsdf_epithelial$log2FoldChange
+names(foldchanges) <-  sigsdf_epithelial$entrez
+
+## Sort fold changes in decreasing order
+foldchanges <- sort(foldchanges, decreasing = TRUE)
 head(foldchanges)
 ```
 ```{r}
 data(kegg.sets.mm)
 data(sigmet.idx.mm)
-kegg.sets.mm = kegg.sets.mm[sigmet.idx.mm]
+kegg.sets.mm <-  kegg.sets.mm[sigmet.idx.mm]
 ```
 
 Here, I am  using same.dir = TRUE, which will give us separate lists for pathways that are upregulated versus pathways that are downregulated. Let’s look at the first few results from each.
@@ -1210,6 +1221,57 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
 ```{r}
 sessionInfo()
 ```
+
+## GSEA - Gene Set Enrichment Analysis
+
+```{r}
+head(foldchanges)
+```
+
+Perform the GSEA using KEGG gene sets:
+```{r}
+library("stats")
+## GSEA using gene sets from KEGG pathways
+gseaKEGG <- gseKEGG(geneList = foldchanges, # ordered named vector of fold changes (Entrez IDs are the associated names)
+              organism = "mmu", # mmu is Mus Musculus
+              #nPerm = 1000, # default number permutations
+              minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
+              pvalueCutoff = 0.05, # padj cutoff value
+              verbose = FALSE)
+
+## Extract the GSEA results
+gseaKEGG_results <- gseaKEGG@result
+```
+How many pathways are enriched? View the enriched pathways:
+
+## Write GSEA results to file
+
+
+```{r}
+head(gseaKEGG_results)
+
+write.csv(gseaKEGG_results, "~/R/Alina_RNAseq/EpithelialResponse/gseaOE_kegg.csv")
+```
+Explore the GSEA plot of enrichment of one of the pathways in the ranked list:
+```{r fig.width=6, fig.height=6}
+## Plot the GSEA plot for a single enriched pathway, `mmu04621`
+gseaplot(gseaKEGG, geneSetID = 'mmu04621')
+```
+
+Use the Pathview R package to integrate the KEGG pathway data from clusterProfiler into pathway images:
+```{r}
+detach("package:dplyr", unload=TRUE) # first unload dplyr to avoid conflicts
+
+## Output images for a single significant KEGG pathway
+pathview(gene.data = foldchanges,
+              pathway.id = "mmu04621",
+              species = "mmu",
+              limit = list(gene = 2, # value gives the max/min limit for foldchanges
+              cpd = 1))
+```
+
+
+
 
 ############### Untested and incomplete code for evverything down below ############################
 
