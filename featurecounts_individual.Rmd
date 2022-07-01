@@ -1,0 +1,40 @@
+---
+  title: "Script to Generate Individual Count matrices"
+output:
+  html_document:
+  toc: true
+---
+```{r}
+library("Rsubread")
+library("stringr")
+library("glue")
+```
+
+```{r}
+path <- "/mnt/cbe3b976-3837-467e-801d-f641e979b935/bam/"
+```
+
+# Input for Feature counts : GTF file and .bam file
+```{r}
+# GTF File
+gtf_file <- "/mnt/cbe3b976-3837-467e-801d-f641e979b935/bam/Mus_musculus.GRCm39.106.chr.gtf"
+# Bam files
+bamFile <- list.files(path, pattern = ".*bam$")
+```
+
+```{r}
+for (f in bamFile) {
+  print(paste0("Processing file:",f))
+  # Tidying up the names
+  Sample_Name <- str_remove_all(f, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+  print(Sample_Name)
+  setwd(path)
+  fc <- featureCounts(files = f,
+                    annot.ext = gtf_file,
+                    isGTFAnnotationFile = TRUE,
+                    isPairedEnd = FALSE)
+  write.csv(fc[["counts"]], 
+            glue('/mnt/cbe3b976-3837-467e-801d-f641e979b935/bam/countmatrix/{Sample_Name}_counts.csv'))
+  
+}
+```
