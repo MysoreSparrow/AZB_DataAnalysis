@@ -1,5 +1,5 @@
 ---
-title: ' Differential Gene Expression Analysis Notebook - Epithelial_response_LowInducer_vs_HighInducer'
+title: ' Differential Gene Expression Analysis Notebook - Epithelial_response: HighInducerVsLowInducer'
 output:
   html_document: 
     toc: yes
@@ -563,7 +563,10 @@ dds1_epithelial <- DESeq(dds_epithelial)
 ### Building the results table
 
 ```{r}
-res_epithelial <- results(dds1_epithelial)
+res_epithelial <- results(dds1_epithelial,
+                          contrast = c("Epithelial_response",
+                                        "HighInducer", 
+                                        "LowInducer"))
 head(res_epithelial, 30)
 ```
 
@@ -600,8 +603,14 @@ independent filtering and outlier removal). Then, only the genes with
 ALL counts set to zero will have NA for pvalues.
 
 ```{r}
-dds2_epithelial <- DESeq(dds_epithelial, minReplicatesForReplace=Inf)
-res2_epithelial <- results(dds2_epithelial, cooksCutoff=FALSE, independentFiltering=FALSE)
+dds2_epithelial <- DESeq(dds_epithelial, minReplicatesForReplace = Inf)
+res2_epithelial <- results(dds2_epithelial, 
+                           cooksCutoff = FALSE, 
+                           independentFiltering = FALSE,
+                           contrast = c("Epithelial_response",
+                                        "HighInducer", 
+                                        "LowInducer")
+                            )
 ```
 
 ```{r}
@@ -609,8 +618,6 @@ head(res2_epithelial, 30)
 ```
 
 ### Results with thresholds
-
-Both thresholds Applied!
 
 ```{r}
 res2df_epithelial <- as.data.frame(res2_epithelial) # convert the results table to a df
@@ -915,7 +922,7 @@ DE_Genes_table_epithelial <- as.data.frame(cbind(UpGene_epithelial,DownGene_epit
 
 ```{r}
 write.csv(DE_Genes_table_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/DE_GenesTable_EpithelialResponse.csv")
-head(DE_Genes_table_epithelial, 20)
+head(DE_Genes_table_epithelial, 25)
 ```
 
 ## Z-score based Gene Heatmaps
@@ -1030,7 +1037,7 @@ head(GO_UpRegdf_epithelial)
 ```{r}
 write.csv(GO_UpRegdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/GO_UpReg_results_Epithelial.csv")
 ```
-```{r}
+```{r fig.height=10, fig.width=10}
 GO_UPReg_Barplot_epithelial <- plot(barplot(GO_UPRegResults_epithelial, showCategory = 22))
 saveplot(GO_UPReg_Barplot_epithelial, "GO_UPReg_Barplot_epithelial")
 ```
@@ -1041,14 +1048,14 @@ GO_UPReg_Dotplot_epithelial <- plot(dotplot(GO_UPRegResults_epithelial, showCate
 saveplot(GO_UPReg_Dotplot_epithelial, "GO_UPReg_Dotplot_epithelial")
 ```
 
-```{r fig.height=10, fig.width=10}
+```{r fig.height=12, fig.width=10}
 GO_UPReg_Cnetplot_epithelial <- plot(cnetplot(GO_UPRegResults_epithelial, showCategory = 13))
 
 saveplot(GO_UPReg_Cnetplot_epithelial, "GO_UPReg_Cnetplot_epithelial")
 ```
 ### Upset Plot
 
-```{r fig.height= 8, fig.width=8}
+```{r fig.height= 8, fig.width=12}
 GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_epithelial))
 saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
@@ -1057,7 +1064,7 @@ saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 
 The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
 
-```{r fig.height= 8, fig.width=13}
+```{r fig.height= 10, fig.width=13}
 GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_epithelial))
 saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
@@ -1099,7 +1106,7 @@ write.csv(GO_DOWNRegdf_epithelial,
           "~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_results_Epithelial.csv")
 ```
 
-```{r fig.height=10, fig.width=10}
+```{r}
 GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial, showCategory = 22))
 saveplot(GO_DOWNReg_Barplot_epithelial, "GO_DOWNReg_Barplot_epithelial")
 ```
@@ -1110,7 +1117,7 @@ GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial, show
 saveplot(GO_DOWNReg_Dotplot_epithelial, "GO_DOWNReg_Dotplot_epithelial")
 ```
 
-```{r fig.height=25, fig.width=20}
+```{r }
 GO_DOWNReg_Cnetplot_epithelial <- plot(cnetplot(GO_DOWNRegResults_epithelial, 
                                                 showCategory = 13, 
                                                 circular = FALSE, 
