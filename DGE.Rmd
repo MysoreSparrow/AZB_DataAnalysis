@@ -8,9 +8,6 @@ output:
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
-  pdf_document: 
-    toc: yes
-    number_sections: yes
 ---
 
 ```{r, message = FALSE, warning = FALSE}
@@ -58,7 +55,7 @@ Let's create the sample information
 
 ```{r}
 # Read the csv file and change the column name 
-sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/samples.csv")
 head(sample_ID)
 ```
 
@@ -74,7 +71,7 @@ head(coldata)
 
 ### Tidying up the names for plots later!
 
-#### First from coldata
+#### FIvCst from coldata
 
 ```{r}
 # tidying up the names od samples in both columns that list of samples
@@ -144,7 +141,7 @@ NOTE:
 ```{r}
 # Readin  countsmatrix
 #countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
-countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
+countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/newcounts.csv")
 #countsmatrix <- as.data.frame(countsmatrix)
 ```
 
@@ -160,7 +157,7 @@ countsmatrix <- as.matrix(countsmatrix)
 ```{r}
 #tidying up these names again
 #colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
-rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+rownames(countsmatrix) <- countsmatrix[,1] #converting fIvCst column of gene names into rownames, to be used for sanity check later
 # It is IMPORTANT to keep the names of the genes in the rownames
 countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
@@ -198,7 +195,7 @@ cpmvalues_d <- cpm.default(nr)
 saveplot <- function(plot,name ){
   # Function to save the plots
   ggsave(filename = 
-           glue('~/R/Alina_RNAseq/InfectedVsControl/{name}.png'),
+           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/{name}.png'),
        plot = plot,
        dpi = 300,
        width = 10,
@@ -262,7 +259,7 @@ print(dds_infected)
 ```
 ## Sample Distances
 
-useful first step in an RNA-seq analysis is often to assess overall
+useful fIvCst step in an RNA-seq analysis is often to assess overall
 similarity between samples:
 
 1.  Which samples are similar to each other, which are different?
@@ -340,7 +337,7 @@ percentvar_calculation <- function(pcaData_variable){
 savingFunction <- function(plotname, metadatacolumn){
   # Function to save the PCA plots
   ggsave(filename = 
-           glue('~/R/Alina_RNAseq/InfectedVsControl/PCAplot_InfectedVsControl_{metadatacolumn}.png'),
+           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot_IvC_{metadatacolumn}.png'),
        plot = plotname,
        dpi = 300,
        width = 10,
@@ -366,19 +363,24 @@ color_values <- c("red", "red","red","red", "black","black","red","red", "red",
 theme.my.own <- list(theme_bw() ,
                       geom_point(size = 3),
                       coord_fixed() ,
-                      xlab(paste0("PC1: ", percentVar_infected[1], "% variance")),
-                      ylab(paste0("PC2: ", percentVar_infected[2], "% variance")),
-                      scale_y_continuous(breaks = seq(-10, 10, 5), sec.axis = sec_axis(~. *1)) ,
-                      scale_x_continuous(breaks = seq(-20, 20, 5), sec.axis = sec_axis(~. *1)) ,
+                      scale_y_continuous(breaks = seq(-20, 20, 5), 
+                                         sec.axis = sec_axis(~. *1, 
+                                                             labels = NULL,
+                                                             breaks = NULL)) ,
+                      scale_x_continuous(breaks = seq(-20, 20, 5), 
+                                         sec.axis = sec_axis(~. *1, 
+                                                             labels = NULL,
+                                                             breaks = NULL)) ,
                       theme_classic() ,
                       geom_hline(yintercept = 0, color = "gray", size = 1) ,
                       geom_vline(xintercept = 0, color = "gray", size = 1) ,
                       theme(text = element_text(size = 15),
                             axis.text = element_text(size = 15),
+                            #sec.axis = element_blank(),
                             legend.position = "right",
-                            aspect.ratio = 50/50) ,
+                            aspect.ratio = 1) ,
                       #geom_text(size = 4, hjust = 0, vjust = 0)
-                      geom_text_repel(size = 5,min.segment.length = 0.01)
+                      geom_text_repel(size = 5,min.segment.length = 0.5)
   )
 
 ```
@@ -531,7 +533,7 @@ rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" packa
 ```
 
 ```{r}
-### Compute pairwise correlation values
+### Compute paIvCwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
 head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
 ```
@@ -541,8 +543,8 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 heat.colors <- brewer.pal(6, "RdYlBu")
 Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - InfectedVsControl - Correlation Matrix'
-                        #filename = '~/R/Alina_RNAseq/InfectedVsControl/Hclust_plot.tiff'
+                        main = 'HeIvCarchical Clustering of Samples - IvC - Correlation Matrix'
+                        #filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Hclust_plot.tiff'
                        )
 Hclust_plot
 ```
@@ -689,7 +691,7 @@ head(resOrdered_infected)
 
 ```{r}
 write.csv(as.data.frame(resOrdered_infected),
-          file = "~/R/Alina_RNAseq/InfectedVsControl/results_DGE_InfectedVsControl.csv")
+          file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/results_DGE_IvC.csv")
 ```
 
 ## Heatmap of count matrix
@@ -744,7 +746,7 @@ plotDispEsts(dds2_infected)
 
 ## Volcano Plots based on Enhanced Volcano
 
-```{r}
+```{r fig.height= 10, fig.width= 10}
 p1 <- EnhancedVolcano(res3df_infected,
     lab = res3df_infected$symbol,
     x = 'log2FoldChange',
@@ -752,7 +754,8 @@ p1 <- EnhancedVolcano(res3df_infected,
     xlab = bquote(~Log[2]~'FoldChange'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Pvalue',
+    title = 'DE genes: Log2FoldChange Vs -Log10 Pvalue',
+    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -765,14 +768,16 @@ p1 <- EnhancedVolcano(res3df_infected,
     legendLabSize = 12,
     legendIconSize = 4.0,
     drawConnectors = TRUE,
-    widthConnectors = 0.75
+    widthConnectors = 0.75,
+    max.overlaps = 10
     )
-(volcano1 <- p1 + scale_y_continuous(limits = c(-1, 8),
-                                    breaks = seq(-1, 8, 1)) +
-                  scale_x_continuous(limits = c(-6, 9), 
-                                     breaks = seq(-6, 9, 1)))
+(volcano1 <- p1 + scale_y_continuous(limits = c(0, 8),breaks = seq(0, 8, 1),
+                                     sec.axis = sec_axis(~. *1,labels = NULL,breaks = NULL)) +
+                  scale_x_continuous(limits = c(-4, 5),breaks = seq(-4, 5, 1),
+                                    sec.axis = sec_axis(~. *1,labels = NULL,breaks = NULL)))
 
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/Volcano2_L2fcVsPvalue.png',
+
+ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano2_L2fcVsPvalue.png',
        plot = volcano1,
        dpi = 300,
        width = 10,
@@ -782,7 +787,7 @@ ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/Volcano2_L2fcVsPvalue.png'
 
 ## volcano Plot of Log2FC vs Padj
 
-```{r}
+```{r fig.height= 10, fig.width= 10}
 p2 <- EnhancedVolcano(res3df_infected,
     lab = res3df_infected$symbol,
     x = 'log2FoldChange',
@@ -791,7 +796,8 @@ p2 <- EnhancedVolcano(res3df_infected,
     ylab = bquote(~Log[10]~'padj'),
     pCutoff = 0.05,
     FCcutoff = 1.0,
-    title = 'Volcano Plot for DE genes: Log2FoldChange Vs -Log10 Padj',
+    title = 'DE genes: Log2FoldChange Vs -Log10 Padj',
+    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
     pointSize = 2.0,
     labSize = 5.0,
     boxedLabels = FALSE,
@@ -804,15 +810,16 @@ p2 <- EnhancedVolcano(res3df_infected,
     legendLabSize = 12,
     legendIconSize = 4.0,
     drawConnectors = TRUE,
-    widthConnectors = 0.75
+    widthConnectors = 0.75,
+    max.overlaps = 10
     )
 
-(volcano2 <- p2 + scale_y_continuous(limits = c(-1, 8),
-                                    breaks = seq(-1, 8, 1)) +
-                  scale_x_continuous(limits = c(-6, 9), 
-                                     breaks = seq(-6, 9, 1)))
+(volcano2 <- p2 + scale_y_continuous(limits = c(0, 8),breaks = seq(0, 8, 1),
+                                    sec.axis = sec_axis(~. *1,labels = NULL,breaks = NULL)) +
+                  scale_x_continuous(limits = c(-4, 5),breaks = seq(-4, 5, 1),
+                                    sec.axis = sec_axis(~. *1,labels = NULL,breaks = NULL)))
 
-ggsave(filename = '~/R/Alina_RNAseq/InfectedVsControl/Volcano2_L2fcVsPadj.png',
+ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano2_L2fcVsPadj.png',
        plot = volcano2,
        dpi = 300,
        width = 10,
@@ -877,7 +884,7 @@ Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/SignificantGenes_InfectedVsControl.csv")
+write.csv(sigsdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/SignificantGenes_IvC.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
@@ -901,7 +908,7 @@ DE_Genes_table_Infected <- as.data.frame(cbind(UpGene_Infected,DownGene_Infected
 ```
 
 ```{r}
-write.csv(DE_Genes_table_Infected ,"~/R/Alina_RNAseq/InfectedVsControl/DE_GenesTable_InfectedVsControl.csv")
+write.csv(DE_Genes_table_Infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/DE_GenesTable_IvC.csv")
 head(DE_Genes_table_Infected, 20)
 ```
 
@@ -1015,7 +1022,7 @@ head(GO_UpRegdf_infected)
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_infected ,"~/R/Alina_RNAseq/InfectedVsControl/GO_UpReg_results_infected.csv")
+write.csv(GO_UpRegdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/GO_UpReg_results_infected.csv")
 ```
 ```{r}
 GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 22))
@@ -1033,7 +1040,7 @@ saveplot(GO_UPReg_Cnetplot_infected, "GO_UPReg_Cnetplot_infected")
 ```
 ### Upset Plot
 
-```{r fig.height= 8, fig.width=8}
+```{r fig.height= 6, fig.width=12}
 GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_infected))
 saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
@@ -1042,7 +1049,7 @@ saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 
 The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
 
-```{r fig.height= 8, fig.width=13}
+```{r fig.height= 12 ,fig.width=10}
 GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_infected))
 saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
@@ -1081,7 +1088,7 @@ head(GO_DOWNRegdf_infected)
 
 ```{r}
 write.csv(GO_DOWNRegdf_infected,
-          "~/R/Alina_RNAseq/InfectedVsControl/GO_DOWNReg_results_infected.csv")
+          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/GO_DOWNReg_results_infected.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
@@ -1117,7 +1124,7 @@ The upsetplot is an alternative to cnetplot for visualizing the complex associat
 ### Tree Plot of Enriched Terms
 
 ```{r fig.height= 10, fig.width=15}
-#edox1 <- pairwise_termsim(GO_DOWNRegResults_infected)
+#edox1 <- paIvCwise_termsim(GO_DOWNRegResults_infected)
 #GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
 #saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
 ```
@@ -1126,12 +1133,32 @@ The upsetplot is an alternative to cnetplot for visualizing the complex associat
 
 ### KEGG Pathways
 
+### KEGG Pathways
 
-1. The gageData package has pre-compiled databases mapping genes to KEGG pathways and GO terms for common organisms. 
-2. kegg.sets.mm is a named list. Each element is a character vector of member gene Entrez IDs for a single KEGG pathway. sigmet.idx.hs is an index of numbers of sinaling and metabolic pathways in kegg.set.gs. 
-3. In other words, KEGG pathway include other types of pathway definitions, like “Global Map” and “Human Diseases”, which may be undesirable in pathway analysis. Therefore, kegg.sets.mm[sigmet.idx.mm] gives the “cleaner” gene sets of sinaling and metabolic pathways only.
+1.  The gageData package has pre-compiled databases mapping genes to
+    KEGG pathways and GO terms for common organisms.
+2.  kegg.sets.mm is a named list. Each element is a character vector of
+    member gene Entrez IDs for a single KEGG pathway. sigmet.idx.hs is
+    an index of numbers of sinaling and metabolic pathways in
+    kegg.set.gs.
+3.  In other words, KEGG pathway include other types of pathway
+    definitions, like "Global Map" and "Human Diseases", which may be
+    undesirable in pathway analysis. Therefore,
+    kegg.sets.mm[sigmet.idx.mm] gives the "cleaner" gene sets of
+    sinaling and metabolic pathways only.
 
-The gage() function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+The gage() function requires a named vector of fold changes, where the
+names of the values are the Entrez gene IDs.
+
+clusterProfiler requires the genes to be identified using Entrez IDs for
+all genes in our results dataset. We also need to remove the NA values
+and duplicates (due to gene ID conversion) prior to the analysis
+
+```{r}
+## Remove any NA values (reduces the data by quite a bit) and Remove any Entrez duplicates
+sigsdf_infected_unique <- unique(dplyr::filter(sigsdf_infected, entrez != "NA"))
+```
+
 ```{r}
 foldchanges = sigsdf_infected$log2FoldChange
 names(foldchanges) = sigsdf_infected$entrez
@@ -1186,19 +1213,6 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
                                                 pathway.id = pid, 
                                                 species = "mouse"))
 ```
-![mmu04144](pathwayimages/mmu04144.pathview.png)
-![mmu04144](pathwayimages/mmu03008.pathview.png)
-![mmu04144](pathwayimages/mmu04141.pathview.png)
-![mmu04144](pathwayimages/mmu04740.pathview.png)
-![mmu04144](pathwayimages/mmu03010.pathview.png)
-
-![mmu04144](pathwayimages/mmu04622.pathview.png)
-![mmu04144](pathwayimages/mmu04744.pathview.png)
-
-![mmu04144](pathwayimages/mmu04062.pathview.png)
-![mmu04144](pathwayimages/mmu04666.pathview.png)
-
-![mmu04144](pathwayimages/mmu00190.pathview.png)
 
 ```{r}
 sessionInfo()
@@ -1207,7 +1221,7 @@ sessionInfo()
 ############### Untested and incomplete code for evverything down below ############################
 
 
-## Gene Ontology - Alex Soupir
+## Gene Ontology - Alex SoupIvC
 
 ```{r}
 selectUPGenes_entrezid = unique(sigsdf_infected_UP['entrez'] )

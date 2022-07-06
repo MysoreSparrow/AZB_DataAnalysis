@@ -8,12 +8,10 @@ output:
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
-  pdf_document: 
-    toc: yes
-    number_sections: yes
 ---
 
 ```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("dplyr"))
 suppressPackageStartupMessages(library("DESeq2"))
 suppressPackageStartupMessages(library("pheatmap"))
 suppressPackageStartupMessages(library("PoiClaClu"))
@@ -61,7 +59,7 @@ Let's create the sample information
 
 ```{r}
 # Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
-sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/samples.csv")
 head(sample_ID)
 ```
 
@@ -149,7 +147,7 @@ NOTE:
 ```{r}
 # Readin  countsmatrix
 #countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
-countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
+countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/newcounts.csv")
 #countsmatrix <- as.data.frame(countsmatrix)
 ```
 
@@ -223,7 +221,7 @@ nrow(dds_epithelial)
 saveplot <- function(plot,name ){
   # Function to save the plots
   ggsave(filename = 
-           glue('~/R/Alina_RNAseq/EpithelialResponse/{name}.png'),
+           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/{name}.png'),
        plot = plot,
        dpi = 300,
        width = 10,
@@ -259,7 +257,7 @@ nrow(dds_epithelial)
 
 ```{r}
 vsd <- vst(dds_epithelial, blind = FALSE)
-head(assay(vsd), 3)
+#head(assay(vsd), 3)
 colData(vsd)
 vsd_coldata <- colData(vsd)
 ```
@@ -356,7 +354,7 @@ percentvar_calculation <- function(pcaData_variable){
 savingFunction <- function(plotname, metadatacolumn){
   # Function to save the PCA plots
   ggsave(filename = 
-           glue('~/R/Alina_RNAseq/EpithelialResponse/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
+           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
        plot = plotname,
        dpi = 300,
        width = 10,
@@ -426,9 +424,7 @@ savingFunction(PCAplot_vst, "Epithelial_response")
 ```{r}
 PCAdata_epithelial_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
 percentVar_epithelial_MC <- percentvar_calculation(PCAdata_epithelial_MC)
-```
 
-```{r}
 (PCAplot_MC <- ggplot(PCAdata_epithelial_MC,
                      aes(x = PC1, y = PC2,
                          color = microcolonies,
@@ -448,9 +444,7 @@ PCAdata_epithelial_CO <- plotPCA(vsd,
                                  intgroup = c("Sample_Name", "clinical_outcome"), 
                                  returnData = TRUE)
 percentVar_epithelial_CO <- percentvar_calculation(PCAdata_epithelial_CO)
-```
 
-```{r}
 (PCAplot_CO <- ggplot(PCAdata_epithelial_CO,
                      aes(x = PC1, y = PC2,
                          color = clinical_outcome,
@@ -468,9 +462,7 @@ savingFunction(PCAplot_CO, "clinical_outcome")
 ```{r}
 PCAdata_epithelial_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
 percentVar_epithelial_ERMC <- percentvar_calculation(PCAdata_epithelial_ERMC)
-```
 
-```{r}
 (PCAplot_ERMC <- ggplot(PCAdata_epithelial_ERMC,
                        aes(x = PC1, y = PC2,
                            color = ER_microcolonies,
@@ -490,9 +482,7 @@ PCAdata_epithelial_PL <- plotPCA(vsd, intgroup = c("Sample_Name",
                                                    "phylogenomic_lineage"), 
                                  returnData = TRUE)
 percentVar_epithelial_PL <- percentvar_calculation(PCAdata_epithelial_PL)
-```
 
-```{r}
 (PCAplot_PL <- ggplot(PCAdata_epithelial_PL,
                        aes(x = PC1, y = PC2,
                            color = phylogenomic_lineage,
@@ -510,9 +500,7 @@ savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```{r}
 PCAdata_epithelial_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
 percentVar_epithelial_PG <- percentvar_calculation(PCAdata_epithelial_PG)
-```
 
-```{r}
 (PCAplot_PG <- ggplot(PCAdata_epithelial_PG,
                      aes(x = PC1, y = PC2,
                          color = phylogroup,
@@ -531,9 +519,7 @@ savingFunction(PCAplot_PG, "phylogroup")
 PCAdata_epithelial_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
 head(PCAdata_epithelial_IT)
 percentVar_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"), digits = 4)
-```
 
-```{r}
 (PCAplot_IT <- ggplot(PCAdata_epithelial_IT,
                      aes(x = PC1, y = PC2,
                          color = Intimin_Type,
@@ -571,8 +557,8 @@ head(rld_cor)   ## check the output of cor(), make note of the rownames and coln
 heat.colors <- brewer.pal(6, "RdYlBu")
 (Hclust_plot <- pheatmap(rld_cor, 
                         color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - EpithelialResponse - Correlation Matrix'
-                        #filename = '~/R/Alina_RNAseq/EpithelialResponse/Hclust_plot.tiff'
+                        main = 'Heirarchical Clustering of Samples - ER - Correlation Matrix'
+                        #filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/Hclust_plot.tiff'
                        ))
 #Hclust_plot
 ```
@@ -657,18 +643,13 @@ head(res2df_epithelial)
 ## MA Plot
 
 ```{r}
-resultsNames(dds2_epithelial)
-```
-
-```{r}
 plotMA_res2_epithelial <- plotMA(res2_epithelial, ylim = c(-2, 2))
 ```
 
 ```{r}
-res3_epithelial <- lfcShrink(dds2_epithelial, 
-                             coef = "Epithelial_response_LowInducer_vs_HighInducer", 
-                             type = "apeglm")
-plotMA_res3 <- plotMA(res3_epithelial, ylim = c(-2, 2))
+#res3_epithelial <- lfcShrink(dds2_epithelial,coef = "Epithelial_response_HighInducer_vs_LowInducer",
+#type = "apeglm")
+#plotMA_res3 <- plotMA(res3_epithelial, ylim = c(-2, 2))
 ```
 
 ### Histogram of p-values
@@ -707,7 +688,6 @@ head(res2df_epithelial)
 ```
 
 ```{r}
-str(res2df_epithelial)
 nrow(res2df_epithelial)
 ```
 
@@ -730,7 +710,7 @@ head(resOrdered_epithelial)
 
 ```{r}
 write.csv(as.data.frame(resOrdered_epithelial),
-          file = "~/R/Alina_RNAseq/EpithelialResponse/results_DGE_EpithelialResponse.csv")
+          file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/results_DGE_ER.csv")
 ```
 
 ## Heatmap of count matrix
@@ -745,11 +725,11 @@ df <- as.data.frame(colData(dds2_epithelial)[,c("Epithelial_response","Sample_Na
 ```
 
 ```{r}
-pheatmap(assay(vsd)[select,], 
-         cluster_cols = TRUE, 
-         annotation_col = df,
-         color = heat.colors,
-         show_rownames = FALSE)
+Heatmap(assay(vsd)[select,], 
+         cluster_columns = TRUE, 
+        #row_labels = 
+         #annotation_col = df,
+         color = heat.colors)
 ```
 
 ## Effect of Transformations on Variance
@@ -822,7 +802,7 @@ p1 <- EnhancedVolcano(res3df_epithelial,
                                                         labels = NULL,
                                                         breaks = NULL)))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano1_L2fcVsPvalue.png',
+ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/Volcano1_L2fcVsPvalue.png',
        plot = volcano1,
        dpi = 300,
        width = 10,
@@ -868,16 +848,12 @@ p2 <- EnhancedVolcano(res3df_epithelial,
                                                         labels = NULL,
                                                         breaks = NULL)))
 
-ggsave(filename = '~/R/Alina_RNAseq/EpithelialResponse/Volcano2_L2fcVsPadj.png',
+ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/Volcano2_L2fcVsPadj.png',
        plot = volcano2,
        dpi = 300,
        width = 10,
        height = 10,
        units = "in")
-```
-
-```{r}
-
 ```
 
 ## Significant Differentially Expressed Genes
@@ -896,7 +872,7 @@ res3df_epithelial$delabel <- NA
 res3df_epithelial$delabel[res3df_epithelial$diffexpressed != "NS"] <- res3df_epithelial$symbol[res3df_epithelial$diffexpressed != "NS"]
 ```
 
-Arrive at relevant genes by imposing thresholds.
+### Arrive at relevant genes by imposing thresholds.
 
 ```{r}
 sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange) > 1) & (res3df_epithelial$pvalue < 0.05),]
@@ -905,11 +881,6 @@ sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange) > 
 ```{r}
 nrow(sigsdf_epithelial)
 ```
-
-```{r}
-summary(res3df_epithelial)
-```
-
 ### Gender Genes Removed from Table
 
 ```{r}
@@ -928,7 +899,7 @@ Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/SignificantGenes_EpithelialResponse.csv")
+write.csv(sigsdf_epithelial ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/SignificantGenes_ER.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
@@ -952,7 +923,7 @@ DE_Genes_table_epithelial <- as.data.frame(cbind(UpGene_epithelial,DownGene_epit
 ```
 
 ```{r}
-write.csv(DE_Genes_table_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/DE_GenesTable_EpithelialResponse.csv")
+write.csv(DE_Genes_table_epithelial ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/DEGenesTable_ER.csv")
 head(DE_Genes_table_epithelial, 25)
 ```
 
@@ -1015,8 +986,7 @@ LongHeatMap_Allgenes <- Heatmap(mat2.zs,
 #saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
 ```
 
-Need to filter these results to accommodate better the heat maps and
-also volcano plots
+Need to filter these results to accommodate better the heat maps and also volcano plots
 
 ### with tighter constraints (all genes together!)
 
@@ -1062,7 +1032,7 @@ head(GO_UpRegdf_epithelial)
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_epithelial ,"~/R/Alina_RNAseq/EpithelialResponse/GO_UpReg_results_Epithelial.csv")
+write.csv(GO_UpRegdf_epithelial ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/GO_UpReg_results_Epithelial.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
@@ -1076,7 +1046,7 @@ GO_UPReg_Dotplot_epithelial <- plot(dotplot(GO_UPRegResults_epithelial, showCate
 saveplot(GO_UPReg_Dotplot_epithelial, "GO_UPReg_Dotplot_epithelial")
 ```
 
-```{r fig.height=12, fig.width=10}
+```{r fig.height=12, fig.width=12}
 GO_UPReg_Cnetplot_epithelial <- plot(cnetplot(GO_UPRegResults_epithelial, showCategory = 13))
 
 saveplot(GO_UPReg_Cnetplot_epithelial, "GO_UPReg_Cnetplot_epithelial")
@@ -1133,16 +1103,16 @@ head(GO_DOWNRegdf_epithelial)
 
 ```{r}
 write.csv(GO_DOWNRegdf_epithelial,
-          "~/R/Alina_RNAseq/EpithelialResponse/GO_DOWNReg_results_Epithelial.csv")
+          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/GO_DOWNReg_results_Epithelial.csv")
 ```
 
 ```{r}
-GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial, showCategory = 22))
+GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial))
 saveplot(GO_DOWNReg_Barplot_epithelial, "GO_DOWNReg_Barplot_epithelial")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial, showCategory = 23))
+GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial))
 
 saveplot(GO_DOWNReg_Dotplot_epithelial, "GO_DOWNReg_Dotplot_epithelial")
 ```
@@ -1163,21 +1133,21 @@ The upsetplot is an alternative to cnetplot for visualizing the complex
 association between genes and gene sets. It emphasizes the gene
 overlapping among different gene sets.
 
-```{r fig.height= 8, fig.width=15}
+```{r}
 GO_DOWNReg_Upsetplot <- plot( upsetplot(GO_DOWNRegResults_epithelial))
 saveplot(GO_DOWNReg_Upsetplot, "GO_DOWNReg_Upsetplot")
 ```
 
 ### Heat Plot
 
-```{r fig.height= 20, fig.width=25}
+```{r}
 GO_DOWNReg_Heatplot <- plot(heatplot(GO_DOWNRegResults_epithelial))
 saveplot(GO_DOWNReg_Heatplot, "GO_DOWNReg_Heatplot")
 ```
 
 ### Tree Plot of Enriched Terms
 
-```{r fig.height= 10, fig.width=15}
+```{r}
 edox1 <- pairwise_termsim(GO_DOWNRegResults_epithelial)
 #GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
 #saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
@@ -1208,14 +1178,14 @@ and duplicates (due to gene ID conversion) prior to the analysis
 
 ```{r}
 ## Remove any NA values (reduces the data by quite a bit) and Remove any Entrez duplicates
-entreztable <- unique(dplyr::filter(sigsdf_epithelial, entrez != "NA"))
+sigsdf_epithelial_unique <- unique(dplyr::filter(sigsdf_epithelial, entrez != "NA"))
 ```
 
 extract and name the fold changes
 
 ```{r}
 foldchanges <-  sigsdf_epithelial$log2FoldChange
-names(foldchanges) <-  sigsdf_epithelial$entreztable
+names(foldchanges) <-  sigsdf_epithelial$entrez
 
 ## Sort fold changes in decreasing order
 foldchanges <- sort(foldchanges, decreasing = TRUE)
@@ -1251,7 +1221,7 @@ pathway IDs downstream for plotting.
 
 ```{r}
 # Get the pathways
-# Get the pathways
+
 keggrespathways = data.frame(id = rownames(keggres$greater),
                              keggres$greater) %>% 
                   tibble::as_tibble() %>% 
@@ -1272,6 +1242,7 @@ function is written below to loop through and draw plots for the top 10
 pathways we created above.
 
 ```{r}
+library("pathview")
 # Define plotting function for applying later
 plot_pathway = function(pid) pathview(gene.data = foldchanges, 
                                       pathway.id = pid, 
@@ -1284,20 +1255,6 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
                                                 pathway.id = pid, 
                                                 species = "mouse"))
 ```
-
-![mmu04144](pathwayimages/mmu04144.pathview.png)
-![mmu04144](pathwayimages/mmu03008.pathview.png)
-![mmu04144](pathwayimages/mmu04270.pathview.png)
-
-![mmu04144](pathwayimages/mmu04810.pathview.png)
-
-![mmu04144](pathwayimages/mmu04610.pathview.png)
-
-![mmu04144](pathwayimages/mmu04020.pathview.png)
-![mmu04144](pathwayimages/mmu04640.pathview.png)
-
-![mmu04144](pathwayimages/mmu04514.pathview.png)
-![mmu04144](pathwayimages/mmu04062.pathview.png)
 
 ```{r}
 sessionInfo()
@@ -1312,17 +1269,17 @@ head(foldchanges)
 Perform the GSEA using KEGG gene sets:
 
 ```{r}
-library("stats")
-## GSEA using gene sets from KEGG pathways
-gseaKEGG <- gseKEGG(geneList = foldchanges, # ordered named vector of fold changes (Entrez IDs are the associated names)
-              organism = "mmu", # mmu is Mus Musculus
-              #nPerm = 1000, # default number permutations
-              minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
-              pvalueCutoff = 0.05, # padj cutoff value
-              verbose = T)
+# library("stats")
+# ## GSEA using gene sets from KEGG pathways
+# gseaKEGG <- gseKEGG(geneList = foldchanges, # ordered named vector of fold changes (Entrez IDs are the associated names)
+#               organism = "mmu", # mmu is Mus Musculus
+#               #nPerm = 1000, # default number permutations
+#               minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
+#               pvalueCutoff = 0.05, # padj cutoff value
+#               verbose = T)
 
 ## Extract the GSEA results
-gseaKEGG_results <- gseaKEGG@result
+#gseaKEGG_results <- gseaKEGG@result
 ```
 
 How many pathways are enriched? View the enriched pathways:
@@ -1330,9 +1287,9 @@ How many pathways are enriched? View the enriched pathways:
 ## Write GSEA results to file
 
 ```{r}
-head(gseaKEGG_results)
-
-write.csv(gseaKEGG_results, "~/R/Alina_RNAseq/EpithelialResponse/gseaOE_kegg.csv")
+# head(gseaKEGG_results)
+# 
+# write.csv(gseaKEGG_results, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/gseaOE_kegg.csv")
 ```
 
 Explore the GSEA plot of enrichment of one of the pathways in the ranked
@@ -1340,31 +1297,21 @@ list:
 
 ```{r fig.width=10, fig.height=6}
 ## Plot the GSEA plot for a single enriched pathway, `mmu04621`
-gseaplot(gseaKEGG, geneSetID = 'mmu04621')
+#gseaplot(gseaKEGG, geneSetID = 'mmu04621')
 ```
 
 Use the Pathview R package to integrate the KEGG pathway data from
 clusterProfiler into pathway images:
 
 ```{r}
-detach("package:dplyr", unload = TRUE) # first unload dplyr to avoid conflicts
-
-## Output images for a single significant KEGG pathway
-pathview(gene.data = foldchanges,
-              pathway.id = "mmu04621",
-              species = "mmu",
-              limit = list(gene = 2, # value gives the max/min limit for foldchanges
-              cpd = 1))
-```
-
-# Signaling Pathway Impact Analysis
-
-```{r}
-head(foldchanges,15)
-```
-
-```{r}
-
+# detach("package:dplyr", unload = TRUE) # first unload dplyr to avoid conflicts
+# 
+# ## Output images for a single significant KEGG pathway
+# pathview(gene.data = foldchanges,
+#               pathway.id = "mmu04621",
+#               species = "mmu",
+#               limit = list(gene = 2, # value gives the max/min limit for foldchanges
+#               cpd = 1))
 ```
 
 # Gene Ontology - Hyper Geometric Test
@@ -1405,3 +1352,74 @@ summary(upBP)
 downBP = hyperGTest(downParams)
 summary(downBP)
 ```
+```{r}
+
+upParams1 = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "under")
+downParams1= new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "under")
+```
+
+
+```{r}
+downBP_under = hyperGTest(downParams1)
+summary(downBP_under)
+```
+```{r}
+
+upBP_under = hyperGTest(upParams1)
+summary(upBP_under)
+```
+
+# Signaling Pathway Impact Analysis
+
+```{r}
+foldchanges_vector <- as.vector(foldchanges)
+```
+
+```{r}
+selectGenes_entrezid <- as.character(UniverseGenes)
+```
+```{r}
+#spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
+```
+
+The analysis with SPIA requires the conversion of gene-gene networks in a suitable format.
+This conversion is performed by the function prepareSPIA that must be executed before the
+analysis command runSPIA. The SPIA data will be saved in the current working directory;
+every time you change it, you should also re-run prepareSPIA. Edges not included in SPIA
+have been coerced into the admitted SPIA types. Metabolite mediated interactions (edges of
+propagation through metabolites) annotated in graphite with the "indirect" type are mapped
+into the SPIA edge type "indirect effect". For more details see the SPIA package [5, 6, 4].
+
+```{r}
+
+library(SPIA)
+data(colorectalcancer)
+library(hgu133plus2.db)
+
+```
+
+```{r}
+top$ENTREZ <- mapIds(hgu133plus2.db, top$ID, "ENTREZID", "PROBEID", multiVals = "first")
+top <- top[!is.na(top$ENTREZ) & !duplicated(top$ENTREZ), ]
+top$ENTREZ <- paste("ENTREZID", top$ENTREZ, sep = ":")
+tg1 <- top[top$adj.P.Val < 0.05, ]
+DE_Colorectal = tg1$logFC
+names(DE_Colorectal) <- tg1$ENTREZ
+ALL_Colorectal <- top$ENTREZ
+
+```
+
+
+
