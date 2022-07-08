@@ -393,7 +393,6 @@ theme.my.own <- list(theme_bw() ,
                       geom_vline(xintercept = 0, color = "gray", size = 1) ,
                       theme(text = element_text(size = 15),
                             axis.text = element_text(size = 15),
-                            #sec.axis = element_blank(),
                             legend.position = "right",
                             aspect.ratio = 1) ,
                       #geom_text(size = 4, hjust = 0, vjust = 0)
@@ -415,6 +414,52 @@ theme.my.own <- list(theme_bw() ,
         theme.my.own )
 
 savingFunction(PCAplot_vst, "Epithelial_response")
+```
+### Trial PCA plots
+
+```{r}
+# the contribution to the total variance for each component
+percentVar_epithelial1 <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
+summary(pca_epithelial)
+```
+
+```{r}
+# we can use sdev to compute variance explained by each Principal Component.
+
+var_explained <- pca_epithelial$sdev^2/sum(pca_epithelial$sdev^2)
+var_explained
+```
+
+trialcode 2
+```{r}
+(PCAplot_vst <- ggplot(pca_df,
+                      aes(x = PC3,
+                          y = PC4)) +
+        xlab(paste0("PC3: ", percentVar_epithelial[3], "% variance")) +
+        ylab(paste0("PC4: ", percentVar_epithelial[4], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer") +
+        scale_colour_manual(values = color_values) +
+   geom_point()
+         )
+
+```
+
+
+trial code1
+```{r}
+pca_df <- as.data.frame(pca_epithelial$x )
+pca_df <- rownames_to_column(pca_df)
+# Change colname of one column
+colnames(pca_df)[colnames(pca_df) == "rowname"] <- "samplename"
+
+  ggplot(pca_df, aes(x = PC3,y = PC4, label = samplename)) + 
+  geom_point( size = 2) +
+  geom_point(aes(color = samplename),size = 3) +
+  coord_fixed() + 
+  theme_bw() + 
+  labs(x = paste0("PC3: ",round(var_explained[3]*100,3),"%"),
+       y = paste0("PC4: ",round(var_explained[4]*100,3),"%")
+       ) #+scale_colour_manual(values = color_values) 
 ```
 
 ## PCA Plot for different groupings of metadata
