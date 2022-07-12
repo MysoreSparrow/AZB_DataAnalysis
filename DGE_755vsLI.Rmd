@@ -1,0 +1,1390 @@
+---
+title: 'DGE Analysis Notebook - 755 vs LI'
+output:
+  html_document: 
+    toc: yes
+    fig_width: 10
+    fig_height: 12
+    fig_caption: yes
+    number_sections: yes
+    toc_depth: 4
+  pdf_document: 
+    toc: yes
+    number_sections: yes
+---
+
+```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("ggupset"))
+suppressPackageStartupMessages(library("SPIA"))
+suppressPackageStartupMessages(library("stats"))
+```
+
+# Differential Gene Expression Analysis
+
+## Creating metadata for the DGE Analysis
+
+DESeq2 needs sample information (metadata) for performing DGE analysis.
+Let's create the sample information
+
+```{r}
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
+sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+head(sample_ID)
+```
+
+```{r}
+condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "control", "control")
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+# The metadata can be found in a df called coldata!
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+#### First from coldata
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+#coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+                                  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
+coldata$condition <- as.factor(coldata$condition)
+```
+
+### Changing the names of samples (as per Alina)
+
+```{r}
+coldata[coldata == '476_R1'] <- 'T'
+coldata[coldata == '754_R1'] <- 'S54'
+coldata[coldata == '755_R1'] <- 'S55'
+coldata[coldata == '757_R1'] <- 'L57'
+coldata[coldata == '758_R1'] <- 'A58'
+coldata[coldata == '760_R1'] <- 'L60'
+coldata[coldata == '761_R1'] <- 'S61'
+coldata[coldata == '762_R1'] <- 'A62'
+coldata[coldata == '763_R1'] <- 'L63'
+coldata[coldata == '764_R1'] <- 'A64'
+coldata[coldata == '765_R1'] <- 'S65'
+coldata[coldata == '766_R1'] <- 'L66'
+coldata[coldata == '768_R1'] <- 'A68'
+coldata[coldata == '769_R1'] <- 'L69'
+coldata[coldata == 'Ctrl1_R1'] <- 'C1'
+coldata[coldata == 'Ctrl2_R2'] <- 'C2'
+# convert column1 with sample names to row.names of coldata
+rownames(coldata) <- coldata$Sample_Name
+coldata
+```
+
+## Adding the groupings by Alina for further Metadata Information
+
+```{r}
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
+                                  "HighInducer", "LowInducer", "LowInducer",
+                                  "HighInducer", "HighInducer", "LowInducer",
+                                  "HighInducer", "LowInducer", "HighInducer",
+                                  "LowInducer", "LowInducer", 'NR', 'NR')
+coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
+                              'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
+coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
+                           'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
+                           'Low', 'NR', 'NR')
+coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+                              "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+                              "LI_LM", "LI_LM", 'NR', 'NR')
+coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+                                  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+                                  "EPEC2", "EPEC2", 'NR', 'NR')
+coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+                        "B2", "B1", "B2", 'NR', 'NR')
+coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+                          "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+                          "beta", 'NR', 'NR')
+```
+
+#### then fix Countsmatrix:
+
+NOTE:
+
+1.  From the manuals the countsData must be a numeric matrix
+2.  It is IMPORTANT to keep the names of the genes in the rownames
+
+```{r}
+# Readin  countsmatrix
+#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
+#countsmatrix <- as.data.frame(countsmatrix)
+```
+
+```{r}
+## Removal of Gender Genes from ENSEMBL ID itself
+countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
+                                  countsmatrix$X != "ENSMUSG00000097571",
+                                  countsmatrix$X != "ENSMUSG00000086370",
+                                  countsmatrix$X != "ENSMUSG00000031329")
+nrow(countsmatrix)
+countsmatrix <- as.matrix(countsmatrix)
+```
+
+```{r}
+#tidying up these names again
+#colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# It is IMPORTANT to keep the names of the genes in the rownames
+countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
+# the elements from Sample_Name from coldata must the the colnames of countsmatrix
+colnames(countsmatrix) <- coldata$Sample_Name
+# Display the column names
+colnames(countsmatrix)
+# Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
+class(countsmatrix) <- "numeric"
+```
+
+# Calculating CPM Values
+
+```{r}
+# as DGEList
+dge_755a <- DGEList(counts = countsmatrix)
+
+dim(dge_755a)
+colnames(dge_755a)
+#dge_er$samples
+
+## calculate norm. factors
+nr <- calcNormFactors(dge_755a)
+
+## get normalized counts
+cpmvalues <- cpm(nr)
+cpmvalues_d <- cpm.default(nr)
+```
+
+# Differential Gene Expression analysis using DESeq2
+
+Now, construct DESeqDataSet for DGE analysis.
+
+But before that, a sanity check : It is essential to have the name of
+the columns in the count matrix in the same order as that in name of the
+samples (rownames in coldata).
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+ncol(countsmatrix) == nrow(coldata)
+dim(countsmatrix)
+```
+
+## Creating the DESeq Data set Object
+
+```{r}
+dds_755a <- DESeqDataSetFromMatrix(countData = countsmatrix,
+                              colData = coldata, 
+                              design = ~ ER_microcolonies)
+nrow(dds_755a)
+```
+
+```{r}
+# Function to save generic plots
+saveplot <- function(plot,name ){
+  # Function to save the plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/755vsLI/{name}.png'),
+       plot = plot,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
+
+## Exploratory Data Analysis and Visualization
+
+### Pre-filtering the dataset
+
+Our count matrix with our DESeqDataSet contains many rows with only
+zeros, and additionally many rows with only a few fragments total. In
+order to reduce the size of the object, and to increase the speed of our
+functions, we can remove the rows that have no or nearly no information
+about the amount of gene expression.
+
+Applying the most minimal filtering rule: removing rows of the
+DESeqDataSet that have no counts, or only a single count across all
+samples. Additional weighting/filtering to improve power is applied at a
+later step in the workflow.
+
+```{r}
+keep <- rowSums(counts(dds_755a)) > 1
+dds_755a <- dds_755a[keep,]
+nrow(dds_755a)
+```
+
+### The variance stabilizing transformation
+
+## Applying VST transformation
+
+```{r}
+vsd <- vst(dds_755a, blind = FALSE)
+head(assay(vsd), 3)
+colData(vsd)
+vsd_coldata <- colData(vsd)
+```
+
+```{r}
+dds_755a <- estimateSizeFactors(dds_755a)
+dds_755a
+```
+
+## Sample Distances
+
+useful first step in an RNA-seq analysis is often to assess overall
+similarity between samples:
+
+1.  Which samples are similar to each other, which are different?
+2.  Does this fit to the expectation from the experiment's design?
+
+### Euclidean Distance between samples
+
+dist to calculate the Euclidean distance between samples - useful for
+ONLY normalized data. To ensure we have a roughly equal contribution
+from all genes, we use it on the VST data.
+
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- vsd$Sample_Name
+colnames(sampleDistMatrix) <- vsd$Sample_Name
+
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+(EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         main = "Sample-to-Sample Euclidean Distance of BL6 - 755A",
+         col = colors))
+
+```
+
+```{r}
+#saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
+```
+
+### Poisson Distance between Samples
+
+```{r}
+poisd <- PoissonDistance(t(counts(dds_755a))) # raw counts or unnormalised data
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- dds_755a$Sample_Name
+colnames(samplePoisDistMatrix) <- dds_755a$Sample_Name
+
+colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+(poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+         clustering_distance_rows = poisd$dd,
+         clustering_distance_cols = poisd$dd,
+         main = "Sample-to-Sample Poisson Distance of BL6 - 755A",
+         col = colors))
+         
+```
+
+```{r}
+#saveplot(poisson_dist_plot, "poisson_dist_plot")
+```
+
+# PCA Plot
+
+## Calculating all PCA Values
+
+```{r}
+# calculate the variance for each gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+
+# perform a PCA on the data in assay(x) for the selected genes
+pca_755a <- prcomp(t(assay(vsd)[select,]))
+summary(pca_755a)
+# the contribution to the total variance for each component
+#percentVar_755a <- (pca_755a$sdev^2 / sum( pca_755a$sdev^2 )) * 100
+#percentVar_755a
+```
+
+## PCA Plot with VST Data
+
+### Function for calculating percentvar
+
+```{r}
+percentvar_calculation <- function(pcaData_variable){
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn){
+  # Function to save the PCA plots
+  ggsave(filename = 
+           glue('~/R/Alina_RNAseq/755vsLI/PCAplot_HighVsLowInducer_{metadatacolumn}.png'),
+       plot = plotname,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+}
+```
+
+```{r}
+pcaData_755a <- plotPCA(vsd, intgroup = c("ER_microcolonies",
+                                                "Sample_Name"), 
+                              returnData = TRUE)
+percentVar_755a <- percentvar_calculation(pcaData_755a)
+```
+
+### Functions for Plot aethetics and saving PCA Plots
+
+```{r}
+color_values <- c("red", "red","red","red", "black","black","red","red", "red",
+                  "red", "red","red","red", "red", "red" ,"blue")
+
+# the basic set of common aesthetic settings for PCA plots, 
+theme.my.own <- list(theme_bw() ,
+                      geom_point(size = 3),
+                      coord_fixed() ,
+                      scale_y_continuous(breaks = seq(-20, 20, 5), 
+                                         sec.axis = sec_axis(~. *1, 
+                                                             labels = NULL,
+                                                             breaks = NULL)) ,
+                      scale_x_continuous(breaks = seq(-20, 20, 5), 
+                                         sec.axis = sec_axis(~. *1, 
+                                                             labels = NULL,
+                                                             breaks = NULL)) ,
+                      theme_classic() ,
+                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
+                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
+                      theme(text = element_text(size = 15),
+                            axis.text = element_text(size = 15),
+                            #sec.axis = element_blank(),
+                            legend.position = "right",
+                            aspect.ratio = 1) ,
+                      #geom_text(size = 4, hjust = 0, vjust = 0)
+                      geom_text_repel(size = 5,min.segment.length = 0.5)
+  )
+
+```
+
+```{r }
+(PCAplot_vst <- ggplot(pcaData_755a,
+                      aes(x = PC1,
+                          y = PC2,
+                          color = Sample_Name,
+                          label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies") +
+        scale_colour_manual(values = color_values) +
+        theme.my.own )
+
+savingFunction(PCAplot_vst, "ER_Microcolonies")
+```
+
+## PCA Plot for different groupings of metadata
+
+### PCA for Microcolonies
+
+```{r}
+PCAdata_755a_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
+percentVar_755a_MC <- percentvar_calculation(PCAdata_755a_MC)
+```
+
+```{r}
+(PCAplot_MC <- ggplot(PCAdata_755a_MC,
+                     aes(x = PC1, y = PC2,
+                         color = microcolonies,
+                         label= Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a_MC[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a_MC[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies755A - Microcolonies") +
+        theme.my.own)
+
+savingFunction(PCAplot_MC, "microcolonies")
+```
+
+### PCA for Clinical Outcome
+
+```{r}
+PCAdata_755a_CO <- plotPCA(vsd, 
+                                 intgroup = c("Sample_Name", "clinical_outcome"), 
+                                 returnData = TRUE)
+percentVar_755a_CO <- percentvar_calculation(PCAdata_755a_CO)
+```
+
+```{r}
+(PCAplot_CO <- ggplot(PCAdata_755a_CO,
+                     aes(x = PC1, y = PC2,
+                         color = clinical_outcome,
+                         label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a_CO[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a_CO[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies755A - Clinical Outcome") +
+        theme.my.own)
+
+savingFunction(PCAplot_CO, "clinical_outcome")
+```
+
+### PCA for Phylogenomic Lineage
+
+```{r}
+PCAdata_755a_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
+                                                   "phylogenomic_lineage"), 
+                                 returnData = TRUE)
+percentVar_755a_PL <- percentvar_calculation(PCAdata_755a_PL)
+```
+
+```{r}
+(PCAplot_PL <- ggplot(PCAdata_755a_PL,
+                       aes(x = PC1, y = PC2,
+                           color = phylogenomic_lineage,
+                           label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a_PL[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a_PL[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies755A - Phylogenomic Lineage") +
+        theme.my.own)
+
+savingFunction(PCAplot_PL, "phylogenomic_lineage")
+```
+
+### PCA for Phylogroup
+
+```{r}
+PCAdata_755a_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
+percentVar_755a_PG <- percentvar_calculation(PCAdata_755a_PG)
+```
+
+```{r}
+(PCAplot_PG <- ggplot(PCAdata_755a_PG,
+                     aes(x = PC1, y = PC2,
+                         color = phylogroup,
+                         label= Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a_PG[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a_PG[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies755A - Phylogroup") +
+        theme.my.own)
+
+savingFunction(PCAplot_PG, "phylogroup")
+```
+
+### PCA for Intimin Group
+
+```{r}
+PCAdata_755a_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
+head(PCAdata_755a_IT)
+percentVar_755a_IT <- round(100 * attr(PCAdata_755a_IT, "percentVar"), digits = 4)
+```
+
+```{r}
+(PCAplot_IT <- ggplot(PCAdata_755a_IT,
+                     aes(x = PC1, y = PC2,
+                         color = Intimin_Type,
+                         label = Sample_Name)) +
+        xlab(paste0("PC1: ", percentVar_755a_IT[1], "% variance")) +
+        ylab(paste0("PC2: ", percentVar_755a_IT[2], "% variance")) +
+        ggtitle("PCA Plot - ER_Microcolonies755A - Intimin type") +
+        theme.my.own)
+
+savingFunction(PCAplot_IT, "Intimin_Type")
+```
+
+## Hierarchical Clustering
+
+### applying rlog Transformation
+
+```{r}
+rld <- rlog(dds_755a, blind = FALSE)
+head(assay(rld), 3)
+```
+
+```{r}
+### Extract the rlog matrix from the object
+rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+```
+
+```{r}
+### Compute pairwise correlation values
+rld_cor <- cor(rld_mat)    ## cor() is a base R function
+head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
+```
+
+```{r}
+### Plot heatmap
+heat.colors <- brewer.pal(6, "RdYlBu")
+(Hclust_plot <- pheatmap(rld_cor, 
+                        color = heat.colors,
+                        main = 'Heirarchical Clustering of Samples - ER_Microcolonies755A - Correlation Matrix'
+                        #filename = '~/R/Alina_RNAseq/EpithelialResponse/Hclust_plot.tiff'
+                       ))
+#Hclust_plot
+```
+
+```{r}
+#saveplot(Hclust_plot, "Hclust_plot")
+```
+
+## DGE Results
+
+### Running the differential expression pipeline
+
+```{r}
+dds1_755a <- DESeq(dds_755a)
+#str(dds1)
+```
+
+### Building the results table
+
+```{r}
+res_755a <- results(dds1_755a,contrast = c("ER_microcolonies","HI_LM","LI_LM"))
+head(res_755a, 30)
+```
+
+```{r}
+summary(res_755a)
+```
+
+A Problem: there a number of rows with padj that has NA.
+
+Reaons:
+
+1.  If within a row, all samples have zero counts, the baseMean column
+    will be zero, and the log2 fold change estimates, p value and
+    adjusted p value will all be set to NA. ------\>\>\>\>\>\> checked
+    and not true!
+
+2.  If a row contains a sample with an extreme count outlier then the p
+    value and adjusted p value will be set to NA. These outlier counts
+    are detected by Cook's distance. Customization of this outlier
+    filtering and description of functionality for replacement of
+    outlier counts and refitting is described below. ------\>\>\>\>\>\>
+    checked and not true!
+
+3.  If a row is filtered by automatic independent filtering, for having
+    a low mean normalized count, then only the adjusted p value will be
+    set to NA. Description and customization of independent filtering is
+    described below. ------\>\>\>\>\>\> could be true!
+
+=====\>\>\>\>\>\> Most likely caused by automatic independent filtering
+due to the presence of low mean normalized counts.
+
+Solution: Obtain unfiltered DESeq2 results! (counts without automatic
+independent filtering and outlier removal). Then, only the genes with
+ALL counts set to zero will have NA for pvalues.
+
+```{r}
+dds2_755a <- DESeq(dds_755a, minReplicatesForReplace = Inf)
+res2_755a <- results(dds2_755a, 
+                           cooksCutoff = FALSE, 
+                           independentFiltering = FALSE,
+                           contrast = c("ER_microcolonies","HI_LM","LI_LM")
+                            )
+```
+
+```{r}
+head(res2_755a, 30)
+```
+
+### Results with thresholds
+
+```{r}
+res2df_755a <- as.data.frame(res2_755a) # convert the results table to a df
+head(res2df_755a)
+```
+
+## MA Plot
+
+```{r}
+resultsNames(dds2_755a)
+```
+
+```{r}
+plotMA_res2_755a <- plotMA(res2_755a, ylim = c(-2, 2))
+```
+
+### Histogram of p-values
+
+```{r}
+hist(res2_755a$pvalue, breaks = 50, col = "grey50", border = "blue")
+```
+
+Further Filtering: baseMean \> 1
+
+```{r}
+hist(res2_755a$pvalue[res2_755a$baseMean > 1],
+     breaks = 50, col = "grey50", border = "blue")
+```
+
+## Annotating and Exporting Results
+
+-   adding gene annotation to results table
+-   adding ENTREZ Id to results table
+
+```{r}
+res2df_755a$symbol <- mapIds(org.Mm.eg.db,
+                                   keys = rownames(dds_755a),
+                                  column = "SYMBOL",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
+res2df_755a$entrez <- mapIds(org.Mm.eg.db,
+                                   keys = rownames(dds_755a),
+                                  column = "ENTREZID",
+                                  keytype = "ENSEMBL",
+                                   multiVals = "first")
+```
+
+```{r}
+head(res2df_755a)
+```
+
+```{r}
+str(res2df_755a)
+nrow(res2df_755a)
+```
+
+Omit NA values from symbol and respective rows!
+
+```{r}
+res3df_755a <- res2df_755a %>% filter(!is.na(symbol) & !is.na(entrez))
+```
+
+```{r}
+nrow(res3df_755a)
+```
+
+## Saving the Results
+
+```{r}
+resOrdered_755a <- res3df_755a[order(res3df_755a$pvalue),]
+head(resOrdered_755a)
+```
+
+```{r}
+write.csv(as.data.frame(resOrdered_755a),
+          file = "~/R/Alina_RNAseq/755vsLI/results_DGE_EpithelialResponse.csv")
+```
+
+## Heatmap of count matrix
+
+To explore a count matrix, it is often instructive to look at it as a
+heatmap.
+
+```{r}
+select <- order(rowMeans(counts(dds2_755a,normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+df <- as.data.frame(colData(dds2_755a)[,c("ER_microcolonies","Sample_Name")])
+```
+
+```{r}
+pheatmap(assay(vsd)[select,], 
+         cluster_cols = TRUE, 
+         annotation_col = df,
+         color = heat.colors,
+         show_rownames = FALSE)
+```
+
+## Effect of Transformations on Variance
+
+-   These set of plots depict the standard deviation of transformed data
+    (across samples), against mean.
+
+### Based on Shifted Log Transformation
+
+```{r}
+ntd <- normTransform(dds2_755a)
+meanSdPlot(assay(ntd))
+```
+
+### Based on Rlog Transformation
+
+```{r}
+meanSdPlot(assay(rld))
+```
+
+### Based on Variance Stabilizing Transformation
+
+```{r}
+meanSdPlot(assay(vsd))
+```
+
+## Dispersion Plots
+
+-   Its a useful diagnostic to plot the dispersion estimates.
+
+```{r}
+plotDispEsts(dds2_755a)
+```
+
+# Volcano Plots
+
+## Volcano Plots based on Enhanced Volcano
+
+```{r fig.height= 10, fig.width= 10}
+p1 <- EnhancedVolcano(res3df_755a,
+    lab = res3df_755a$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    xlab = bquote(~Log[2]~'FoldChange'),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'DE genes: Log2FoldChange Vs -Log10 Pvalue',
+    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
+    pointSize = 2.0,
+    labSize = 5.0,
+    boxedLabels = FALSE,
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    colAlpha = 0.5,
+    legendPosition = 'bottom',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = T,
+    widthConnectors = 0.75,
+    max.overlaps = 4
+    )
+(volcano1 <- p1 + scale_y_continuous(limits = c(0, 8),
+                                    breaks = seq(0, 8, 1),
+                                    sec.axis = sec_axis(~. *1,
+                                                        labels = NULL,
+                                                        breaks = NULL)) +
+                  scale_x_continuous(limits = c(-4, 5), 
+                                     breaks = seq(-4, 5, 1),
+                                    sec.axis = sec_axis(~. *1,
+                                                        labels = NULL,
+                                                        breaks = NULL)))
+
+ggsave(filename = '~/R/Alina_RNAseq/755vsLI/Volcano1_L2fcVsPvalue.png',
+       plot = volcano1,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+```
+
+## volcano Plot of Log2FC vs Padj
+
+```{r fig.height= 10, fig.width= 10}
+p2 <- EnhancedVolcano(res3df_755a,
+    lab = res3df_755a$symbol,
+    x = 'log2FoldChange',
+    y = 'padj',
+    xlab = bquote(~Log[2]~'FoldChange'),
+    ylab = bquote(~Log[10]~'Padj'),
+    pCutoff = 0.05,
+    FCcutoff = 1.0,
+    title = 'DE genes: Log2FoldChange Vs -Log10 Padj',
+    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
+    pointSize = 2.0,
+    labSize = 5.0,
+    boxedLabels = FALSE,
+    gridlines.major = FALSE,
+    gridlines.minor = FALSE,
+    colAlpha = 0.5,
+    legendPosition = 'bottom',
+    legendLabSize = 12,
+    legendIconSize = 4.0,
+    drawConnectors = T,
+    widthConnectors = 0.75,
+    max.overlaps = 4
+    )
+
+(volcano2 <- p2 + scale_y_continuous(limits = c(0, 8),
+                                    breaks = seq(0, 8, 1),
+                                    sec.axis = sec_axis(~. *1,
+                                                        labels = NULL,
+                                                        breaks = NULL)) +
+                  scale_x_continuous(limits = c(-4, 5), 
+                                     breaks = seq(-4, 5, 1),
+                                    sec.axis = sec_axis(~. *1,
+                                                        labels = NULL,
+                                                        breaks = NULL)))
+
+ggsave(filename = '~/R/Alina_RNAseq/755vsLI/Volcano2_L2fcVsPadj.png',
+       plot = volcano2,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+```
+
+## Significant Differentially Expressed Genes
+
+```{r}
+res3df_755a$diffexpressed <- "NS"
+
+# if log2Foldchange > 1.0 and pvalue < 0.05, set as "UP"
+res3df_755a$diffexpressed[res3df_755a$log2FoldChange > 1.0 & res3df_755a$pvalue < 0.05] <- "UP"
+
+# if log2Foldchange < -1.0 and pvalue < 0.05, set as "DOWN"
+res3df_755a$diffexpressed[res3df_755a$log2FoldChange < -1.0 & res3df_755a$pvalue < 0.05] <- "DOWN"
+
+# Create a new column "delabel" to de, that will contain the name of genes differentially expressed (NA in case they are not)
+res3df_755a$delabel <- NA
+res3df_755a$delabel[res3df_755a$diffexpressed != "NS"] <- res3df_755a$symbol[res3df_755a$diffexpressed != "NS"]
+```
+
+Arrive at relevant genes by imposing thresholds.
+
+```{r}
+sigsdf_755a <- res3df_755a[(abs(res3df_755a$log2FoldChange) > 1) & (res3df_755a$pvalue < 0.05),]
+```
+
+```{r}
+nrow(sigsdf_755a)
+```
+
+```{r}
+summary(res3df_755a)
+```
+
+### Gender Genes Removed from Table
+
+```{r}
+sigsdf_755a <- filter(sigsdf_755a,
+                          symbol != "Xist",
+                          symbol != "Jpx", 
+                          symbol != "Ftx", 
+                          symbol != "Tsx",
+                          symbol != "Cnbp2" )
+
+nrow(sigsdf_755a)
+#head(sigsdf_755a)
+```
+
+Therefore, gender genes werent so much in play in terms of significance!
+
+```{r}
+
+write.csv(sigsdf_755a ,"~/R/Alina_RNAseq/755vsLI/SignificantGenes_ER_mc755A.csv")
+```
+
+### Number of Genes from different strains that are contributing to UP/DOWN regulation.
+
+```{r}
+sigsdf_755a_UP <- sigsdf_755a[(sigsdf_755a$log2FoldChange) > 1, ] #UP Regulation Table
+sigsdf_755a_DOWN <- sigsdf_755a[(sigsdf_755a$log2FoldChange) < -1, ] #DOWN Regulation Table
+```
+
+```{r}
+nrow(sigsdf_755a_UP)
+nrow(sigsdf_755a_DOWN)
+```
+
+### Determine Top20 UP Genes and Top20 DOWN Genes
+
+```{r}
+UpGene_755a <- sigsdf_755a_UP[order(-sigsdf_755a_UP$log2FoldChange), ]$symbol
+DownGene_755a <- sigsdf_755a_DOWN[order(-sigsdf_755a_DOWN$log2FoldChange), ]$symbol
+DE_Genes_table_755a <- as.data.frame(cbind(UpGene_755a,DownGene_755a)) # sorted based on highest Log2FC value
+```
+
+```{r}
+write.csv(DE_Genes_table_755a ,"~/R/Alina_RNAseq/755vsLI/DE_GenesTable_ER_mc755A.csv")
+head(DE_Genes_table_755a, 25)
+```
+
+```{r}
+head(sigsdf_755a)
+```
+
+```{r}
+# Determining the significant Genes based on Log2FC and pvalue thresholds
+sigs2df_755a <- res2df_755a[(abs(res2df_755a$log2FoldChange) > 1) &  (res2df_755a$pvalue < 0.05),]
+```
+
+## Z-score based Gene Heatmaps
+
+### with Whole table (all genes together!)
+
+```{r}
+mat <- counts(dds2_755a, normalized = TRUE)[rownames(sigsdf_755a),]
+mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
+colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
+head(mat.zs)
+```
+
+```{r}
+mat2 <- counts(dds2_755a, normalized = TRUE)[rownames(sigs2df_755a),]
+mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
+colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
+head(mat2.zs)
+#pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
+```
+
+```{r fig.height= 15, fig.width= 15}
+newHP <- Heatmap(mat2.zs, 
+        cluster_columns = TRUE, 
+        cluster_rows = TRUE, 
+        column_labels = colnames(mat2.zs),
+        name = 'DE Genes Heatmap',
+        show_row_names = FALSE, 
+        use_raster = TRUE, 
+        raster_quality = 5,
+        #width = unit(8, "in"), 
+        #height = unit(8, "in")
+        row_labels = sigs2df_755a[rownames(mat2.zs),]$symbol
+        )
+newHP
+```
+
+```{r fig.height= 140, fig.width= 10}
+LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
+        cluster_columns = TRUE, 
+        cluster_rows = TRUE, 
+        column_labels = colnames(mat2.zs),
+        row_labels = sigs2df_755a[rownames(mat2.zs),]$symbol,
+        name = 'Z-Score Heatmap of DE Genes - ER_microcolinies_755A',
+        show_row_names = TRUE, 
+        use_raster = TRUE, 
+        raster_quality = 5,
+        )
+LongHeatMap_Allgenes
+#saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
+```
+
+Need to filter these results to accommodate better the heat maps and
+also volcano plots
+
+### with tighter constraints (all genes together!)
+
+```{r}
+sigs1df_755a <- res2df_755a[(res2df_755a$baseMean > 75) & (abs(res2df_755a$log2FoldChange) > 2) & (res2df_755a$pvalue < 0.05),]
+mat1 <- counts(dds2_755a, normalized = TRUE)[rownames(sigs1df_755a),]
+mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
+colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
+head(mat1.zs)
+```
+
+```{r fig.height= 10, fig.width= 10}
+Heatmap(mat1.zs,
+        cluster_columns = TRUE,
+        cluster_rows = TRUE,
+        column_labels = colnames(mat1.zs),
+        name = 'DE Genes',
+        row_labels = sigs1df_755a[rownames(mat1.zs),]$symbol)
+```
+
+# GO Terms with clusterProfiler
+
+## GO Terms for UP Regulated Genes
+
+### GO over-representation analysis for UP Regulated Genes
+
+```{r}
+UPgene_ENS_ID <- rownames(sigsdf_755a_UP)
+
+GO_UPRegResults_755a <- enrichGO(gene = UPgene_ENS_ID,
+                                       OrgDb = "org.Mm.eg.db",
+                                       keyType = "ENSEMBL",
+                                       ont = "BP",
+                                       pAdjustMethod = "BH",
+                                       pvalueCutoff  = 0.01,
+                                       qvalueCutoff  = 0.05,
+                                       readable      = TRUE)
+```
+
+```{r}
+GO_UpRegdf_755a <- as.data.frame(GO_UPRegResults_755a)
+head(GO_UpRegdf_755a)
+```
+
+```{r}
+write.csv(GO_UpRegdf_755a ,"~/R/Alina_RNAseq/755vsLI/GO_UpReg_results_ERMC_755A.csv")
+```
+
+```{r fig.height=10, fig.width=10}
+GO_UPReg_Barplot_755a <- plot(barplot(GO_UPRegResults_755a, showCategory = 22))
+saveplot(GO_UPReg_Barplot_755a, "GO_UPReg_Barplot_755a")
+```
+
+```{r fig.height=10, fig.width=10}
+GO_UPReg_Dotplot_755a <- plot(dotplot(GO_UPRegResults_755a, showCategory = 23))
+
+saveplot(GO_UPReg_Dotplot_755a, "GO_UPReg_Dotplot_755a")
+```
+
+```{r fig.height=12, fig.width=10}
+GO_UPReg_Cnetplot_755a <- plot(cnetplot(GO_UPRegResults_755a, showCategory = 13))
+
+saveplot(GO_UPReg_Cnetplot_755a, "GO_UPReg_Cnetplot_755a")
+```
+
+### Upset Plot
+
+```{r fig.height= 8, fig.width=12}
+GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_755a))
+saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
+```
+
+### Heatplot
+
+The heatplot is similar to cnetplot, while displaying the relationships
+as a heatmap. The gene-concept network may become too complicated if
+user want to show a large number significant terms. The heatplot can
+simplify the result and more easy to identify expression patterns.
+
+```{r fig.height= 15, fig.width=15}
+GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_755a))
+saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
+```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+edox2 <- pairwise_termsim(GO_UPRegResults_755a)
+GO_UPReg_enrichtreeplot <- plot(treeplot(edox2))
+saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
+```
+
+## GO Terms for Down Regulated Genes
+
+### GO over-representation analysis for DOWN Regulated Genes
+
+```{r}
+DOWNgene_ENS_ID <- rownames(sigsdf_755a_DOWN)
+```
+
+```{r}
+GO_DOWNRegResults_755a <- enrichGO(gene = DOWNgene_ENS_ID,
+                       OrgDb = "org.Mm.eg.db",
+                       keyType = "ENSEMBL",
+                       ont = "BP",
+                       pAdjustMethod = "BH",
+                       pvalueCutoff  = 0.01,
+                       qvalueCutoff  = 0.05,
+                       readable      = TRUE
+                       )
+GO_DOWNRegdf_755a <- as.data.frame(GO_DOWNRegResults_755a)
+head(GO_DOWNRegdf_755a)
+```
+
+```{r}
+write.csv(GO_DOWNRegdf_755a,
+          "~/R/Alina_RNAseq/755vsLI/GO_DOWNReg_results_ERMC_755A.csv")
+```
+
+```{r fig.height= 10, fig.width=10}
+GO_DOWNReg_Barplot_755a <- plot(barplot(GO_DOWNRegResults_755a, showCategory = 22))
+saveplot(GO_DOWNReg_Barplot_755a, "GO_DOWNReg_Barplot_755a")
+```
+
+```{r fig.height=10, fig.width=10}
+GO_DOWNReg_Dotplot_755a <- plot(dotplot(GO_DOWNRegResults_755a, showCategory = 23))
+
+saveplot(GO_DOWNReg_Dotplot_755a, "GO_DOWNReg_Dotplot_755a")
+```
+
+```{r fig.height= 10, fig.width=10}
+GO_DOWNReg_Cnetplot_755a <- plot(cnetplot(GO_DOWNRegResults_755a, 
+                                                showCategory = 13
+                                                ))
+
+saveplot(GO_DOWNReg_Cnetplot_755a, "GO_DOWNReg_Cnetplot_755a")
+```
+
+### Upset Plot
+
+The upsetplot is an alternative to cnetplot for visualizing the complex
+association between genes and gene sets. It emphasizes the gene
+overlapping among different gene sets.
+
+```{r fig.height= 8, fig.width=15}
+GO_DOWNReg_Upsetplot <- plot( upsetplot(GO_DOWNRegResults_755a))
+saveplot(GO_DOWNReg_Upsetplot, "GO_DOWNReg_Upsetplot")
+```
+
+### Heat Plot
+
+```{r fig.height= 12, fig.width=20}
+GO_DOWNReg_Heatplot <- plot(heatplot(GO_DOWNRegResults_755a))
+saveplot(GO_DOWNReg_Heatplot, "GO_DOWNReg_Heatplot")
+```
+
+### Tree Plot of Enriched Terms
+
+```{r fig.height= 10, fig.width=15}
+edox1 <- pairwise_termsim(GO_DOWNRegResults_755a)
+GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
+saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
+```
+
+## Pathway Analysis
+
+### KEGG Pathways
+
+1.  The gageData package has pre-compiled databases mapping genes to
+    KEGG pathways and GO terms for common organisms.
+2.  kegg.sets.mm is a named list. Each element is a character vector of
+    member gene Entrez IDs for a single KEGG pathway. sigmet.idx.hs is
+    an index of numbers of sinaling and metabolic pathways in
+    kegg.set.gs.
+3.  In other words, KEGG pathway include other types of pathway
+    definitions, like "Global Map" and "Human Diseases", which may be
+    undesirable in pathway analysis. Therefore,
+    kegg.sets.mm[sigmet.idx.mm] gives the "cleaner" gene sets of
+    sinaling and metabolic pathways only.
+
+The gage() function requires a named vector of fold changes, where the
+names of the values are the Entrez gene IDs.
+
+clusterProfiler requires the genes to be identified using Entrez IDs for
+all genes in our results dataset. We also need to remove the NA values
+and duplicates (due to gene ID conversion) prior to the analysis
+
+```{r}
+## Remove any NA values (reduces the data by quite a bit) and Remove any Entrez duplicates
+entreztable <- unique(dplyr::filter(sigsdf_755a, entrez != "NA"))
+```
+
+extract and name the fold changes
+
+```{r}
+foldchanges <-  sigsdf_755a$log2FoldChange
+names(foldchanges) <-  sigsdf_755a$entrez
+
+## Sort fold changes in decreasing order
+foldchanges <- sort(foldchanges, decreasing = TRUE)
+head(foldchanges)
+```
+
+```{r}
+data(kegg.sets.mm)
+data(sigmet.idx.mm)
+kegg.sets.mm <-  kegg.sets.mm[sigmet.idx.mm]
+```
+
+Here, I am using same.dir = TRUE, which will give us separate lists for
+pathways that are upregulated versus pathways that are downregulated.
+Let's look at the first few results from each.
+
+```{r}
+# Get the results
+keggres = gage(exprs = foldchanges, 
+               gsets = kegg.sets.mm, 
+               same.dir = TRUE)
+```
+
+```{r}
+# Look at both up (greater), down (less), and statatistics.
+lapply(keggres, head)
+
+```
+
+Now, process the results to pull out the top 20 up-regulated pathways,
+then further process that just to get the IDs. I can use these KEGG
+pathway IDs downstream for plotting.
+
+```{r}
+# Get the pathways
+# Get the pathways
+keggrespathways = data.frame(id = rownames(keggres$greater),
+                             keggres$greater) %>% 
+                  tibble::as_tibble() %>% 
+                  filter(row_number() <= 10) %>% 
+                  .$id %>% 
+                  as.character()
+keggrespathways
+```
+
+```{r}
+# Get the IDs.
+keggresids = substr(keggrespathways, start = 1, stop = 8)
+keggresids
+```
+
+The pathview() function in the pathview package makes the plots. The
+function is written below to loop through and draw plots for the top 10
+pathways we created above.
+
+```{r}
+# Define plotting function for applying later
+plot_pathway = function(pid) pathview(gene.data = foldchanges, 
+                                      pathway.id = pid, 
+                                      species = "mouse", 
+                                      new.signature = FALSE)
+
+
+# plot multiple pathways (plots saved to disk and returns a throwaway list object)
+tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
+                                                pathway.id = pid, 
+                                                species = "mouse"))
+```
+## Signaling Pathway Impact Analysis
+
+Preparing different Paramters for SPIA:
+
+Note(from Vignette): The DE_Colorectal is a vector containing the log2 fold changes of the genes found to be differentially expressed between cancer and normal samples, and ALL_Colorectal is a vector with the Entrez IDs of all genes profled on the microarray. The names of the DE_Colorectal are the Entrez gene IDs corresponding to the computed log fold-changes.
+
+1. de must be a vector of log2 fold changes. The names of de should be included in the refference array!
+
+```{r}
+de_l2fc <- as.vector(res3df_755a$log2FoldChange)
+# <- res3df_755a$entrez <-
+#e_ID <- res3df_755a$entrez
+head(de_l2fc)
+```
+
+```{r}
+#de_l2fc_df <- as.data.frame(de_l2fc)
+#de_l2fc_df
+```
+
+
+```{r}
+backgroundgenes <- !is.na(sigsdf_755a$entrez)
+#backgroundgenes <- backgroundgenes[((backgroundgenes))]
+
+```
+
+```{r}
+#spia_result <- spia(de = as.vector(de_l2fc),all = backgroundgenes, organism = "mmu")
+```
+```{r}
+sessionInfo()
+```
+
+## GSEA - Gene Set Enrichment Analysis
+
+```{r}
+head(foldchanges)
+```
+
+Perform the GSEA using KEGG gene sets:
+
+```{r}
+library("stats")
+## GSEA using gene sets from KEGG pathways
+gseaKEGG <- gseKEGG(geneList = foldchanges, # ordered named vector of fold changes (Entrez IDs are the associated names)
+              organism = "mmu", # mmu is Mus Musculus
+              #nPerm = 1000, # default number permutations
+              minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
+              pvalueCutoff = 0.05, # padj cutoff value
+              verbose = T)
+
+## Extract the GSEA results
+gseaKEGG_results <- gseaKEGG@result
+```
+
+How many pathways are enriched? View the enriched pathways:
+
+## Write GSEA results to file
+
+```{r}
+head(gseaKEGG_results)
+
+write.csv(gseaKEGG_results, "~/R/Alina_RNAseq/755vsLI/gseaOE_kegg.csv")
+```
+
+Explore the GSEA plot of enrichment of one of the pathways in the ranked
+list:
+
+```{r fig.width=10, fig.height=6}
+## Plot the GSEA plot for a single enriched pathway, `mmu04621`
+gseaplot(gseaKEGG, geneSetID = 'mmu04972')
+```
+
+Use the Pathview R package to integrate the KEGG pathway data from
+clusterProfiler into pathway images:
+
+```{r}
+detach("package:dplyr", unload = TRUE) # first unload dplyr to avoid conflicts
+
+## Output images for a single significant KEGG pathway
+pathview(gene.data = foldchanges,
+              pathway.id = "mmu04972",
+              species = "mmu",
+              limit = list(gene = 2, # value gives the max/min limit for foldchanges
+              cpd = 1))
+```
+
+# Gene Ontology - Hyper Geometric Test
+
+```{r}
+selectUPGenes_entrezid = unique(sigsdf_755a_UP['entrez'] )
+selectDOWNGenes_entrezid = unique(sigsdf_755a_DOWN['entrez'] )
+```
+
+```{r}
+UniverseGenes = unique(sigsdf_755a$entrez)
+cutOff = 0.01 # setting the cutoff at 1%
+```
+
+```{r}
+upParams = new("GOHyperGParams",
+               geneIds = selectUPGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+downParams = new("GOHyperGParams",
+               geneIds = selectDOWNGenes_entrezid,
+               universeGeneIds = UniverseGenes,
+               annotation = "org.Mm.eg.db",
+               ontology = "BP",
+               pvalueCutoff = cutOff,
+               testDirection = "over")
+```
+
+```{r}
+upBP = hyperGTest(upParams)
+ubp1 <- as.data.frame(summary(upBP))
+ubp1
+```
+```{r fig.width=15, fig.height=10}
+plot(ubp1)
+```
+
+```{r}
+downBP = hyperGTest(downParams)
+
+```
+```{r}
+dbp1 <- as.data.frame(summary(downBP))
+dbp1
+```
+
+```{r fig.width=15, fig.height=10}
+plot(dbp1)
+```
+```{r}
+htmlReport(downBP, file = "downBP.html")
+```
+
