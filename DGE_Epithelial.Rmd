@@ -46,7 +46,7 @@ suppressPackageStartupMessages(library('enrichplot'))
 suppressPackageStartupMessages(library('ggnewscale'))
 suppressPackageStartupMessages(library('glue'))
 suppressPackageStartupMessages(library("ggupset"))
-suppressPackageStartupMessages(library("SPIA"))
+#suppressPackageStartupMessages(library("SPIA"))
 suppressPackageStartupMessages(library("stats"))
 ```
 
@@ -320,13 +320,210 @@ colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
 ```{r}
 #saveplot(poisson_dist_plot, "poisson_dist_plot")
 ```
+# PCA with Factoextra 
 
+```{r}
+# calculate the variance for top 500 gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+df1 <- t(assay(vsd)[select,])
+```
+
+```{r}
+library("FactoMineR")
+library("factoextra")
+```
+
+```{r}
+res.pca <- PCA(df1,  graph = TRUE, scale.unit = FALSE)
+```
+```{r}
+summary.PCA(res.pca)
+```
+```{r}
+#"summary statistics"
+stat <- res.pca$call
+stat
+```
+
+```{r}
+# Extract eigenvalues/variances
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+```
+
+```{r}
+# Visualize eigenvalues/variances
+fviz_screeplot(res.pca, addlabels = TRUE)
+```
+```{r}
+# Extract the results for variables
+var <- get_pca_var(res.pca)
+var
+```
+```{r}
+head(var$coord)
+```
+
+```{r}
+head(var$contrib)
+```
+
+```{r }
+dimdesc(res.pca, axes = 1, proba = 0.05)
+```
+
+```{r}
+head(var$cos2, 4)
+```
+
+```{r}
+# Contributions of variables to PC1
+#fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 20)
+
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
+
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
+```
+```{r}
+fviz_pca(res.pca, repel = TRUE)
+```
+
+# PCA plots with PCA explorer
+
+```{r}
+library(pcaExplorer)
+```
+
+```{r}
+# dds object would be dds_epithelial. This is already created.
+# rld object creation
+
+rld_epithelial <- rlogTransformation(dds_epithelial, blind = FALSE)
+head(assay(rld_epithelial))
+```
+
+
+```{r}
+pcaplot(rld_epithelial,intgroup = c("Epithelial_response","Sample_Name"),ntop = 500,
+        pcX = 1, pcY = 2, title = " PCA on samples - PC1 vs PC2", ellipse = TRUE)
+```
+```{r}
+pcaplot(rld_epithelial,
+        intgroup = c("Epithelial_response","Sample_Name"),
+        ntop = 500,
+        pcX = 2, pcY = 3, title = " PCA on samples - PC2 vs PC3")
+```
+
+```{r}
+(pca34 <- pcaplot(rld_epithelial,
+        intgroup = c("Epithelial_response","Sample_Name"),
+        ntop = 500,
+        pcX = 3, pcY = 4, 
+        title = " PCA on samples - PC3 vs PC4",
+        ellipse = TRUE))
+```
+
+```{r}
+pcaplot(rld_epithelial,intgroup = c("Epithelial_response","Sample_Name"),ntop = 500,
+        pcX = 1, pcY = 3, title = " PCA on samples - PC1 vs PC3", ellipse = TRUE)
+```
+
+```{r}
+pcascree(pca_epithelial,type="pev",
+         title="Proportion of explained proportion of variance")
+```
+## correlatePCs and plotPCcorrs
+
+correlatePCs and plotPCcorrs respectively compute and plot significance of the (cor)relation of each covariate versus a principal component. The input for correlatePCs is a prcomp object.
+
+```{r}
+res_epithelial <- correlatePCs(pca_epithelial,colData(dds_epithelial))
+
+res_epithelial
+```
+```{r}
+plotPCcorrs(res_epithelial)
+```
+## hi_loadings
+hi_loadings extracts and optionally plots the genes with the highest loadings.
+
+```{r}
+# extract the table of the genes with high loadings
+hi_loadings(pca_epithelial,topN = 10,exprTable = counts(dds_epithelial))
+```
+
+The annotation for this dataset can be built by exploiting the org.Mm.eg.db package.
+
+```{r}
+
+library(org.Mm.eg.db)
+genenames_epithelial <- mapIds(org.Mm.eg.db,keys = rownames(dds_epithelial),column = "SYMBOL",keytype="ENSEMBL")
+annotation_epithelial <- data.frame(gene_name = genenames_epithelial,
+                                row.names = rownames(dds_epithelial),
+                                stringsAsFactors = FALSE)
+head(annotation_epithelial) 
+#annotation_epithelial %>% select_if(~ !any(is.na(.)))
+```
+```{r}
+# or alternatively plot the values
+hi_loadings(pca_epithelial,topN = 15,annotation = annotation_epithelial)
+```
+```{r}
+fviz_pca(res.pca, repel = TRUE)
+```
+## genespca
+
+genespca computes and plots the principal components of the genes, eventually displaying the samples as in a typical biplot visualization. This is the function in action for the Genes View tab.
+
+```{r }
+groups_epithelial <- colData(dds_epithelial)$Epithelial_response
+cols_epithelial <- scales::hue_pal()(2)[groups_epithelial]
+# with many genes, do not plot the labels of the genes
+genespca(rld_epithelial,
+         ntop = 5000,
+         choices = c(1,2),
+         arrowColors = cols_epithelial,
+         groupNames = groups_epithelial,
+         alpha = 0.2,
+         useRownamesAsLabels = FALSE,
+         varname.size = 15
+        )
+```
+
+```{r fig.width=10, fig.height=10}
+# with a smaller number of genes, plot gene names included in the annotation
+(gpca <- genespca(rld_epithelial,
+         ntop=50,
+         choices = c(1,2),
+         arrowColors = cols_epithelial,
+         groupNames = groups_epithelial,
+         alpha = 0.7,
+         varname.size = 6,
+         annotation = annotation_epithelial,
+         ellipse = TRUE,
+         var.axes = TRUE,
+         useRownamesAsLabels = TRUE,
+         pc.biplot = F
+        ))
+```
+## pair_corr
+
+Plots the pairwise scatter plots and computes the correlation coefficient on the expression matrix provided.
+```{r fig.width= 10, fig.height=10}
+# use a subset of the counts to reduce plotting time, it can be time consuming with many samples
+pair_corr(counts(dds_epithelial))
+```
 # PCA Plot
 
 ## Calculating all PCA Values
 
 ```{r}
-# calculate the variance for each gene
+# calculate the variance for top 500 gene
 rv <- rowVars(assay(vsd))
 ntop <- 500
 # select the ntop genes by variance
@@ -415,53 +612,6 @@ theme.my.own <- list(theme_bw() ,
 
 savingFunction(PCAplot_vst, "Epithelial_response")
 ```
-### Trial PCA plots
-
-```{r}
-# the contribution to the total variance for each component
-percentVar_epithelial1 <- (pca_epithelial$sdev^2 / sum( pca_epithelial$sdev^2 )) * 100
-summary(pca_epithelial)
-```
-
-```{r}
-# we can use sdev to compute variance explained by each Principal Component.
-
-var_explained <- pca_epithelial$sdev^2/sum(pca_epithelial$sdev^2)
-var_explained
-```
-
-trialcode 2
-```{r}
-(PCAplot_vst <- ggplot(pca_df,
-                      aes(x = PC3,
-                          y = PC4)) +
-        xlab(paste0("PC3: ", percentVar_epithelial[3], "% variance")) +
-        ylab(paste0("PC4: ", percentVar_epithelial[4], "% variance")) +
-        ggtitle("PCA Plot - High Vs Low Inducer") +
-        scale_colour_manual(values = color_values) +
-   geom_point()
-         )
-
-```
-
-
-trial code1
-```{r}
-pca_df <- as.data.frame(pca_epithelial$x )
-pca_df <- rownames_to_column(pca_df)
-# Change colname of one column
-colnames(pca_df)[colnames(pca_df) == "rowname"] <- "samplename"
-
-  ggplot(pca_df, aes(x = PC3,y = PC4, label = samplename)) + 
-  geom_point( size = 2) +
-  geom_point(aes(color = samplename),size = 3) +
-  coord_fixed() + 
-  theme_bw() + 
-  labs(x = paste0("PC3: ",round(var_explained[3]*100,3),"%"),
-       y = paste0("PC4: ",round(var_explained[4]*100,3),"%")
-       ) #+scale_colour_manual(values = color_values) 
-```
-
 ## PCA Plot for different groupings of metadata
 
 ### PCA for Microcolonies
