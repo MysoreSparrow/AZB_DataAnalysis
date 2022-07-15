@@ -637,31 +637,13 @@ fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
 # Contributions of variables to PC1
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
 ```
-```{r}
-# fviz_pca_biplot(res.pca, repel = TRUE)
-```
-```{r}
-# dds_epithelial <- DESeqDataSetFromMatrix(
-#   countData = countsmatrix,
-#   colData = coldata,
-#   design = ~ Epithelial_response
-# )
-# dds <- DESeq(dds_epithelial)
-# vst <- assay(vst(dds_epithelial, blind = FALSE))
-```
 
-```{r fig.width=10, fig.height=10}
-# p1 <- prcomp(vst, metadata = coldata)
-# 
-# biplot(p1, showLoadings = TRUE,labSize = 5, pointSize = 5, sizeLoadingsNames = 3)
-```
+
 # PCA plots with PCA explorer
 
 ```{r}
 library(pcaExplorer)
-```
 
-```{r}
 # dds object would be dds_epithelial. This is already created.
 # rld object creation
 
@@ -694,11 +676,6 @@ pcaplot(rld_epithelial,
 pcaplot(rld_epithelial,intgroup = c("Epithelial_response","Sample_Name"),ntop = 500,
         pcX = 1, pcY = 3, title = " PCA on samples - PC1 vs PC3", ellipse = TRUE)
 ```
-
-```{r}
-pcascree(pca_epithelial,type = "pev",
-         title = "Proportion of explained proportion of variance")
-```
 ## correlatePCs and plotPCcorrs
 
 correlatePCs and plotPCcorrs respectively compute and plot significance of the (cor)relation of each covariate versus a principal component. The input for correlatePCs is a prcomp object.
@@ -708,9 +685,7 @@ res_epithelial <- correlatePCs(pca_epithelial,colData(dds_epithelial))
 
 res_epithelial
 ```
-```{r}
-plotPCcorrs(res_epithelial)
-```
+
 ## hi_loadings
 hi_loadings extracts and optionally plots the genes with the highest loadings.
 
@@ -743,24 +718,9 @@ fviz_pca(res.pca, repel = TRUE)
 ```
 ## genespca
 
-genespca computes and plots the principal components of the genes, eventually displaying the samples as in a typical biplot visualization. This is the function in action for the Genes View tab.
+genespca computes and plots the principal components of the genes, eventually displaying the samples as in a typical biplot visualization. 
 
-```{r }
-groups_epithelial <- colData(dds_epithelial)$Epithelial_response
-cols_epithelial <- scales::hue_pal()(2)[groups_epithelial]
-# with many genes, do not plot the labels of the genes
-genespca(rld_epithelial,
-         ntop = 5000,
-         choices = c(1,2),
-         arrowColors = cols_epithelial,
-         groupNames = groups_epithelial,
-         alpha = 0.2,
-         useRownamesAsLabels = FALSE,
-         varname.size = 15
-        )
-```
-
-```{r fig.width=10, fig.height=10}
+```{r}
 # with a smaller number of genes, plot gene names included in the annotation
 (gpca <- genespca(rld_epithelial,
          ntop=50,
@@ -775,14 +735,6 @@ genespca(rld_epithelial,
          pc.biplot = F
         ))
 ```
-## pair_corr
-
-Plots the pairwise scatter plots and computes the correlation coefficient on the expression matrix provided.
-```{r fig.width= 10, fig.height=10}
-# use a subset of the counts to reduce plotting time, it can be time consuming with many samples
-pair_corr(counts(dds_epithelial))
-```
-
 
 ## Hierarchical Clustering
 
