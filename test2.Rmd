@@ -1,0 +1,297 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+#suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("ggupset"))
+suppressPackageStartupMessages(library("SPIA"))
+suppressPackageStartupMessages(library("stats"))
+```
+
+
+
+```{r}
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
+sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+head(sample_ID)
+```
+
+```{r}
+condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "control", "control")
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+# The metadata can be found in a df called coldata!
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+#### First from coldata
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+#coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+                                  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
+coldata$condition <- as.factor(coldata$condition)
+```
+
+### Changing the names of samples (as per Alina)
+
+```{r}
+coldata[coldata == '476_R1'] <- 'T'
+coldata[coldata == '754_R1'] <- 'S54'
+coldata[coldata == '755_R1'] <- 'S55'
+coldata[coldata == '757_R1'] <- 'L57'
+coldata[coldata == '758_R1'] <- 'A58'
+coldata[coldata == '760_R1'] <- 'L60'
+coldata[coldata == '761_R1'] <- 'S61'
+coldata[coldata == '762_R1'] <- 'A62'
+coldata[coldata == '763_R1'] <- 'L63'
+coldata[coldata == '764_R1'] <- 'A64'
+coldata[coldata == '765_R1'] <- 'S65'
+coldata[coldata == '766_R1'] <- 'L66'
+coldata[coldata == '768_R1'] <- 'A68'
+coldata[coldata == '769_R1'] <- 'L69'
+coldata[coldata == 'Ctrl1_R1'] <- 'C1'
+coldata[coldata == 'Ctrl2_R2'] <- 'C2'
+# convert column1 with sample names to row.names of coldata
+rownames(coldata) <- coldata$Sample_Name
+coldata
+```
+
+## Adding the groupings by Alina for further Metadata Information
+
+```{r}
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
+                                  "HighInducer", "LowInducer", "LowInducer",
+                                  "HighInducer", "HighInducer", "LowInducer",
+                                  "HighInducer", "LowInducer", "HighInducer",
+                                  "LowInducer", "LowInducer", 'NR', 'NR')
+coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
+                              'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
+coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
+                           'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
+                           'Low', 'NR', 'NR')
+coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+                              "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+                              "LI_LM", "LI_LM", 'NR', 'NR')
+coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+                                  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+                                  "EPEC2", "EPEC2", 'NR', 'NR')
+coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+                        "B2", "B1", "B2", 'NR', 'NR')
+coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+                          "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+                          "beta", 'NR', 'NR')
+```
+
+#### then fix Countsmatrix:
+
+NOTE:
+
+1.  From the manuals the countsData must be a numeric matrix
+2.  It is IMPORTANT to keep the names of the genes in the rownames
+
+```{r}
+# Readin  countsmatrix
+#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
+#countsmatrix <- as.data.frame(countsmatrix)
+```
+
+```{r}
+## Removal of Gender Genes from ENSEMBL ID itself
+countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
+                                  countsmatrix$X != "ENSMUSG00000097571",
+                                  countsmatrix$X != "ENSMUSG00000086370",
+                                  countsmatrix$X != "ENSMUSG00000031329")
+nrow(countsmatrix)
+#countsmatrix <- as.matrix(countsmatrix)
+```
+
+```{r}
+#tidying up these names again
+#colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# It is IMPORTANT to keep the names of the genes in the rownames
+countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
+# the elements from Sample_Name from coldata must the the colnames of countsmatrix
+colnames(countsmatrix) <- coldata$Sample_Name
+# Display the column names
+colnames(countsmatrix)
+# Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
+#class(countsmatrix) <- "numeric"
+```
+```{r}
+str(countsmatrix)
+```
+
+```{r}
+# trying to map th ensembl id from counts matrix into respective genes and keeping the countsmatrix as it is for later use
+ cm_row <- rownames(countsmatrix)
+head(cm_row)
+
+library(org.Mm.eg.db)
+  symbols <- mapIds(org.Mm.eg.db, 
+                    keys = cm_row,
+                    column = c('SYMBOL'), 
+                    keytype = 'ENSEMBL')
+  symbols <- symbols[!is.na(symbols)]
+  head(symbols, 25)
+```
+
+```{r}
+symbols <- symbols[match(rownames(countsmatrix), names(symbols))]
+head(symbols, 25)
+```
+```{r}
+countsmatrix$genename <- symbols
+nrow(countsmatrix)
+```
+
+```{r}
+countsmatrix <- unique(countsmatrix[rowSums(is.na(countsmatrix)) == 0, ]) # Apply rowSums & is.na
+nrow(countsmatrix)
+countsmatrix <- tibble::rownames_to_column(countsmatrix, "E_ID")
+```
+```{r}
+library(dplyr)
+#countsmatrix[!duplicated(countsmatrix$row_names), ]
+countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
+```
+
+```{r}
+rownames(countsmatrix) <- countsmatrix[,18]
+countsmatrix <- subset(countsmatrix, select = -E_ID)#dropping the column
+countsmatrix <- subset(countsmatrix, select = -genename)
+```
+
+```{r}
+str(countsmatrix)
+```
+
+```{r}
+countsmatrix <- as.matrix(countsmatrix)
+class(countsmatrix) <- "numeric"
+```
+
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+ncol(countsmatrix) == nrow(coldata)
+dim(countsmatrix)
+```
+```{r}
+dds_epithelial <- DESeqDataSetFromMatrix(countData = countsmatrix,
+                              colData = coldata,
+                              design = ~ Epithelial_response)
+nrow(dds_epithelial)
+```
+
+```{r}
+vsd <- vst(dds_epithelial, blind = FALSE)
+head(assay(vsd), 3)
+colData(vsd)
+vsd_coldata <- colData(vsd)
+```
+
+```{r}
+library("FactoMineR")
+library("factoextra")
+# calculate the variance for top 500 gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+df1 <- t(assay(vsd)[select,])
+res.pca <- PCA(df1,  graph = FALSE, scale.unit = FALSE)
+summary.PCA(res.pca)
+```
+```{r}
+# Visualize eigenvalues/variances
+fviz_screeplot(res.pca, addlabels = TRUE)
+```
+```{r}
+library("factoextra")
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+```
+```{r}
+var <- get_pca_var(res.pca)
+var
+```
+```{r}
+fviz_pca_var(res.pca, repel = TRUE)
+```
+
+```{r fig.width=10}
+library("corrplot")
+corrplot(var$cos2, is.corr=T)
+```
+```{r fig.height=10, fig.width=10}
+heat.colors <- brewer.pal(6, "RdYlBu")
+fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
+             gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"),
+             )
+```
+
+```{r}
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
+```
+```{r}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
+```
+
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE,
+                gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"))
+```
+```{r}
+# library("corrplot")
+# corrplot(var$contrib, is.corr=FALSE)  
+```
+```{r}
+
+```
+
