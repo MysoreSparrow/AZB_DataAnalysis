@@ -3,11 +3,12 @@ title: 'DGE Analysis Notebook - Epithelial_response: HighInducerVsLowInducer'
 output:
   html_document: 
     toc: yes
-    fig_width: 10
-    fig_height: 12
+    fig_width: 8
+    fig_height: 8
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
+    df_print: tibble
 ---
 
 ```{r, message = FALSE, warning = FALSE}
@@ -48,6 +49,9 @@ suppressPackageStartupMessages(library('glue'))
 suppressPackageStartupMessages(library("ggupset"))
 #suppressPackageStartupMessages(library("SPIA"))
 suppressPackageStartupMessages(library("stats"))
+suppressPackageStartupMessages(library("FactoMineR"))
+suppressPackageStartupMessages(library("factoextra"))
+suppressPackageStartupMessages(library("pcaExplorer"))
 ```
 
 # Differential Gene Expression Analysis
@@ -85,7 +89,7 @@ coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
 coldata$condition <- as.factor(coldata$condition)
 ```
 
-### Changing the names of samples (as per Alina)
+Changing the names of samples (as per Alina)
 
 ```{r}
 coldata[coldata == '476_R1'] <- 'T'
@@ -109,7 +113,7 @@ rownames(coldata) <- coldata$Sample_Name
 coldata
 ```
 
-## Adding the groupings by Alina for further Metadata Information
+### Adding the groupings by Alina for further Metadata Information
 
 ```{r}
 coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
@@ -158,7 +162,7 @@ countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
                                   countsmatrix$X != "ENSMUSG00000086370",
                                   countsmatrix$X != "ENSMUSG00000031329")
 nrow(countsmatrix)
-countsmatrix <- as.matrix(countsmatrix)
+#countsmatrix <- as.matrix(countsmatrix)
 ```
 
 ```{r}
@@ -171,9 +175,54 @@ countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
 colnames(countsmatrix) <- coldata$Sample_Name
 # Display the column names
 colnames(countsmatrix)
-# Convert the countsmatrix elements to be of numeric type in order to be in correct format to be fed into DESeq2 functions
+```
+
+## Annotating and Exporting ENSEMBL ID into Gene Symbols
+
+Adding genes annotated from ENSEMBL ID to Gene symbols and ENTREZ Id to countsmatrix table. Will be keeping the symbols and entrez columsn to be added later into results table as it is for later use
+```{r}
+cm_row <- rownames(countsmatrix)
+head(cm_row)
+# Mapping the ENSEMBL ID to Symbol and ENTREZ ID
+symbols <- mapIds(
+  org.Mm.eg.db,
+  keys = cm_row,
+  column = c('SYMBOL'),
+  keytype = 'ENSEMBL',
+  multiVals = "first"
+)
+
+```
+```{r}
+symbols <- symbols[!is.na(symbols)]
+symbols <- symbols[match(rownames(countsmatrix), names(symbols))]
+head(symbols, 25)
+
+# Creating a new column called genename and putting in the symbols and entrez columns into count matrix
+countsmatrix$genename <- symbols
+
+# Removing all rows with NA values for genenames, so that those rows are filtered out.
+countsmatrix <- unique(countsmatrix[rowSums(is.na(countsmatrix)) == 0, ]) # Apply rowSums & is.na
+nrow(countsmatrix)
+# Moving the ENSEMBL ID from rownames into separate column for itself.
+countsmatrix <- tibble::rownames_to_column(countsmatrix, "E_ID")
+# Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
+countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
+```
+
+```{r}
+# Now make the ganename column into rownames of count matrix
+rownames(countsmatrix) <- countsmatrix[,"genename"]
+# Keeping this version of countsmatrix for later use
+cm_table <- countsmatrix
+# dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
+
+# Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- as.matrix(countsmatrix)
 class(countsmatrix) <- "numeric"
 ```
+
 
 # Calculating CPM Values
 
@@ -366,7 +415,7 @@ plotPCA_local = function(object,
   ntop <- 500
   
   # select the ntop genes by variance
-  select <-order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
   
   # perform a PCA on the data in assay(x) for the selected genes
   pca <- prcomp(t(assay(object)[select, ]))
@@ -429,7 +478,7 @@ savingFunction <- function(plotname, metadatacolumn){
 ```{r}
 pcaData_epithelial <- plotPCA_local(vsd, intgroup = c("Epithelial_response","Sample_Name"),returnData = T)
 pcaData_epithelial
-percentVar_epithelial <- percentvar_calculation(pcaData_epithelial1)
+percentVar_epithelial <- percentvar_calculation(pcaData_epithelial)
 ```
 
 ```{r }
@@ -449,6 +498,31 @@ percentVar_epithelial
 
 savingFunction(PCAplot_vst, "Epithelial_response")
 ```
+## PCA Plot for PC2 vs PC3
+
+```{r}
+
+(PCAplot_vst23 <- ggplot(pcaData_epithelial,
+                      aes(x = PC2,
+                          y = PC3,
+                          color = Sample_Name,
+                          label = Sample_Name)) +
+        xlab(paste0("PC2: ", percentVar_epithelial[2], "% variance")) +
+        ylab(paste0("PC3: ", percentVar_epithelial[3], "% variance")) +
+        ggtitle("PCA Plot - High Vs Low Inducer") +
+        scale_colour_manual(values = color_values) +
+        theme.my.own )
+
+ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/PCAplot23_HighVsLowInducer_epithelial.png',
+       plot = PCAplot_vst23,
+       dpi = 300,
+       width = 10,
+       height = 10,
+       units = "in")
+
+```
+
+
 ## PCA Plot for PC3 vs PC4
 
 ```{r}
@@ -589,46 +663,51 @@ percentVar_epithelial_IT <- round(100 * attr(PCAdata_epithelial_IT, "percentVar"
 savingFunction(PCAplot_IT, "Intimin_Type")
 ```
 
-# PCA with Factoextra 
-
 ```{r}
-library("FactoMineR")
-library("factoextra")
 # calculate the variance for top 500 gene
 rv <- rowVars(assay(vsd))
 ntop <- 500
 # select the ntop genes by variance
 select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
 df1 <- t(assay(vsd)[select,])
+```
+```{r}
 res.pca <- PCA(df1,  graph = FALSE, scale.unit = FALSE)
-#summary.PCA(res.pca)
-
+summary.PCA(res.pca)
+```
+```{r}
 # Visualize eigenvalues/variances
 fviz_screeplot(res.pca, addlabels = TRUE)
 ```
+```{r}
+library("factoextra")
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+```
+```{r}
+var <- get_pca_var(res.pca)
+#fviz_pca_var(res.pca, repel = TRUE)
+```
+
+```{r fig.width=10}
+library("corrplot")
+corrplot(var$cos2, is.corr=T)
+```
+
+## Genes + PCA Biplots
 
 ```{r}
-# genes_epithelial <- mapIds(org.Mm.eg.db, 
-#                                keys = rownames(res.pca$var$contrib),
-#                                column = "SYMBOL",
-#                                keytype ="ENSEMBL")
-# annotation_epithelial <- data.frame(gene_name = genenames_epithelial,
-#                                 row.names = rownames(dds_epithelial),
-#                                 stringsAsFactors = FALSE)
-# head(annotation_epithelial) 
-# annotation_epithelial <- annotation_epithelial[rownames(res.pca$var$contrib),]
-# rownames(res.pca$var$contrib)=annotation_epithelial
-# 
-# rownames(res.pca$var$contrib)[!is.na(rownames(res.pca$var$contrib))]
-# 
-# res.pca$var$contrib <- res.pca$var$contrib[!is.na(rownames(res.pca$var$contrib)),]
-# res.pca$var$cor <- res.pca$var$cor[!is.na(rownames(res.pca$var$contrib)),]
-# res.pca$var$cos2 <- res.pca$var$cos2 [!is.na(rownames(res.pca$var$contrib)),]
-# res.pca$var$coord <- res.pca$var$coord[!is.na(rownames(res.pca$var$contrib)),]
-# # rownames(res.pca$var$cor)[!is.na(rownames(res.pca$var$contrib))]
-# # rownames(res.pca$var$cos2)[!is.na(rownames(res.pca$var$contrib))]
-# # rownames(res.pca$var$coord)[!is.na(rownames(res.pca$var$contrib))]
+fviz_pca_biplot(res.pca, repel = TRUE,
+                gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"))
 ```
+
+```{r fig.height=10, fig.width=10}
+heat.colors <- brewer.pal(6, "RdYlBu")
+fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
+             gradient.cols = c("Gray", "blue", "yellow","orange", "green", "red", "black"),
+             )
+```
+
 ```{r}
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
@@ -636,104 +715,6 @@ fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
 ```{r}
 # Contributions of variables to PC1
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
-```
-
-
-# PCA plots with PCA explorer
-
-```{r}
-library(pcaExplorer)
-
-# dds object would be dds_epithelial. This is already created.
-# rld object creation
-
-rld_epithelial <- rlogTransformation(dds_epithelial, blind = FALSE)
-head(assay(rld_epithelial))
-```
-
-
-```{r}
-pcaplot(rld_epithelial,intgroup = c("Epithelial_response","Sample_Name"),ntop = 500,
-        pcX = 1, pcY = 2, title = " PCA on samples - PC1 vs PC2", ellipse = TRUE)
-```
-```{r}
-pcaplot(rld_epithelial,
-        intgroup = c("Epithelial_response","Sample_Name"),
-        ntop = 500,
-        pcX = 2, pcY = 3, title = " PCA on samples - PC2 vs PC3")
-```
-
-```{r}
-(pca34 <- pcaplot(rld_epithelial,
-        intgroup = c("Epithelial_response","Sample_Name"),
-        ntop = 500,
-        pcX = 3, pcY = 4, 
-        title = " PCA on samples - PC3 vs PC4",
-        ellipse = TRUE))
-```
-
-```{r}
-pcaplot(rld_epithelial,intgroup = c("Epithelial_response","Sample_Name"),ntop = 500,
-        pcX = 1, pcY = 3, title = " PCA on samples - PC1 vs PC3", ellipse = TRUE)
-```
-## correlatePCs and plotPCcorrs
-
-correlatePCs and plotPCcorrs respectively compute and plot significance of the (cor)relation of each covariate versus a principal component. The input for correlatePCs is a prcomp object.
-
-```{r}
-res_epithelial <- correlatePCs(pca_epithelial,colData(dds_epithelial))
-
-res_epithelial
-```
-
-## hi_loadings
-hi_loadings extracts and optionally plots the genes with the highest loadings.
-
-```{r}
-# extract the table of the genes with high loadings
-hi_loadings(pca_epithelial,topN = 10,exprTable = counts(dds_epithelial))
-```
-
-The annotation for this dataset can be built by exploiting the org.Mm.eg.db package.
-
-```{r}
-
-library(org.Mm.eg.db)
-genenames_epithelial <- mapIds(org.Mm.eg.db, 
-                               keys = rownames(dds_epithelial),
-                               column = "SYMBOL",
-                               keytype="ENSEMBL")
-annotation_epithelial <- data.frame(gene_name = genenames_epithelial,
-                                row.names = rownames(dds_epithelial),
-                                stringsAsFactors = FALSE)
-head(annotation_epithelial) 
-#annotation_epithelial %>% select_if(~ !any(is.na(.)))
-```
-```{r}
-# or alternatively plot the values
-hi_loadings(pca_epithelial,topN = 15,annotation = annotation_epithelial)
-```
-```{r}
-fviz_pca(res.pca, repel = TRUE)
-```
-## genespca
-
-genespca computes and plots the principal components of the genes, eventually displaying the samples as in a typical biplot visualization. 
-
-```{r}
-# with a smaller number of genes, plot gene names included in the annotation
-(gpca <- genespca(rld_epithelial,
-         ntop=50,
-         choices = c(1,2),
-         arrowColors = cols_epithelial,
-         groupNames = groups_epithelial,
-         varname.size = 6,
-         annotation = annotation_epithelial,
-         ellipse = TRUE,
-         var.axes = TRUE,
-         useRownamesAsLabels = TRUE,
-         pc.biplot = F
-        ))
 ```
 
 ## Hierarchical Clustering
@@ -748,9 +729,7 @@ head(assay(rld), 3)
 ```{r}
 ### Extract the rlog matrix from the object
 rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
-```
 
-```{r}
 ### Compute pairwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
 head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
@@ -824,20 +803,18 @@ ALL counts set to zero will have NA for pvalues.
 
 ```{r}
 dds2_epithelial <- DESeq(dds_epithelial, minReplicatesForReplace = Inf)
-res2_epithelial <- results(dds2_epithelial, 
-                           cooksCutoff = FALSE, 
-                           independentFiltering = FALSE,
-                           contrast = c("Epithelial_response",
-                                        "HighInducer", 
-                                        "LowInducer")
-                            )
-```
-
-```{r}
+res2_epithelial <- results(
+  dds2_epithelial,
+  cooksCutoff = FALSE,
+  independentFiltering = FALSE,
+  contrast = c("Epithelial_response",
+               "HighInducer",
+               "LowInducer")
+)
 head(res2_epithelial, 30)
 ```
 
-### Results with thresholds
+### Results
 
 ```{r}
 res2df_epithelial <- as.data.frame(res2_epithelial) # convert the results table to a df
@@ -850,12 +827,6 @@ head(res2df_epithelial)
 plotMA_res2_epithelial <- plotMA(res2_epithelial, ylim = c(-2, 2))
 ```
 
-```{r}
-#res3_epithelial <- lfcShrink(dds2_epithelial,coef = "Epithelial_response_HighInducer_vs_LowInducer",
-#type = "apeglm")
-#plotMA_res3 <- plotMA(res3_epithelial, ylim = c(-2, 2))
-```
-
 ### Histogram of p-values
 
 ```{r}
@@ -865,43 +836,46 @@ hist(res2_epithelial$pvalue, breaks = 50, col = "grey50", border = "blue")
 Further Filtering: baseMean \> 1
 
 ```{r}
-hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 1],
+hist(res2_epithelial$pvalue[res2_epithelial$baseMean > 10],
      breaks = 50, col = "grey50", border = "blue")
 ```
-
-## Annotating and Exporting Results
-
--   adding gene annotation to results table
--   adding ENTREZ Id to results table
-
-```{r}
-res2df_epithelial$symbol <- mapIds(org.Mm.eg.db,
-                                   keys = rownames(dds_epithelial),
-                                  column = "SYMBOL",
-                                  keytype = "ENSEMBL",
-                                   multiVals = "first")
-res2df_epithelial$entrez <- mapIds(org.Mm.eg.db,
-                                   keys = rownames(dds_epithelial),
-                                  column = "ENTREZID",
-                                  keytype = "ENSEMBL",
-                                   multiVals = "first")
-```
-
 ```{r}
 head(res2df_epithelial)
 ```
+Now I have only Gene names and no longer have ENSEMBLID. So do the following to obtain Gene symbols and ENTREZ ID.
+1. make  new column of gene names from rownames and keep the rownames as well as it is.
+2. map the gene symbols into Entrez Id and make it into a separate column in itself.
 
 ```{r}
-nrow(res2df_epithelial)
+res2df_epithelial <- tibble::rownames_to_column(res2df_epithelial, "symbol")
+
+gn <- res2df_epithelial$symbol
+
+# Mapping the Symbol to ENTREZ ID
+
+entrez <- mapIds(
+  org.Mm.eg.db,
+  keys = gn,
+  column = "ENTREZID",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+
+ensembl_id <- mapIds(
+  org.Mm.eg.db,
+  keys = gn,
+  column = "ENSEMBL",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+res2df_epithelial$entrez <- entrez
+res2df_epithelial$ensemblID <- ensembl_id
 ```
 
 Omit NA values from symbol and respective rows!
 
 ```{r}
 res3df_epithelial <- res2df_epithelial %>% filter(!is.na(symbol) & !is.na(entrez))
-```
-
-```{r}
 nrow(res3df_epithelial)
 ```
 
@@ -910,30 +884,21 @@ nrow(res3df_epithelial)
 ```{r}
 resOrdered_epithelial <- res3df_epithelial[order(res3df_epithelial$pvalue),]
 head(resOrdered_epithelial)
-```
 
-```{r}
 write.csv(as.data.frame(resOrdered_epithelial),
           file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/results_DGE_ER.csv")
 ```
 
 ## Heatmap of count matrix
 
-To explore a count matrix, it is often instructive to look at it as a
-heatmap.
+To explore a count matrix, it is often instructive to look at it as a heatmap.
 
 ```{r}
-select <- order(rowMeans(counts(dds2_epithelial,normalized = TRUE)),
-                decreasing = TRUE)[1:20]
+select <- order(rowMeans(counts(dds2_epithelial,normalized = FALSE)),decreasing = TRUE)[1:20]
 df <- as.data.frame(colData(dds2_epithelial)[,c("Epithelial_response","Sample_Name")])
-```
-
-```{r}
 Heatmap(assay(vsd)[select,], 
-         cluster_columns = TRUE, 
-        #row_labels = 
-         #annotation_col = df,
-         color = heat.colors)
+         cluster_columns = TRUE
+        )
 ```
 
 ## Effect of Transformations on Variance
@@ -1000,20 +965,22 @@ p1 <- EnhancedVolcano(res3df_epithelial,
                                     sec.axis = sec_axis(~. *1,
                                                         labels = NULL,
                                                         breaks = NULL)) +
+ 
                   scale_x_continuous(limits = c(-4, 5), 
                                      breaks = seq(-4, 5, 1),
                                     sec.axis = sec_axis(~. *1,
                                                         labels = NULL,
-                                                        breaks = NULL)))
+                                                        breaks = NULL)) +
+                      xlab(expression(DownRegulated %<->% UpRegulated))
+  )
 
 ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/Volcano1_L2fcVsPvalue.png',
        plot = volcano1,
        dpi = 300,
-       width = 10,
-       height = 10,
+       width = 5,
+       height = 5,
        units = "in")
 ```
-
 ## volcano Plot of Log2FC vs Padj
 
 ```{r fig.height= 10, fig.width= 10}
@@ -1050,7 +1017,9 @@ p2 <- EnhancedVolcano(res3df_epithelial,
                                      breaks = seq(-4, 5, 1),
                                     sec.axis = sec_axis(~. *1,
                                                         labels = NULL,
-                                                        breaks = NULL)))
+                                                        breaks = NULL))+
+                      xlab(expression(DownRegulated %<->% UpRegulated))
+  )
 
 ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/Volcano2_L2fcVsPadj.png',
        plot = volcano2,
@@ -1080,9 +1049,7 @@ res3df_epithelial$delabel[res3df_epithelial$diffexpressed != "NS"] <- res3df_epi
 
 ```{r}
 sigsdf_epithelial <- res3df_epithelial[(abs(res3df_epithelial$log2FoldChange) > 1) & (res3df_epithelial$pvalue < 0.05),]
-```
 
-```{r}
 nrow(sigsdf_epithelial)
 ```
 ### Gender Genes Removed from Table
@@ -1111,9 +1078,7 @@ write.csv(sigsdf_epithelial ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/S
 ```{r}
 sigsdf_epithelial_UP <- sigsdf_epithelial[(sigsdf_epithelial$log2FoldChange) > 1, ] #UP Regulation Table
 sigsdf_epithelial_DOWN <- sigsdf_epithelial[(sigsdf_epithelial$log2FoldChange) < -1, ] #DOWN Regulation Table
-```
 
-```{r}
 nrow(sigsdf_epithelial_UP)
 nrow(sigsdf_epithelial_DOWN)
 ```
@@ -1121,8 +1086,8 @@ nrow(sigsdf_epithelial_DOWN)
 ### Determine Top20 UP Genes and Top20 DOWN Genes
 
 ```{r}
-UpGene_epithelial <- sigsdf_epithelial_UP[order(-sigsdf_epithelial_UP$log2FoldChange), ]$symbol
-DownGene_epithelial <- sigsdf_epithelial_DOWN[order(-sigsdf_epithelial_DOWN$log2FoldChange), ]$symbol
+UpGene_epithelial <- sigsdf_epithelial_UP[order(-sigsdf_epithelial_UP$log2FoldChange,decreasing = TRUE), ]$symbol
+DownGene_epithelial <- sigsdf_epithelial_DOWN[order(-sigsdf_epithelial_DOWN$log2FoldChange,decreasing = TRUE), ]$symbol
 DE_Genes_table_epithelial <- as.data.frame(cbind(UpGene_epithelial,DownGene_epithelial)) # sorted based on highest Log2FC value
 ```
 
@@ -1145,21 +1110,21 @@ sigs2df_epithelial <- res2df_epithelial[(abs(res2df_epithelial$log2FoldChange) >
 ### with Whole table (all genes together!)
 
 ```{r}
-mat <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigsdf_epithelial),]
+#mat <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigsdf_epithelial),]
+mat <- counts(dds2_epithelial, normalized = TRUE)[(sigsdf_epithelial$symbol),]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat.zs)
 ```
 
 ```{r}
-mat2 <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigs2df_epithelial),]
+mat2 <- counts(dds2_epithelial, normalized = TRUE)[(sigsdf_epithelial$symbol),]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat2.zs)
 #pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
-
-```{r fig.height= 15, fig.width= 15}
+```{r}
 newHP <- Heatmap(mat2.zs, 
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
@@ -1174,19 +1139,18 @@ newHP <- Heatmap(mat2.zs,
         )
 newHP
 ```
-
-```{r fig.height= 160, fig.width= 10}
+```{r fig.height= 100, fig.width= 10}
 LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
         cluster_columns = TRUE, 
         cluster_rows = TRUE, 
         column_labels = colnames(mat2.zs),
-        row_labels = sigs2df_epithelial[rownames(mat2.zs),]$symbol,
-        name = 'Z-Score Heatmap of DE Genes - Epithelial Response',
+        row_labels = sigs2df_epithelial$symbol,
+        name = 'All DE Genes',
         show_row_names = TRUE, 
         use_raster = TRUE, 
         raster_quality = 5,
         )
-#LongHeatMap_Allgenes
+LongHeatMap_Allgenes
 #saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
 ```
 
@@ -1195,8 +1159,8 @@ Need to filter these results to accommodate better the heat maps and also volcan
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1df_epithelial <- res2df_epithelial[(res2df_epithelial$baseMean > 75) & (abs(res2df_epithelial$log2FoldChange) > 2) & (res2df_epithelial$pvalue < 0.05),]
-mat1 <- counts(dds2_epithelial, normalized = TRUE)[rownames(sigs1df_epithelial),]
+sigs1df_epithelial <- res2df_epithelial[(res2df_epithelial$baseMean > 500) & (abs(res2df_epithelial$log2FoldChange) > 1) & (res2df_epithelial$pvalue < 0.05),]
+mat1 <- counts(dds2_epithelial, normalized = TRUE)[(sigs1df_epithelial$symbol),]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat1.zs)
@@ -1208,7 +1172,7 @@ Heatmap(mat1.zs,
         cluster_rows = TRUE,
         column_labels = colnames(mat1.zs),
         name = 'DE Genes',
-        row_labels = sigs1df_epithelial[rownames(mat1.zs),]$symbol)
+        row_labels = sigs1df_epithelial$symbol)
 ```
 
 # GO Terms with clusterProfiler
@@ -1216,9 +1180,8 @@ Heatmap(mat1.zs,
 ## GO Terms for UP Regulated Genes
 
 ### GO over-representation analysis for UP Regulated Genes
-
 ```{r}
-UPgene_ENS_ID <- rownames(sigsdf_epithelial_UP)
+UPgene_ENS_ID <- (sigsdf_epithelial_UP$ensemblID)
 
 GO_UPRegResults_epithelial <- enrichGO(gene = UPgene_ENS_ID,
                                        OrgDb = "org.Mm.eg.db",
@@ -1250,7 +1213,7 @@ GO_UPReg_Dotplot_epithelial <- plot(dotplot(GO_UPRegResults_epithelial, showCate
 saveplot(GO_UPReg_Dotplot_epithelial, "GO_UPReg_Dotplot_epithelial")
 ```
 
-```{r fig.height=12, fig.width=12}
+```{r fig.height=10, fig.width=12}
 GO_UPReg_Cnetplot_epithelial <- plot(cnetplot(GO_UPRegResults_epithelial, showCategory = 13))
 
 saveplot(GO_UPReg_Cnetplot_epithelial, "GO_UPReg_Cnetplot_epithelial")
@@ -1288,10 +1251,8 @@ saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
 ### GO over-representation analysis for DOWN Regulated Genes
 
 ```{r}
-DOWNgene_ENS_ID <- rownames(sigsdf_epithelial_DOWN)
-```
+DOWNgene_ENS_ID <- (sigsdf_epithelial_DOWN$ensemblID)
 
-```{r}
 GO_DOWNRegResults_epithelial <- enrichGO(gene = DOWNgene_ENS_ID,
                        OrgDb = "org.Mm.eg.db",
                        keyType = "ENSEMBL",
@@ -1315,7 +1276,7 @@ GO_DOWNReg_Barplot_epithelial <- plot(barplot(GO_DOWNRegResults_epithelial))
 saveplot(GO_DOWNReg_Barplot_epithelial, "GO_DOWNReg_Barplot_epithelial")
 ```
 
-```{r fig.height=10, fig.width=10}
+```{r}
 GO_DOWNReg_Dotplot_epithelial <- plot(dotplot(GO_DOWNRegResults_epithelial))
 
 saveplot(GO_DOWNReg_Dotplot_epithelial, "GO_DOWNReg_Dotplot_epithelial")
@@ -1446,6 +1407,7 @@ function is written below to loop through and draw plots for the top 10
 pathways we created above.
 
 ```{r}
+devtools::install_github("javadnoorb/pathview")
 library("pathview")
 # Define plotting function for applying later
 plot_pathway = function(pid) pathview(gene.data = foldchanges, 
@@ -1459,11 +1421,6 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
                                                 pathway.id = pid, 
                                                 species = "mouse"))
 ```
-
-```{r}
-sessionInfo()
-```
-
 ## GSEA - Gene Set Enrichment Analysis
 
 ```{r}
@@ -1474,16 +1431,16 @@ Perform the GSEA using KEGG gene sets:
 
 ```{r}
 # library("stats")
-# ## GSEA using gene sets from KEGG pathways
+# ### GSEA using gene sets from KEGG pathways
 # gseaKEGG <- gseKEGG(geneList = foldchanges, # ordered named vector of fold changes (Entrez IDs are the associated names)
-#               organism = "mmu", # mmu is Mus Musculus
-#               #nPerm = 1000, # default number permutations
-#               minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
-#               pvalueCutoff = 0.05, # padj cutoff value
-#               verbose = T)
-
-## Extract the GSEA results
-#gseaKEGG_results <- gseaKEGG@result
+# organism = "mmu", # mmu is Mus Musculus
+# nPerm = 1000, # default number permutations
+# minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
+# pvalueCutoff = 0.05, # padj cutoff value
+# verbose = T)
+# 
+# ## Extract the GSEA results
+# gseaKEGG_results <- gseaKEGG@result
 ```
 
 How many pathways are enriched? View the enriched pathways:
@@ -1523,9 +1480,6 @@ clusterProfiler into pathway images:
 ```{r}
 selectUPGenes_entrezid = unique(sigsdf_epithelial_UP['entrez'] )
 selectDOWNGenes_entrezid = unique(sigsdf_epithelial_DOWN['entrez'] )
-```
-
-```{r}
 UniverseGenes = unique(sigsdf_epithelial$entrez)
 cutOff = 0.01 # setting the cutoff at 1%
 ```
@@ -1549,40 +1503,21 @@ downParams = new("GOHyperGParams",
 
 ```{r}
 upBP = hyperGTest(upParams)
-summary(upBP)
+upBP_df <- as.data.frame(summary(upBP))
+plot(upBP_df)
+```
+
+```{r}
+htmlReport(upBP, file = "upBP.html")
 ```
 
 ```{r}
 downBP = hyperGTest(downParams)
-summary(downBP)
+downBP_df <- as.data.frame(summary(downBP))
+plot(downBP_df)
 ```
 ```{r}
-
-upParams1 = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "under")
-downParams1= new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "under")
-```
-
-
-```{r}
-downBP_under = hyperGTest(downParams1)
-summary(downBP_under)
-```
-```{r}
-
-upBP_under = hyperGTest(upParams1)
-summary(upBP_under)
+htmlReport(downBP, file = "downBP.html")
 ```
 
 # Signaling Pathway Impact Analysis
@@ -1594,6 +1529,8 @@ foldchanges_vector <- as.vector(foldchanges)
 ```{r}
 selectGenes_entrezid <- as.character(UniverseGenes)
 ```
+
+
 ```{r}
 #spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
 ```
@@ -1625,5 +1562,6 @@ into the SPIA edge type "indirect effect". For more details see the SPIA package
 
 ```
 
-
-
+```{r}
+sessionInfo()
+```
