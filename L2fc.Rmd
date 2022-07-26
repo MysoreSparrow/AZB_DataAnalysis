@@ -1,0 +1,430 @@
+---
+title: ' L2FC table'
+output:
+  html_document: 
+    toc: yes
+    fig_width: 8
+    fig_height: 8
+    fig_caption: yes
+    number_sections: yes
+    toc_depth: 4
+    df_print: tibble
+---
+<!-- # Log2FoldChnage Table  -->
+<!-- # Author : Keshava Prasad Gubbi -->
+
+
+```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library('EnhancedVolcano'))
+suppressPackageStartupMessages(library('gplots'))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library('ggrepel'))
+suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library('edgeR'))
+suppressPackageStartupMessages(library('GOstats'))
+suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library('GOSemSim'))
+suppressPackageStartupMessages(library('DOSE'))
+suppressPackageStartupMessages(library('enrichplot'))
+suppressPackageStartupMessages(library('ggnewscale'))
+suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("ggupset"))
+#suppressPackageStartupMessages(library("SPIA"))
+suppressPackageStartupMessages(library("stats"))
+suppressPackageStartupMessages(library("FactoMineR"))
+suppressPackageStartupMessages(library("factoextra"))
+suppressPackageStartupMessages(library("pcaExplorer"))
+```
+
+# Differential Gene Expression Analysis
+
+## Creating metadata for the DGE Analysis
+
+DESeq2 needs sample information (metadata) for performing DGE analysis.
+Let's create the sample information
+
+```{r}
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
+sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/samples.csv")
+head(sample_ID)
+```
+
+```{r}
+condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+               "Infected", "Infected", "control", "control")
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+# The metadata can be found in a df called coldata!
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+#### First from coldata
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+#coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+                                  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
+coldata$condition <- as.factor(coldata$condition)
+```
+
+Changing the names of samples (as per Alina)
+
+```{r}
+coldata[coldata == '476_R1'] <- 'T'
+coldata[coldata == '754_R1'] <- 'S54'
+coldata[coldata == '755_R1'] <- 'S55'
+coldata[coldata == '757_R1'] <- 'L57'
+coldata[coldata == '758_R1'] <- 'A58'
+coldata[coldata == '760_R1'] <- 'L60'
+coldata[coldata == '761_R1'] <- 'S61'
+coldata[coldata == '762_R1'] <- 'A62'
+coldata[coldata == '763_R1'] <- 'L63'
+coldata[coldata == '764_R1'] <- 'A64'
+coldata[coldata == '765_R1'] <- 'S65'
+coldata[coldata == '766_R1'] <- 'L66'
+coldata[coldata == '768_R1'] <- 'A68'
+coldata[coldata == '769_R1'] <- 'L69'
+coldata[coldata == 'Ctrl1_R1'] <- 'C1'
+coldata[coldata == 'Ctrl2_R2'] <- 'C2'
+# convert column1 with sample names to row.names of coldata
+rownames(coldata) <- coldata$Sample_Name
+coldata
+```
+
+### Adding the groupings by Alina for further Metadata Information
+
+```{r}
+coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
+                                  "HighInducer", "LowInducer", "LowInducer",
+                                  "HighInducer", "HighInducer", "LowInducer",
+                                  "HighInducer", "LowInducer", "HighInducer",
+                                  "LowInducer", "LowInducer", 'NR', 'NR')
+coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
+                              'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
+                              'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
+coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
+                           'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
+                           'Low', 'NR', 'NR')
+coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+                              "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+                              "LI_LM", "LI_LM", 'NR', 'NR')
+coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+                                  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+                                  "EPEC2", "EPEC2", 'NR', 'NR')
+coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+                        "B2", "B1", "B2", 'NR', 'NR')
+coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+                          "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+                          "beta", 'NR', 'NR')
+```
+
+#### then fix Countsmatrix:
+
+NOTE:
+
+1.  From the manuals the countsData must be a numeric matrix
+2.  It is IMPORTANT to keep the names of the genes in the rownames
+
+```{r}
+# Readin  countsmatrix
+#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/newcounts.csv")
+#countsmatrix <- as.data.frame(countsmatrix)
+```
+
+```{r}
+## Removal of Gender Genes from ENSEMBL ID itself
+countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
+                                  countsmatrix$X != "ENSMUSG00000097571",
+                                  countsmatrix$X != "ENSMUSG00000086370",
+                                  countsmatrix$X != "ENSMUSG00000031329")
+nrow(countsmatrix)
+#countsmatrix <- as.matrix(countsmatrix)
+```
+
+```{r}
+#tidying up these names again
+#colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# It is IMPORTANT to keep the names of the genes in the rownames
+countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
+# the elements from Sample_Name from coldata must the the colnames of countsmatrix
+colnames(countsmatrix) <- coldata$Sample_Name
+# Display the column names
+colnames(countsmatrix)
+```
+
+## Annotating and Exporting ENSEMBL ID into Gene Symbols
+
+Adding genes annotated from ENSEMBL ID to Gene symbols and ENTREZ Id to countsmatrix table. Will be keeping the symbols and entrez columsn to be added later into results table as it is for later use
+```{r}
+cm_row <- rownames(countsmatrix)
+head(cm_row)
+# Mapping the ENSEMBL ID to Symbol and ENTREZ ID
+symbols <- mapIds(
+  org.Mm.eg.db,
+  keys = cm_row,
+  column = c('SYMBOL'),
+  keytype = 'ENSEMBL',
+  multiVals = "first"
+)
+
+```
+```{r}
+symbols <- symbols[!is.na(symbols)]
+symbols <- symbols[match(rownames(countsmatrix), names(symbols))]
+head(symbols, 25)
+
+# Creating a new column called genename and putting in the symbols and entrez columns into count matrix
+countsmatrix$genename <- symbols
+
+# Removing all rows with NA values for genenames, so that those rows are filtered out.
+countsmatrix <- unique(countsmatrix[rowSums(is.na(countsmatrix)) == 0, ]) # Apply rowSums & is.na
+nrow(countsmatrix)
+# Moving the ENSEMBL ID from rownames into separate column for itself.
+countsmatrix <- tibble::rownames_to_column(countsmatrix, "E_ID")
+# Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
+countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
+```
+
+```{r}
+# Now make the ganename column into rownames of count matrix
+rownames(countsmatrix) <- countsmatrix[,"genename"]
+# Keeping this version of countsmatrix for later use
+cm_table <- countsmatrix
+# dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
+
+# Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- as.matrix(countsmatrix)
+class(countsmatrix) <- "numeric"
+```
+
+1. Keep only the 476 column of countmatrix and call that a new cm
+2. also remove irrelevant parts of coldata as well for making a one vs one comparison
+
+```{r}
+cm476 <- countsmatrix[,c(1,15:16)]
+coldata476 <- coldata[c(1,15:16),]
+
+all(rownames(coldata476) %in% colnames(cm476))
+ncol(countsmatrix) == nrow(coldata)
+
+dds <- DESeqDataSetFromMatrix(countData = cm476,
+                              colData = coldata476, 
+                              design = ~ condition)
+nrow(dds)
+
+dds1 <- DESeq(dds)
+
+
+dds2 <- DESeq(dds, minReplicatesForReplace = Inf)
+res2 <- results(
+  dds2,
+  cooksCutoff = FALSE,
+  independentFiltering = FALSE,
+  contrast = c("condition","Infected","control")
+)
+head(res2, 30)
+
+res2df <- as.data.frame(res2) # convert the results table to a df
+nrow(res2df)
+
+
+res2df <- tibble::rownames_to_column(res2df, "symbol")
+
+gn <- res2df$symbol
+
+# Mapping the Symbol to ENTREZ ID
+
+entrez <- mapIds(
+  org.Mm.eg.db,
+  keys = gn,
+  column = "ENTREZID",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+
+ensembl_id <- mapIds(
+  org.Mm.eg.db,
+  keys = gn,
+  column = "ENSEMBL",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+res2df$entrez <- entrez
+res2df$ensemblID <- ensembl_id
+
+res3df <- res2df %>% filter(!is.na(symbol) & !is.na(entrez) & !is.na(log2FoldChange))
+nrow(res3df)
+
+res3df$StrainName <- "S476"
+results476 <- res3df
+```
+
+# 754 Strain
+```{r}
+cm754 <- countsmatrix[,c(2,15:16)]
+coldata754 <- coldata[c(2,15:16),]
+
+all(rownames(coldata476) %in% colnames(cm476))
+ncol(countsmatrix) == nrow(coldata)
+
+dds754 <- DESeqDataSetFromMatrix(countData = cm476,
+                              colData = coldata476, 
+                              design = ~ condition)
+nrow(dds754)
+
+dds754 <- DESeq(dds754)
+
+dds754 <- DESeq(dds754, minReplicatesForReplace = Inf)
+
+res754 <- results(
+  dds754,
+  cooksCutoff = FALSE,
+  independentFiltering = FALSE,
+  contrast = c("condition","Infected","control")
+)
+head(res754, 30)
+
+res2df754 <- as.data.frame(res754) # convert the results table to a df
+nrow(res2df)
+
+
+res2df754 <- tibble::rownames_to_column(res2df754, "symbol")
+
+gn754 <- res2df754$symbol
+
+# Mapping the Symbol to ENTREZ ID
+
+entrez754 <- mapIds(
+  org.Mm.eg.db,
+  keys = gn754,
+  column = "ENTREZID",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+
+ensembl_id754 <- mapIds(
+  org.Mm.eg.db,
+  keys = gn754,
+  column = "ENSEMBL",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+
+res2df754$entrez754 <- entrez754
+res2df754$ensemblID754 <- ensembl_id754
+
+res3df754 <- res2df754 %>% filter(!is.na(symbol) & !is.na(entrez) & !is.na(log2FoldChange))
+nrow(res3df754)
+
+res3df754$StrainName <- "S754"
+results754 <- res3df754
+
+```
+
+
+```{r}
+head(cm476, 20)
+```
+```{r}
+head(cm754, 20)
+```
+
+
+```{r}
+# resOrdered <- res3df[order(res3df$pvalue),]
+# head(resOrdered)
+# 
+# write.csv(as.data.frame(resOrdered),
+#           file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/results_DGE_ER.csv")
+```
+
+
+
+---------------------------------------------------------------------------------------------------
+```{r}
+# symbols <- symbols[!is.na(symbols)]
+# symbols <- symbols[match(rownames(t476), names(symbols))]
+# head(symbols, 25)
+# 
+# # Creating a new column called genename and putting in the symbols and entrez columns into count matrix
+# t476$genename <- symbols
+# 
+# # Removing all rows with NA values for genenames, so that those rows are filtered out.
+# t476 <- unique(t476[rowSums(is.na(t476)) == 0, ]) # Apply rowSums & is.na
+# nrow(t476)
+# # Moving the ENSEMBL ID from rownames into separate column for itself.
+# t476 <- tibble::rownames_to_column(t476, "E_ID")
+# # Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
+# t476 <- distinct(t476[!duplicated(t476$genename), ])
+```
+
+```{r}
+# # Now make the ganename column into rownames of count matrix
+# rownames(t476) <- t476[,"genename"]
+# # Keeping this version of countsmatrix for later use
+# #cm_table <- countsmatrix
+# # dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
+# t476 <- subset(t476, select = -c(genename, E_ID))#
+# 
+# # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
+# t476 <- as.matrix(t476)
+# class(t476) <- "numeric"
+```
+
+
+# Calculating CPM Values
+
+```{r}
+# as DGEList
+# dge_er <- DGEList(counts = t476)
+# 
+# dim(dge_er)
+# colnames(dge_er)
+# #dge_er$samples
+# 
+# ## calculate norm. factors
+# nr <- calcNormFactors(dge_er)
+# 
+# ## get normalized counts
+# cpm_df <- as.data.frame(cpm(nr))
+# cpm_df <- cpm_df %>% rename(CPM_476 = "476_R1")
+# head(cpm_df)
+```
+```{r}
+#t476$CPM_476 <- cpm_df$CPM_476
+```
+
+```{r}
+# Add the CPM valu as a column in above table
+# head(t476, 20)
+```
+
