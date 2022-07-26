@@ -4,19 +4,20 @@ output: html_notebook
 ---
 
 ```{r}
-library(Rsubread)
+library("Rsubread")
+library("stringr")
+library("glue")
 ```
 
 # Feature counts
 ```{r}
 # GTF File
-gtf_file <- "C:/Users/User/Documents/bam/Mus_musculus.GRCm39.106.chr.gtf"
-
+gtf_file <- "/mnt/cbe3b976-3837-467e-801d-f641e979b935/bam/Mus_musculus.GRCm39.106.chr.gtf"
 ```
 
 ```{r}
 # Bam files
-bam_path <- "C:/Users/User/Documents/bam/"
+bam_path <- "/mnt/cbe3b976-3837-467e-801d-f641e979b935/bam/mixture"
 bamFiles <- list.files(bam_path, pattern = ".*bam$")
 bamFiles
 ```
@@ -25,35 +26,23 @@ bamFiles
 ```{r}
 setwd(bam_path)
 fc <- featureCounts(files = bamFiles,
-                    annot.ext= gtf_file,
-                    isGTFAnnotationFile=TRUE,
-                    isPairedEnd=FALSE)
+                    annot.ext = gtf_file,
+                    isGTFAnnotationFile = TRUE,
+                    isPairedEnd = FALSE)
 ```
 
 
 
 ```{r}
-fc
-```
-
-# Differential Gene Expression Analysis
-
-```{r}
-save(fc, file = "C:/Users/User/Documents/bam/featurecounts.csv")
+fcdf <- as.data.frame(fc$counts)
 ```
 
 ```{r}
-library("DESeq2")
-library("PoiClaClu")
-library("pheatmap")
-library("RColorBrewer")
-library('tidyverse')
-library("PoiClaClu")
-library("vsn")
-library('EnhancedVolcano')
+write.table(fcdf, file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/featurecounts_mixture.csv")
 ```
 
+
 ```{r}
-fc$target
+head(fcdf, 30)
 ```
 
