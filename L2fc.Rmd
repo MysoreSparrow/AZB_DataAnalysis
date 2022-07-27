@@ -224,182 +224,100 @@ countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
 countsmatrix <- as.matrix(countsmatrix)
 class(countsmatrix) <- "numeric"
+
+# Creating a list of samplenmes that can be provided
+samplelist <- as.list(coldata$Sample_Name)
+
 ```
 
-1. Keep only the 476 column of countmatrix and call that a new cm
-2. also remove irrelevant parts of coldata as well for making a one vs one comparison
+# Design a generic fucntion that does this job for everything else
 
 ```{r}
-cm476 <- countsmatrix[,c(1,15:16)]
-coldata476 <- coldata[c(1,15:16),]
+run_individualDESeq <- function(namelist, cd, cm) {
+  #cd is coldata, cm is countsmatrix
+  
+  # Create an empty list for the results
+  resultslist <- list()
+  
+  for (i in 1:14) {
+    
+    name = namelist[[i]]
+    print(glue("Working with Strain:{name}"))
+    
+    cm_input <- cm[, c(i, 15:16)]
+    coldata_input <- cd[c(i, 15:16), ]
+    #print(head(cm_input, 3))
+    #print(head(coldata_input, 3))
+    
+    rownames(coldata_input)
+    colnames(cm_input)
+    
+    all(rownames(coldata_input) %in% colnames(cm_input))
+    ncol(cm_input) == nrow(coldata_input)
+    
+    dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~ condition)
+    # nrow(dds)
+    dds <- DESeq(dds)
+    dds1 <- DESeq(dds, minReplicatesForReplace = Inf)
+    
+    res <- results(dds1, cooksCutoff = FALSE, independentFiltering = FALSE,
+                   contrast = c("condition", "Infected", "control"))
+    # head(res, 30)
+    
+    res_df <- as.data.frame(res) # convert the results table to a df
+    # nrow(res_df)
+    
+    
+    res_df <- tibble::rownames_to_column(res_df, "symbol")
+    res_df <- res_df %>% filter(!is.na(log2FoldChange))
+    # nrow(res_df)
+    colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
+    res_df <- as.data.frame(res_df)
+    #print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
+    
+    # Appending each new results table into a resultslist
+    resultslist[[length(resultslist) + 1]] <- res_df
+  }
+  return(resultslist)
+}
+```
 
-all(rownames(coldata476) %in% colnames(cm476))
-ncol(countsmatrix) == nrow(coldata)
 
-dds <- DESeqDataSetFromMatrix(countData = cm476,
-                              colData = coldata476, 
-                              design = ~ condition)
-nrow(dds)
+```{r}
+L2FC <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
+```
+```{r}
+# Mapping -> converting the list of objects to list of dataframes
+list_df <- Map(as.data.frame, L2FC)
 
-dds1 <- DESeq(dds)
+#merge all data frames in list based on symbol column
+table <- list_df %>% reduce(full_join, by = 'symbol')
+```
 
-
-dds2 <- DESeq(dds, minReplicatesForReplace = Inf)
-res2 <- results(
-  dds2,
-  cooksCutoff = FALSE,
-  independentFiltering = FALSE,
-  contrast = c("condition","Infected","control")
+```{r}
+l2fctable <- table %>% select(
+  "symbol" ,
+  "log2FoldChange_T",
+  "log2FoldChange_S54",
+  "log2FoldChange_S55",
+  "log2FoldChange_L57",
+  "log2FoldChange_L57",
+  "log2FoldChange_A58",
+  "log2FoldChange_L60" ,
+  "log2FoldChange_S61",
+  "log2FoldChange_A62",
+  "log2FoldChange_L63",
+  "log2FoldChange_A64",
+  "log2FoldChange_S65",
+  "log2FoldChange_L66",
+  "log2FoldChange_A68",
+  "log2FoldChange_L69"
 )
-head(res2, 30)
-
-res2df <- as.data.frame(res2) # convert the results table to a df
-nrow(res2df)
-
-
-res2df <- tibble::rownames_to_column(res2df, "symbol")
-
-gn <- res2df$symbol
-
-# Mapping the Symbol to ENTREZ ID
-
-entrez <- mapIds(
-  org.Mm.eg.db,
-  keys = gn,
-  column = "ENTREZID",
-  keytype = "SYMBOL",
-  multiVals = "first"
-)
-
-ensembl_id <- mapIds(
-  org.Mm.eg.db,
-  keys = gn,
-  column = "ENSEMBL",
-  keytype = "SYMBOL",
-  multiVals = "first"
-)
-res2df$entrez <- entrez
-res2df$ensemblID <- ensembl_id
-
-res3df <- res2df %>% filter(!is.na(symbol) & !is.na(entrez) & !is.na(log2FoldChange))
-nrow(res3df)
-
-res3df$StrainName <- "S476"
-results476 <- res3df
-```
-
-# 754 Strain
-```{r}
-cm754 <- countsmatrix[,c(2,15:16)]
-coldata754 <- coldata[c(2,15:16),]
-
-all(rownames(coldata476) %in% colnames(cm476))
-ncol(countsmatrix) == nrow(coldata)
-
-dds754 <- DESeqDataSetFromMatrix(countData = cm476,
-                              colData = coldata476, 
-                              design = ~ condition)
-nrow(dds754)
-
-dds754 <- DESeq(dds754)
-
-dds754 <- DESeq(dds754, minReplicatesForReplace = Inf)
-
-res754 <- results(
-  dds754,
-  cooksCutoff = FALSE,
-  independentFiltering = FALSE,
-  contrast = c("condition","Infected","control")
-)
-head(res754, 30)
-
-res2df754 <- as.data.frame(res754) # convert the results table to a df
-nrow(res2df)
-
-
-res2df754 <- tibble::rownames_to_column(res2df754, "symbol")
-
-gn754 <- res2df754$symbol
-
-# Mapping the Symbol to ENTREZ ID
-
-entrez754 <- mapIds(
-  org.Mm.eg.db,
-  keys = gn754,
-  column = "ENTREZID",
-  keytype = "SYMBOL",
-  multiVals = "first"
-)
-
-ensembl_id754 <- mapIds(
-  org.Mm.eg.db,
-  keys = gn754,
-  column = "ENSEMBL",
-  keytype = "SYMBOL",
-  multiVals = "first"
-)
-
-res2df754$entrez754 <- entrez754
-res2df754$ensemblID754 <- ensembl_id754
-
-res3df754 <- res2df754 %>% filter(!is.na(symbol) & !is.na(entrez) & !is.na(log2FoldChange))
-nrow(res3df754)
-
-res3df754$StrainName <- "S754"
-results754 <- res3df754
-
-```
-
-
-```{r}
-head(cm476, 20)
-```
-```{r}
-head(cm754, 20)
-```
-
-
-```{r}
-# resOrdered <- res3df[order(res3df$pvalue),]
-# head(resOrdered)
-# 
-# write.csv(as.data.frame(resOrdered),
-#           file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/ER/results_DGE_ER.csv")
-```
-
-
-
----------------------------------------------------------------------------------------------------
-```{r}
-# symbols <- symbols[!is.na(symbols)]
-# symbols <- symbols[match(rownames(t476), names(symbols))]
-# head(symbols, 25)
-# 
-# # Creating a new column called genename and putting in the symbols and entrez columns into count matrix
-# t476$genename <- symbols
-# 
-# # Removing all rows with NA values for genenames, so that those rows are filtered out.
-# t476 <- unique(t476[rowSums(is.na(t476)) == 0, ]) # Apply rowSums & is.na
-# nrow(t476)
-# # Moving the ENSEMBL ID from rownames into separate column for itself.
-# t476 <- tibble::rownames_to_column(t476, "E_ID")
-# # Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
-# t476 <- distinct(t476[!duplicated(t476$genename), ])
 ```
 
 ```{r}
-# # Now make the ganename column into rownames of count matrix
-# rownames(t476) <- t476[,"genename"]
-# # Keeping this version of countsmatrix for later use
-# #cm_table <- countsmatrix
-# # dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
-# t476 <- subset(t476, select = -c(genename, E_ID))#
-# 
-# # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
-# t476 <- as.matrix(t476)
-# class(t476) <- "numeric"
+l2fctable
 ```
-
 
 # Calculating CPM Values
 
