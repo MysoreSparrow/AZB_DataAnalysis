@@ -3,8 +3,9 @@ title: 'DGE Analysis Notebook: BL6 Infected Vs Control'
 output:
   html_document: 
     toc: yes
-    fig_width: 8
-    fig_height: 8
+    fig_width: 6
+    fig_height: 6
+    code_folding: "hide"
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
@@ -63,7 +64,7 @@ Let's create the sample information
 
 ```{r}
 # Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
-sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/samples.csv")
+sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/samples.csv")
 head(sample_ID)
 ```
 
@@ -110,8 +111,8 @@ coldata[coldata == 'Ctrl1_R1'] <- 'C1'
 coldata[coldata == 'Ctrl2_R2'] <- 'C2'
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
-coldata
 ```
+
 
 ### Adding the groupings by Alina for further Metadata Information
 
@@ -141,6 +142,9 @@ coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon
                           "beta", 'NR', 'NR')
 ```
 
+```{r}
+coldata
+```
 #### then fix Countsmatrix:
 
 NOTE:
@@ -151,7 +155,7 @@ NOTE:
 ```{r}
 # Readin  countsmatrix
 #countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
-countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/newcounts.csv")
+countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/newcounts.csv")
 #countsmatrix <- as.data.frame(countsmatrix)
 ```
 
@@ -222,24 +226,9 @@ countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
 countsmatrix <- as.matrix(countsmatrix)
 class(countsmatrix) <- "numeric"
 ```
-
-
-# Calculating CPM Values
-
+### The Count Matrix is:
 ```{r}
-# as DGEList
-dge_er <- DGEList(counts = countsmatrix)
-
-dim(dge_er)
-colnames(dge_er)
-#dge_er$samples
-
-## calculate norm. factors
-nr <- calcNormFactors(dge_er)
-
-## get normalized counts
-cpmvalues <- cpm(nr)
-cpmvalues_d <- cpm.default(nr)
+head(countsmatrix, 20)
 ```
 
 # Differential Gene Expression analysis using DESeq2
@@ -703,13 +692,13 @@ eig.val <- get_eigenvalue(res.pca)
 eig.val
 ```
 ```{r}
-var <- get_pca_var(res.pca)
+# var <- get_pca_var(res.pca)
 #fviz_pca_var(res.pca, repel = TRUE)
 ```
 
 ```{r fig.width=10}
-library("corrplot")
-corrplot(var$cos2, is.corr=T)
+# library("corrplot")
+# corrplot(var$cos2, is.corr=T)
 ```
 
 ## Genes + PCA Biplots
@@ -833,13 +822,16 @@ head(res2_infected, 30)
 
 ```{r}
 res2df_infected <- as.data.frame(res2_infected) # convert the results table to a df
-head(res2df_infected)
+
+```
+```{r}
+head(res2df_infected, 20)
 ```
 
 ## MA Plot
 
 ```{r}
-plotMA_res2_infected <- plotMA(res2_infected, ylim = c(-2, 2))
+# plotMA_res2_infected <- plotMA(res2_infected, ylim = c(-2, 2))
 ```
 
 ### Histogram of p-values
@@ -908,11 +900,21 @@ write.csv(as.data.frame(resOrdered_infected),
 
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
-```{r}
-select <- order(rowMeans(counts(dds2_infected,normalized = FALSE)),decreasing = TRUE)[1:20]
+```{r fig.width=8, fig.height=8}
+library(circlize)
+
+select <- order(rowMeans(counts(dds2_infected,normalized = FALSE)),decreasing = TRUE)[1:25]
 df <- as.data.frame(colData(dds2_infected)[,c("condition","Sample_Name")])
+
+colors <- colorRampPalette( rev(brewer.pal(5, "RdYlBu")) )(255)
 Heatmap(assay(vsd)[select,], 
-         cluster_columns = TRUE
+         cluster_columns = TRUE,
+        #col = colors,
+        show_heatmap_legend = TRUE,
+        column_title = "Samples",
+        row_title = "Top 25 Genes",
+        name = "Count Matrix Heatmap of Top25 Read Counts"
+        
         )
 ```
 
@@ -924,20 +926,20 @@ Heatmap(assay(vsd)[select,],
 ### Based on Shifted Log Transformation
 
 ```{r}
-ntd <- normTransform(dds2_infected)
-meanSdPlot(assay(ntd))
+# ntd <- normTransform(dds2_infected)
+# meanSdPlot(assay(ntd))
 ```
 
 ### Based on Rlog Transformation
 
 ```{r}
-meanSdPlot(assay(rld))
+# meanSdPlot(assay(rld))
 ```
 
 ### Based on Variance Stabilizing Transformation
 
 ```{r}
-meanSdPlot(assay(vsd))
+# meanSdPlot(assay(vsd))
 ```
 
 ## Dispersion Plots
@@ -945,7 +947,7 @@ meanSdPlot(assay(vsd))
 -   Its a useful diagnostic to plot the dispersion estimates.
 
 ```{r}
-plotDispEsts(dds2_infected)
+# plotDispEsts(dds2_infected)
 ```
 
 # Volcano Plots
@@ -1020,16 +1022,16 @@ p2 <- EnhancedVolcano(res3df_infected,
     legendIconSize = 4.0,
     drawConnectors = T,
     widthConnectors = 0.75,
-    max.overlaps = 8
+    max.overlaps = 10
     )
 
-(volcano2 <- p2 + scale_y_continuous(limits = c(0, 5),
-                                    breaks = seq(0, 5, 1),
+(volcano2 <- p2 + scale_y_continuous(limits = c(0, 4),
+                                    breaks = seq(0, 4, 1),
                                     sec.axis = sec_axis(~. *1,
                                                         labels = NULL,
                                                         breaks = NULL)) +
-                  scale_x_continuous(limits = c(-4, 5), 
-                                     breaks = seq(-4, 5, 1),
+                  scale_x_continuous(limits = c(-3, 4), 
+                                     breaks = seq(-3, 4, 1),
                                     sec.axis = sec_axis(~. *1,
                                                         labels = NULL,
                                                         breaks = NULL)) +
@@ -1085,8 +1087,14 @@ Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/SignificantGenes_ER.csv")
+write.csv(sigsdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/SignificantGenes_IvC.csv")
 ```
+### Significant Differentialy Expressed Genes (SDEG)
+
+```{r}
+head(sigsdf_infected, 20)
+```
+
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
 
@@ -1098,21 +1106,31 @@ nrow(sigsdf_infected_UP)
 nrow(sigsdf_infected_DOWN)
 ```
 
-### Determine Top20 UP Genes and Top20 DOWN Genes
+
 
 ```{r}
+# sorted based on highest Log2FC value
 UpGene_infected <- sigsdf_infected_UP[order(-sigsdf_infected_UP$log2FoldChange,decreasing = TRUE), ]$symbol
 DownGene_infected <- sigsdf_infected_DOWN[order(-sigsdf_infected_DOWN$log2FoldChange,decreasing = TRUE), ]$symbol
-DE_Genes_table_infected <- as.data.frame(cbind(UpGene_infected,DownGene_infected)) # sorted based on highest Log2FC value
+
+```
+```{r}
+write.csv(UpGene_infected,
+          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/UpGenelist_infectedvscontrol.csv")
+write.csv(DownGene_infected,
+          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/DownGenelist_infected_infectedvscontrol.csv")
 ```
 
+### Top20 UP Genes and Top20 DOWN Genes
+
+#### UpGene_infected
 ```{r}
-write.csv(DE_Genes_table_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/DEGenesTable_ER.csv")
-head(DE_Genes_table_infected, 25)
+head(UpGene_infected, 20)
 ```
 
+#### DownGene_infected
 ```{r}
-head(sigsdf_infected)
+head(DownGene_infected, 20)
 ```
 
 ```{r}
@@ -1210,7 +1228,9 @@ GO_UPRegResults_infected <- enrichGO(gene = UPgene_ENS_ID,
 
 ```{r}
 GO_UpRegdf_infected <- as.data.frame(GO_UPRegResults_infected)
-head(GO_UpRegdf_infected)
+```
+```{r}
+head(GO_UpRegdf_infected, 20)
 ```
 
 ```{r}
@@ -1237,16 +1257,13 @@ saveplot(GO_UPReg_Cnetplot_infected, "GO_UPReg_Cnetplot_infected")
 ### Upset Plot
 
 ```{r fig.height= 8, fig.width=12}
-GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_infected))
-saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
+# GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_infected))
+# saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
 
 ### Heatplot
 
-The heatplot is similar to cnetplot, while displaying the relationships
-as a heatmap. The gene-concept network may become too complicated if
-user want to show a large number significant terms. The heatplot can
-simplify the result and more easy to identify expression patterns.
+The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
 
 ```{r fig.height= 12, fig.width=15}
 GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_infected))
@@ -1575,6 +1592,174 @@ into the SPIA edge type "indirect effect". For more details see the SPIA package
 # ALL_Colorectal <- top$ENTREZ
 
 ```
+
+# Log2Fold Change Table
+
+```{r}
+# Creating a list of samplenmes that can be provided
+samplelist <- as.list(coldata$Sample_Name)
+```
+
+Design a generic function 
+
+```{r}
+run_individualDESeq <- function(namelist, cd, cm) {
+  #cd is coldata, cm is countsmatrix
+  
+  # Create an empty list for the results
+  resultslist <- list()
+  
+  for (i in 1:14) {
+    
+    name = namelist[[i]]
+    print(glue("Working with Strain:{name}"))
+    
+    cm_input <- cm[, c(i, 15:16)]
+    coldata_input <- cd[c(i, 15:16), ]
+    #print(head(cm_input, 3))
+    #print(head(coldata_input, 3))
+    
+    rownames(coldata_input)
+    colnames(cm_input)
+    
+    all(rownames(coldata_input) %in% colnames(cm_input))
+    ncol(cm_input) == nrow(coldata_input)
+    
+    dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~ condition)
+    # nrow(dds)
+    dds <- DESeq(dds)
+    dds1 <- DESeq(dds, minReplicatesForReplace = Inf)
+    
+    res <- results(dds1, cooksCutoff = FALSE, independentFiltering = FALSE,
+                   contrast = c("condition", "Infected", "control"))
+    # head(res, 30)
+    
+    res_df <- as.data.frame(res) # convert the results table to a df
+    # nrow(res_df)
+
+    res_df <- tibble::rownames_to_column(res_df, "symbol")
+    res_df <- res_df %>% filter(!is.na(log2FoldChange))
+    # nrow(res_df)
+    colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
+    res_df <- as.data.frame(res_df)
+    print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
+  
+    # Appending each new results table into a resultslist
+    resultslist[[length(resultslist) + 1]] <- res_df
+  }
+  return(resultslist)
+}
+```
+
+```{r}
+# Calling the function to run DESeq for each Strain
+resulttable <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
+
+# Mapping -> converting the list of objects to list of dataframes
+list_df <- Map(as.data.frame, resulttable)
+
+#merge all data frames in list based on symbol column
+table <- list_df %>% reduce(full_join, by = 'symbol')
+```
+
+```{r}
+l2fctable <- table %>% select(
+  "symbol" ,
+  "log2FoldChange_T",
+  "log2FoldChange_S54",
+  "log2FoldChange_S55",
+  "log2FoldChange_L57",
+  "log2FoldChange_L57",
+  "log2FoldChange_A58",
+  "log2FoldChange_L60" ,
+  "log2FoldChange_S61",
+  "log2FoldChange_A62",
+  "log2FoldChange_L63",
+  "log2FoldChange_A64",
+  "log2FoldChange_S65",
+  "log2FoldChange_L66",
+  "log2FoldChange_A68",
+  "log2FoldChange_L69"
+)
+```
+
+```{r}
+head(l2fctable, 30)
+```
+
+```{r}
+write.csv(l2fctable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/l2fctable_InfectedvsControl.csv")
+```
+
+
+# Calculating CPM Values
+
+
+```{r}
+run_individualDESeq2 <- function(namelist, cd, cm) {
+  #cd is coldata, cm is countsmatrix
+  
+  # Create an empty list for the results
+  cpmlist <- list()
+  
+  for (i in 1:14) {
+    
+    name = namelist[[i]]
+    print(glue("Working with Strain:{name}"))
+    
+    cm_input <- cm[, i]
+    coldata_input <- cd[i, ]
+    #print(head(cm_input, 3))
+    #print(head(coldata_input, 3))
+    
+    # CPM Values
+    # as DGEList
+    dge_er <- DGEList(counts = cm_input)
+  
+    dim(dge_er)
+    colnames(dge_er)
+    #dge_er$samples
+  
+    ## calculate norm. factors
+    nr <- calcNormFactors(dge_er)
+  
+    ## get normalized counts
+    cpm_df <- as.data.frame(cpm(nr))
+    
+    colnames(cpm_df) <- glue("CPM_{name}")
+    
+    cpm_df <- tibble::rownames_to_column(cpm_df,"symbol")
+    
+    # Appending each new result table into cpmlist
+    cpmlist[[length(cpmlist) + 1]] <- cpm_df
+  }
+    return(cpmlist)
+}
+```
+
+
+```{r}
+cpmT <- run_individualDESeq2(namelist = samplelist, cd = coldata, cm = countsmatrix)
+
+# Mapping -> converting the list of objects to list of dataframes
+list_df2 <- Map(as.data.frame, cpmT)
+
+#merge all data frames in list based on symbol column
+cpmtable <- list_df2 %>% reduce(full_join, by = 'symbol')
+nrow(cpmtable)
+
+rownames(cpmtable) <- cpmtable[,1]
+cpmtable <- subset(cpmtable, select = -symbol)
+keep <- rowSums(cpmtable) > 0
+cpmtable <- cpmtable[keep,]
+nrow(cpmtable)
+
+```
+
+```{r}
+write.csv(cpmtable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/CPMtable_BL6.csv")
+```
+
 
 ```{r}
 sessionInfo()
