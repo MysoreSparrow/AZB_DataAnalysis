@@ -266,15 +266,14 @@ run_individualDESeq <- function(namelist, cd, cm) {
     
     res_df <- as.data.frame(res) # convert the results table to a df
     # nrow(res_df)
-    
-    
+
     res_df <- tibble::rownames_to_column(res_df, "symbol")
     res_df <- res_df %>% filter(!is.na(log2FoldChange))
     # nrow(res_df)
     colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
     res_df <- as.data.frame(res_df)
-    #print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
-    
+    print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
+  
     # Appending each new results table into a resultslist
     resultslist[[length(resultslist) + 1]] <- res_df
   }
@@ -284,11 +283,11 @@ run_individualDESeq <- function(namelist, cd, cm) {
 
 
 ```{r}
-L2FC <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
-```
-```{r}
+# Calling the function to run DESeq for each Strain
+resulttable <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
+
 # Mapping -> converting the list of objects to list of dataframes
-list_df <- Map(as.data.frame, L2FC)
+list_df <- Map(as.data.frame, resulttable)
 
 #merge all data frames in list based on symbol column
 table <- list_df %>% reduce(full_join, by = 'symbol')
@@ -319,30 +318,78 @@ l2fctable <- table %>% select(
 l2fctable
 ```
 
+```{r}
+write.csv(l2fctable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/l2fctable_InfectedvsControl.csv")
+```
+
+
 # Calculating CPM Values
 
+
 ```{r}
-# as DGEList
-# dge_er <- DGEList(counts = t476)
-# 
-# dim(dge_er)
-# colnames(dge_er)
-# #dge_er$samples
-# 
-# ## calculate norm. factors
-# nr <- calcNormFactors(dge_er)
-# 
-# ## get normalized counts
-# cpm_df <- as.data.frame(cpm(nr))
-# cpm_df <- cpm_df %>% rename(CPM_476 = "476_R1")
-# head(cpm_df)
+run_individualDESeq2 <- function(namelist, cd, cm) {
+  #cd is coldata, cm is countsmatrix
+  
+  # Create an empty list for the results
+  cpmlist <- list()
+  
+  for (i in 1:14) {
+    
+    name = namelist[[i]]
+    print(glue("Working with Strain:{name}"))
+    
+    cm_input <- cm[, i]
+    coldata_input <- cd[i, ]
+    #print(head(cm_input, 3))
+    #print(head(coldata_input, 3))
+    
+    # CPM Values
+    # as DGEList
+    dge_er <- DGEList(counts = cm_input)
+  
+    dim(dge_er)
+    colnames(dge_er)
+    #dge_er$samples
+  
+    ## calculate norm. factors
+    nr <- calcNormFactors(dge_er)
+  
+    ## get normalized counts
+    cpm_df <- as.data.frame(cpm(nr))
+    
+    colnames(cpm_df) <- glue("CPM_{name}")
+    
+    cpm_df <- tibble::rownames_to_column(cpm_df,"symbol")
+    
+    # Appending each new result table into cpmlist
+    cpmlist[[length(cpmlist) + 1]] <- cpm_df
+  }
+    return(cpmlist)
+}
+```
+
+
+```{r}
+cpmT <- run_individualDESeq2(namelist = samplelist, cd = coldata, cm = countsmatrix)
 ```
 ```{r}
-#t476$CPM_476 <- cpm_df$CPM_476
+# Mapping -> converting the list of objects to list of dataframes
+list_df2 <- Map(as.data.frame, cpmT)
+
+#merge all data frames in list based on symbol column
+cpmtable <- list_df2 %>% reduce(full_join, by = 'symbol')
+nrow(cpmtable)
+
+rownames(cpmtable) <- cpmtable[,1]
+cpmtable <- subset(cpmtable, select = -symbol)
+keep <- rowSums(cpmtable) > 0
+cpmtable <- cpmtable[keep,]
+nrow(cpmtable)
+
 ```
 
 ```{r}
-# Add the CPM valu as a column in above table
-# head(t476, 20)
+write.csv(cpmtable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/CPMtable_BL6.csv")
 ```
+
 
