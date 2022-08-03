@@ -14,13 +14,13 @@ library('Rsubread')
 # Feature counts
 ```{r}
 # GTF File
-gtf_file <- "C:/Users/User/Documents/bam/Mus_musculus.GRCm39.106.chr.gtf"
+gtf_file <- "D:/3primeRNASeqData_fastq_bam_countmatrices/Mus_musculus.GRCm39.106.chr.gtf"
 
 ```
 
 ```{r}
 # Bam files
-bam_path <- "C:/Users/User/Documents/bam/"
+bam_path <- "D:/3primeRNASeqData_fastq_bam_countmatrices/mixture/"
 bamFiles <- list.files(bam_path, pattern = ".*bam$")
 bamFiles
 ```
@@ -46,5 +46,6 @@ head(fc[["annotation"]], 10)
 
 ```{r}
 head(fc[["counts"]], 10)
-write.csv(fc[["counts"]], 'C:/Users/User/Documents/bam/newcounts.csv')
+write.csv(fc[["counts"]],
+          'D:/3primeRNASeqData_fastq_bam_countmatrices/mixture/mixturecounts.csv')
 ```
