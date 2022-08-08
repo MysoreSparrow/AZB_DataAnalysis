@@ -9,7 +9,6 @@ output:
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
-    df_print: tibble
 ---
 
 ```{r, message = FALSE, warning = FALSE}
@@ -117,29 +116,43 @@ rownames(coldata) <- coldata$Sample_Name
 ### Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
-                                  "HighInducer", "LowInducer", "LowInducer",
-                                  "HighInducer", "HighInducer", "LowInducer",
-                                  "HighInducer", "LowInducer", "HighInducer",
-                                  "LowInducer", "LowInducer", 'NR', 'NR')
-coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
-                              'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
-                              'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
-                              'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
-coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
-                           'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
-                           'Low', 'NR', 'NR')
-coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
-                              "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
-                              "LI_LM", "LI_LM", 'NR', 'NR')
-coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
-                                  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
-                                  "EPEC2", "EPEC2", 'NR', 'NR')
-coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
-                        "B2", "B1", "B2", 'NR', 'NR')
-coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
-                          "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
-                          "beta", 'NR', 'NR')
+coldata$Epithelial_response <- c(
+  "LowInducer", "LowInducer", "HighInducer",
+  "HighInducer", "LowInducer", "LowInducer",
+  "HighInducer", "HighInducer", "LowInducer",
+  "HighInducer", "LowInducer", "HighInducer",
+  "LowInducer", "LowInducer", "NR", "NR"
+)
+coldata$clinical_outcome <- c(
+  "symptomatic", "symptomatic", "symptomatic",
+  "Lethal", "asymptomatic", "Lethal", "symptomatic",
+  "asymptomatic", "Lethal", "symptomatic", "symptomatic",
+  "Lethal", "asymptomatic", "Lethal", "NR", "NR"
+)
+coldata$microcolonies <- c(
+  "Low", "Low", "Low", "High", "Low", "Low",
+  "High", "High", "Low", "High", "Low", "High", "Low",
+  "Low", "NR", "NR"
+)
+coldata$ER_microcolonies <- c(
+  "LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+  "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+  "LI_LM", "LI_LM", "NR", "NR"
+)
+coldata$phylogenomic_lineage <- c(
+  "EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+  "EPEC2", "EPEC2", "NR", "NR"
+)
+coldata$phylogroup <- c(
+  "B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+  "B2", "B1", "B2", "NR", "NR"
+)
+coldata$Intimin_Type <- c(
+  "alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+  "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+  "beta", "NR", "NR"
+)
 ```
 
 ```{r}
@@ -560,7 +573,8 @@ savingFunction(PCAplot_ER, "Epithelial_response")
 ### PCA for Microcolonies
 
 ```{r}
-PCAdata_infected_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
+PCAdata_infected_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), 
+                               returnData = TRUE)
 percentVar_infected_MC <- percentvar_calculation(PCAdata_infected_MC)
 
 (PCAplot_MC <- ggplot(PCAdata_infected_MC,
@@ -893,17 +907,17 @@ resOrdered_infected <- res3df_infected[order(res3df_infected$pvalue),]
 head(resOrdered_infected)
 
 write.csv(as.data.frame(resOrdered_infected),
-          file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/results_DGE_ER.csv")
+          file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/results_DGE.csv")
 ```
 
 ## Heatmap of count matrix
 
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
-```{r fig.width=8, fig.height=8}
+```{r fig.width=8, fig.height=9}
 library(circlize)
 
-select <- order(rowMeans(counts(dds2_infected,normalized = FALSE)),decreasing = TRUE)[1:25]
+select <- order(rowMeans(counts(dds2_infected,normalized = FALSE)),decreasing = TRUE)[1:50]
 df <- as.data.frame(colData(dds2_infected)[,c("condition","Sample_Name")])
 
 colors <- colorRampPalette( rev(brewer.pal(5, "RdYlBu")) )(255)
@@ -911,9 +925,10 @@ Heatmap(assay(vsd)[select,],
          cluster_columns = TRUE,
         #col = colors,
         show_heatmap_legend = TRUE,
-        column_title = "Samples",
-        row_title = "Top 25 Genes",
-        name = "Count Matrix Heatmap of Top25 Read Counts"
+        column_title = "EPEC Samples",
+        row_title = "Top 50 Genes",
+        name = "Count Matrix Heatmap
+        of Top50 Genes"
         
         )
 ```
@@ -1438,7 +1453,7 @@ function is written below to loop through and draw plots for the top 10
 pathways we created above.
 
 ```{r}
-devtools::install_github("javadnoorb/pathview")
+#devtools::install_github("javadnoorb/pathview")
 library("pathview")
 # Define plotting function for applying later
 plot_pathway = function(pid) pathview(gene.data = foldchanges, 
@@ -1448,9 +1463,9 @@ plot_pathway = function(pid) pathview(gene.data = foldchanges,
 
 
 # plot multiple pathways (plots saved to disk and returns a throwaway list object)
-tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-                                                pathway.id = pid, 
-                                                species = "mouse"))
+# tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
+#                                                 pathway.id = pid, 
+#                                                 species = "mouse"))
 ```
 ## GSEA - Gene Set Enrichment Analysis
 
@@ -1688,7 +1703,7 @@ head(l2fctable, 30)
 ```
 
 ```{r}
-write.csv(l2fctable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/l2fctable_InfectedvsControl.csv")
+write.csv(l2fctable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/l2fctable_InfectedvsControl_BL6.csv")
 ```
 
 
@@ -1757,10 +1772,75 @@ nrow(cpmtable)
 ```
 
 ```{r}
-write.csv(cpmtable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/CPMtable_BL6.csv")
+write.csv(cpmtable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/CPMtable_BL6.csv")
 ```
 
 
 ```{r}
 sessionInfo()
 ```
+# GeneTonic
+
+```{r}
+library("GeneTonic")
+```
+
+```{r}
+#1. dds object 
+dds1_infected
+```
+
+```{r}
+#2. Results
+res_gt <- res2df_infected
+res_gt <- res_gt[!duplicated(res_gt[c('ensemblID')]), ]
+res_gt <- as.data.frame(res_gt)
+
+rownames(res_gt) <- res_gt[,9]
+#res_gt <- subset(res_gt, select = - ensemblID)
+```
+
+```{r}
+#3. res_enrich
+res_enrich_infected <- shake_enrichResult(GO_UPRegResults_infected)
+```
+
+```{r}
+colnames(res_enrich_infected)
+```
+```{r}
+res_enrich_infected
+```
+
+
+```{r}
+library("org.Mm.eg.db")
+library(pcaExplorer)
+#4. annoattion data frame
+
+#anno_df <- data.frame(res_gt$ensemblID, res_gt$symbol)
+anno_df <- pcaExplorer::get_annotation_orgdb(dds1_infected, "org.Mm.eg.db", "SYMBOL")
+```
+
+## Getting Aggregate Scores
+
+```{r}
+# res_enrich_infected <- get_aggrscores(res_enrich = res_enrich_infected,
+#                                       res_de = res_gt,
+#                                       annotation_obj = anno_df,
+#                                       aggrfun = mean)
+```
+
+```{r}
+GeneTonic(dds = dds1_infected,
+          res_de = res_infected,
+          res_enrich = res_enrich_infected,
+          annotation_obj = anno_df,
+          project_id = "Alina_1"
+          )
+```
+
+```{r}
+checkup_gtl(gtl)
+```
+
