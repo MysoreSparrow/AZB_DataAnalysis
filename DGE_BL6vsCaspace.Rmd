@@ -1,0 +1,656 @@
+---
+title: 'DGE Analysis Notebook - BL6 vs Caspace'
+output:
+  html_document: 
+    toc: yes
+    fig_width: 8
+    fig_height: 8
+    fig_caption: yes
+    number_sections: yes
+    toc_depth: 4
+    df_print: tibble
+---
+
+```{r, message = FALSE, warning = FALSE}
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library("tidyverse"))
+suppressPackageStartupMessages(library("PoiClaClu"))
+suppressPackageStartupMessages(library("vsn"))
+suppressPackageStartupMessages(library("EnhancedVolcano"))
+suppressPackageStartupMessages(library("gplots"))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
+suppressPackageStartupMessages(library("stringr"))
+suppressPackageStartupMessages(library("genefilter"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("glmpca"))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+suppressPackageStartupMessages(library("apeglm"))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("clusterProfiler"))
+suppressPackageStartupMessages(library("ggrepel"))
+suppressPackageStartupMessages(library("corrplot"))
+suppressPackageStartupMessages(library("GO.db"))
+suppressPackageStartupMessages(library("edgeR"))
+suppressPackageStartupMessages(library("GOstats"))
+suppressPackageStartupMessages(library("pathview"))
+suppressPackageStartupMessages(library("gage"))
+suppressPackageStartupMessages(library("gageData"))
+suppressPackageStartupMessages(library("GOSemSim"))
+suppressPackageStartupMessages(library("DOSE"))
+suppressPackageStartupMessages(library("enrichplot"))
+suppressPackageStartupMessages(library("ggnewscale"))
+suppressPackageStartupMessages(library("glue"))
+suppressPackageStartupMessages(library("ggupset"))
+# suppressPackageStartupMessages(library("SPIA"))
+suppressPackageStartupMessages(library("stats"))
+suppressPackageStartupMessages(library("FactoMineR"))
+suppressPackageStartupMessages(library("factoextra"))
+suppressPackageStartupMessages(library("pcaExplorer"))
+```
+
+# Differential Gene Expression Analysis
+
+## Creating metadata for the DGE Analysis
+
+DESeq2 needs sample information (metadata) for performing DGE analysis.
+Let's create the sample information
+
+```{r}
+# Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
+sample_ID <- read.csv("~/R/Alina_RNAseq/samples_bl6vscaspace.csv", stringsAsFactors = TRUE)
+head(sample_ID)
+```
+```{r}
+colnames(sample_ID)
+```
+
+```{r}
+condition <- c(
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "B_Ctrl", "B_Ctrl", "Infected_C", "Infected_C",
+  "C_Ctrl", "C_Ctrl"
+)
+```
+```{r}
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c("Sample_Name", "condition") # change name of one of the columns
+# The metadata can be found in a df called coldata!
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+#### First from coldata
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+# coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" 
+)
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+  pattern = "trimmed_|_001.fastq.gz.Aligned.sortedByCoord.out.bam"
+)
+
+coldata$condition <- as.factor(coldata$condition)
+```
+
+Changing the names of samples (as per Alina)
+
+```{r}
+# coldata[coldata == "476_R1"] <- "T"
+# coldata[coldata == "754_R1"] <- "S54"
+# coldata[coldata == "755_R1"] <- "S55"
+# coldata[coldata == "757_R1"] <- "L57"
+# coldata[coldata == "758_R1"] <- "A58"
+# coldata[coldata == "760_R1"] <- "L60"
+# coldata[coldata == "761_R1"] <- "S61"
+# coldata[coldata == "762_R1"] <- "A62"
+# coldata[coldata == "763_R1"] <- "L63"
+# coldata[coldata == "764_R1"] <- "A64"
+# coldata[coldata == "765_R1"] <- "S65"
+# coldata[coldata == "766_R1"] <- "L66"
+# coldata[coldata == "768_R1"] <- "A68"
+# coldata[coldata == "769_R1"] <- "L69"
+# coldata[coldata == "Ctrl1_R1"] <- "C1"
+# coldata[coldata == "Ctrl2_R2"] <- "C2"
+# convert column1 with sample names to row.names of coldata
+rownames(coldata) <- coldata$Sample_Name
+coldata
+```
+
+### Adding the groupings by Alina for further Metadata Information
+
+```{r}
+# coldata$Epithelial_response <- c(
+#   "LowInducer", "LowInducer", "HighInducer",
+#   "HighInducer", "LowInducer", "LowInducer",
+#   "HighInducer", "HighInducer", "LowInducer",
+#   "HighInducer", "LowInducer", "HighInducer",
+#   "LowInducer", "LowInducer", "NR", "NR"
+# )
+# coldata$clinical_outcome <- c(
+#   "symptomatic", "symptomatic", "symptomatic",
+#   "Lethal", "asymptomatic", "Lethal", "symptomatic",
+#   "asymptomatic", "Lethal", "symptomatic", "symptomatic",
+#   "Lethal", "asymptomatic", "Lethal", "NR", "NR"
+# )
+# coldata$microcolonies <- c(
+#   "Low", "Low", "Low", "High", "Low", "Low",
+#   "High", "High", "Low", "High", "Low", "High", "Low",
+#   "Low", "NR", "NR"
+# )
+# coldata$ER_microcolonies <- c(
+#   "LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+#   "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+#   "LI_LM", "LI_LM", "NR", "NR"
+# )
+# coldata$phylogenomic_lineage <- c(
+#   "EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+#   "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+#   "EPEC2", "EPEC2", "NR", "NR"
+# )
+# coldata$phylogroup <- c(
+#   "B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+#   "B2", "B1", "B2", "NR", "NR"
+# )
+# coldata$Intimin_Type <- c(
+#   "alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+#   "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+#   "beta", "NR", "NR"
+# )
+```
+
+#### then fix Countsmatrix:
+
+NOTE:
+
+1.  From the manuals the countsData must be a numeric matrix
+2.  It is IMPORTANT to keep the names of the genes in the rownames
+
+```{r}
+# Readin  countsmatrix
+# countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("~/R/Alina_RNAseq/counts_bl6vscaspace.csv")
+# countsmatrix <- as.data.frame(countsmatrix)
+```
+
+```{r}
+## Removal of Gender Genes from ENSEMBL ID itself
+countsmatrix <- countsmatrix %>% filter(
+  countsmatrix$X != "ENSMUSG00000086503",
+  countsmatrix$X != "ENSMUSG00000097571",
+  countsmatrix$X != "ENSMUSG00000086370",
+  countsmatrix$X != "ENSMUSG00000031329"
+)
+nrow(countsmatrix)
+ncol(countsmatrix)
+# countsmatrix <- as.matrix(countsmatrix)
+```
+
+```{r}
+# tidying up these names again
+# colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[, 1] # converting first column of gene names into rownames, to be used for sanity check later
+```
+
+```{r}
+# It is IMPORTANT to keep the names of the genes in the rownames
+countsmatrix <- subset(countsmatrix, select = -X) # dropping the X column
+countsmatrix <- subset(countsmatrix, select =  -run6_trimmed_756_S15_R1_.bam)
+```
+
+```{r}
+# the elements from Sample_Name from coldata must the the colnames of countsmatrix
+colnames(countsmatrix) <- coldata$Sample_Name
+```
+
+```{r}
+# Display the column names
+colnames(countsmatrix)
+```
+
+## Annotating and Exporting ENSEMBL ID into Gene Symbols
+
+Adding genes annotated from ENSEMBL ID to Gene symbols and ENTREZ Id to countsmatrix table. Will be keeping the symbols and entrez columsn to be added later into results table as it is for later use
+```{r}
+cm_row <- rownames(countsmatrix)
+head(cm_row)
+# Mapping the ENSEMBL ID to Symbol and ENTREZ ID
+symbols <- mapIds(
+  org.Mm.eg.db,
+  keys = cm_row,
+  column = c("SYMBOL"),
+  keytype = "ENSEMBL",
+  multiVals = "first"
+)
+```
+```{r}
+symbols <- symbols[!is.na(symbols)]
+symbols <- symbols[match(rownames(countsmatrix), names(symbols))]
+head(symbols, 25)
+
+# Creating a new column called genename and putting in the symbols and entrez columns into count matrix
+countsmatrix$genename <- symbols
+
+# Removing all rows with NA values for genenames, so that those rows are filtered out.
+countsmatrix <- unique(countsmatrix[rowSums(is.na(countsmatrix)) == 0, ]) # Apply rowSums & is.na
+nrow(countsmatrix)
+# Moving the ENSEMBL ID from rownames into separate column for itself.
+countsmatrix <- tibble::rownames_to_column(countsmatrix, "E_ID")
+# Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
+countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
+```
+
+```{r}
+# Now make the ganename column into rownames of count matrix
+rownames(countsmatrix) <- countsmatrix[, "genename"]
+# Keeping this version of countsmatrix for later use
+cm_table <- countsmatrix
+# dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID)) #
+
+# Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
+countsmatrix <- as.matrix(countsmatrix)
+class(countsmatrix) <- "numeric"
+```
+
+
+# Differential Gene Expression analysis using DESeq2
+
+Now, construct DESeqDataSet for DGE analysis.
+
+But before that, a sanity check : It is essential to have the name of
+the columns in the count matrix in the same order as that in name of the
+samples (rownames in coldata).
+
+```{r}
+all(rownames(coldata) %in% colnames(countsmatrix))
+ncol(countsmatrix) == nrow(coldata)
+dim(countsmatrix)
+```
+
+## Creating the DESeq Data set Object
+
+```{r}
+dds_bl6vscaspace <- DESeqDataSetFromMatrix(
+  countData = countsmatrix,
+  colData = coldata,
+  design = ~condition
+)
+nrow(dds_bl6vscaspace)
+```
+
+```{r}
+# Function to save generic plots
+saveplot <- function(plot, name) {
+  # Function to save the plots
+  ggsave(
+    filename =
+      glue("~/R/Alina_RNAseq/BL6vsCaspace/{name}.png"),
+    plot = plot,
+    dpi = 300,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
+}
+```
+
+## Exploratory Data Analysis and Visualization
+
+### Pre-filtering the dataset
+
+Our count matrix with our DESeqDataSet contains many rows with only
+zeros, and additionally many rows with only a few fragments total. In
+order to reduce the size of the object, and to increase the speed of our
+functions, we can remove the rows that have no or nearly no information
+about the amount of gene expression.
+
+Applying the most minimal filtering rule: removing rows of the
+DESeqDataSet that have no counts, or only a single count across all
+samples. Additional weighting/filtering to improve power is applied at a
+later step in the workflow.
+
+```{r}
+keep <- rowSums(counts(dds_bl6vscaspace)) > 1
+dds_bl6vscaspace <- dds_bl6vscaspace[keep, ]
+nrow(dds_bl6vscaspace)
+```
+
+### The variance stabilizing transformation
+
+## Applying VST transformation
+
+```{r}
+vsd <- vst(dds_bl6vscaspace, blind = FALSE)
+# head(assay(vsd), 3)
+colData(vsd)
+vsd_coldata <- colData(vsd)
+```
+
+```{r}
+dds_bl6vscaspace <- estimateSizeFactors(dds_bl6vscaspace)
+dds_bl6vscaspace
+```
+
+## Sample Distances
+
+useful first step in an RNA-seq analysis is often to assess overall
+similarity between samples:
+
+1.  Which samples are similar to each other, which are different?
+2.  Does this fit to the expectation from the experiment's design?
+
+### Euclidean Distance between samples
+
+dist to calculate the Euclidean distance between samples - useful for
+ONLY normalized data. To ensure we have a roughly equal contribution
+from all genes, we use it on the VST data.
+
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- vsd$Sample_Name
+colnames(sampleDistMatrix) <- vsd$Sample_Name
+
+colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
+(EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
+  clustering_distance_rows = sampleDists,
+  clustering_distance_cols = sampleDists,
+  main = "Sample-to-Sample Euclidean Distance of BL6 vs Caspace",
+  col = colors
+))
+```
+
+```{r}
+# saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
+```
+
+### Poisson Distance between Samples
+
+```{r}
+poisd <- PoissonDistance(t(counts(dds_bl6vscaspace))) # raw counts or unnormalised data
+samplePoisDistMatrix <- as.matrix(poisd$dd)
+rownames(samplePoisDistMatrix) <- dds_bl6vscaspace$Sample_Name
+colnames(samplePoisDistMatrix) <- dds_bl6vscaspace$Sample_Name
+
+colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
+(poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+  clustering_distance_rows = poisd$dd,
+  clustering_distance_cols = poisd$dd,
+  main = "Sample-to-Sample Poisson Distance of BL6 vs Caspace",
+  col = colors
+))
+```
+
+```{r}
+# saveplot(poisson_dist_plot, "poisson_dist_plot")
+```
+
+# PCA Plot
+
+```{r}
+# the basic set of common aesthetic settings for PCA plots,
+theme.my.own <- list(
+  theme_bw(),
+  geom_point(size = 3),
+  coord_fixed(),
+  scale_y_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  scale_x_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  theme_classic(),
+  geom_hline(yintercept = 0, color = "gray", size = 1),
+  geom_vline(xintercept = 0, color = "gray", size = 1),
+  theme(
+    text = element_text(size = 15),
+    axis.text = element_text(size = 15),
+    legend.position = "right",
+    aspect.ratio = 1
+  ),
+  # geom_text(size = 4, hjust = 0, vjust = 0)
+  geom_text_repel(size = 5, min.segment.length = 0.5)
+)
+```
+
+## Calculating all PCA Values
+
+```{r}
+plotPCA_local <- function(object,
+                          intgroup = "condition",
+                          ntop = 500,
+                          returnData = TRUE,
+                          nPC = 4) {
+  # calculate the variance for each gene
+  rv <- rowVars(assay(object))
+  ntop <- 500
+
+  # select the ntop genes by variance
+  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+
+  # perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(object)[select, ]))
+  # summary(pca)
+
+  # the contribution to the total variance for each component
+  percentVar <- pca$sdev^2 / sum(pca$sdev^2)
+
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+
+  intgroup.df <-
+    as.data.frame(colData(object)[, intgroup, drop = FALSE])
+
+  # add the intgroup factors together to create a new grouping factor
+  group <- if (length(intgroup) > 1) {
+    factor(apply(intgroup.df, 1, paste, collapse = ":"))
+  } else {
+    colData(object)[[intgroup]]
+  }
+
+  # assembly the data for the plot
+  d <- cbind(
+    pca$x[, seq_len(min(nPC, ncol(pca$x))), drop = FALSE],
+    data.frame(group = group, intgroup.df, name = colnames(object))
+  )
+
+  if (returnData) {
+    attr(d, "percentVar") <- percentVar[1:nPC]
+    # l <- list(pca,d)
+    # return(l)
+    return(d)
+  }
+}
+```
+
+## PCA Plot with VST Data
+
+### Function for calculating percentvar
+
+```{r}
+percentvar_calculation <- function(pcaData_variable) {
+  # function to calculate percentvar for different variables
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3)
+  return(percentvar_variable)
+}
+
+savingFunction <- function(plotname, metadatacolumn) {
+  # Function to save the PCA plots
+  ggsave(
+    filename =
+      glue("~/R/Alina_RNAseq/BL6vsCaspace/PCAplot_BL6vsCaspace_{metadatacolumn}.png"),
+    plot = plotname,
+    dpi = 300,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
+}
+```
+
+```{r}
+pcaData_bl6vscaspace <- plotPCA_local(vsd, intgroup = c("condition", "Sample_Name"), returnData = T)
+pcaData_bl6vscaspace
+percentVar_bl6vscaspace <- percentvar_calculation(pcaData_bl6vscaspace)
+```
+```{r}
+### Functions for Plot aethetics and saving PCA Plots
+color_values <- c(
+  "blue", "blue", "blue", "red", "red", "red", "red", "red", "red",
+  "red", "red", "red", "red", "red","red", "red", "black", "black", "black", "black"
+)
+```
+```{r }
+percentVar_bl6vscaspace
+```
+```{r fig.height=8, fig.width=8}
+(PCAplot_vst <- ggplot(
+  pcaData_bl6vscaspace,
+  aes(
+    x = PC1,
+    y = PC2,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_bl6vscaspace[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_bl6vscaspace[2], "% variance")) +
+  ggtitle("PCA Plot - BL6vsCaspace") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+
+savingFunction(PCAplot_vst, "condition")
+```
+## PCA Plot for PC2 vs PC3
+
+```{r}
+
+(PCAplot_vst23 <- ggplot(
+  pcaData_bl6vscaspace,
+  aes(
+    x = PC2,
+    y = PC3,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC2: ", percentVar_bl6vscaspace[2], "% variance")) +
+  ylab(paste0("PC3: ", percentVar_bl6vscaspace[3], "% variance")) +
+  ggtitle("PCA Plot - BL6vsCaspace") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+
+ggsave(
+  filename = "~/R/Alina_RNAseq/BL6vsCaspace/PCAplot23_bl6vscaspace.png",
+  plot = PCAplot_vst23,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
+```
+
+
+## PCA Plot for PC3 vs PC4
+
+```{r}
+
+(PCAplot_vst34 <- ggplot(
+  pcaData_bl6vscaspace,
+  aes(
+    x = PC3,
+    y = PC4,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC3: ", percentVar_bl6vscaspace[3], "% variance")) +
+  ylab(paste0("PC4: ", percentVar_bl6vscaspace[4], "% variance")) +
+  ggtitle("PCA Plot - BL6vsCaspace") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+
+ggsave(
+  filename = "~/R/Alina_RNAseq/BL6vsCaspace/PCAplot34_bl6vscaspace.png",
+  plot = PCAplot_vst34,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
+```
+
+```{r}
+# calculate the variance for top 500 gene
+rv <- rowVars(assay(vsd))
+ntop <- 500
+# select the ntop genes by variance
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+df1 <- t(assay(vsd)[select,])
+```
+```{r}
+res.pca <- PCA(df1,  graph = FALSE, scale.unit = FALSE)
+summary.PCA(res.pca)
+```
+```{r}
+# Visualize eigenvalues/variances
+fviz_screeplot(res.pca, addlabels = TRUE)
+```
+```{r}
+library("factoextra")
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+```
+```{r}
+# var <- get_pca_var(res.pca)
+#fviz_pca_var(res.pca, repel = TRUE)
+```
+
+```{r fig.width=10}
+# library("corrplot")
+# corrplot(var$cos2, is.corr=T)
+```
+
+## Genes + PCA Biplots
+
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE,
+                gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"))
+```
+
+```{r fig.height=10, fig.width=10}
+heat.colors <- brewer.pal(6, "RdYlBu")
+fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
+             gradient.cols = c("Gray", "blue", "yellow","orange", "green", "red", "black"),
+             )
+```
+
+```{r}
+# Contributions of variables to PC2
+fviz_pca_contrib(res.pca, choice = "var", axes = 1, top = 25)
+```
+```{r}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 25)
+```
+
+
