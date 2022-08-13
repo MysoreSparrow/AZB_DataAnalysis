@@ -1,0 +1,41 @@
+---
+title: "2D Analysis Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(readxl)
+effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forKeshav.xlsx",
+  col_types = c(
+    "text", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric"
+  )
+))
+```
+
+```{r}
+rownames(effector) <- effector[,1] # move effectors to rownames
+effector <- subset(effector, select = - ...1) #remove effector symbol column
+net_eff <- rowSums(effector, na.rm = TRUE, dims = 1)
+effector$net_effector <- net_eff
+```
+
+```{r}
+l2fctable_InfectedvsControl <- read.csv("C:/Users/kesha/Desktop/2danalysis/l2fctable_InfectedvsControl.csv")
+
+rownames(l2fctable_InfectedvsControl) <- l2fctable_InfectedvsControl[, 2] # make the symbols as rownames
+l2fctable_InfectedvsControl <- subset(l2fctable_InfectedvsControl, select = -c(X, symbol)) # remove the X and symbol columns
+net_l2fc <- rowSums(l2fctable_InfectedvsControl, na.rm = TRUE, dims = 1) # sum up the values in each row for every gene to get net infected gene expression
+l2fctable_InfectedvsControl$net_l2fc  <- net_l2fc 
+head(l2fctable_InfectedvsControl)
+```
+
+```{r}
+l2fctable_InfectedvsControl_sorted <- l2fctable_InfectedvsControl[order(l2fctable_InfectedvsControl$net_l2fc, decreasing = TRUE), ]
+```
+
+
+obtain a log2fc table for which only significant values are present . else itS going to be waste fo so many entries that might be differentially regulated but not significant enough.
