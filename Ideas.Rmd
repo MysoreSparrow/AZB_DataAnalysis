@@ -2,6 +2,20 @@
 title: "Ideas for 2D Anlysis"
 output: html_notebook
 ---
+# Objective:
+
+Hello Keshav,
+
+here is the little explanation for the “2D-analysis” that we want to do. We have 2 datasets that we want to compare.
+
+The first is the present/absent-effector list for all EPEC strains. So it tells us which effectors are present in each strain (they all have different sets of effectors). EPEC binds to the host (mouse) cell in the small intestine and ejects these effectors through the T3SS into the host cell. Inside the host cell, they alter epithelial cell function by blocking or inducing certain pathways.
+
+The second is the 3’RNA-Seq dataset that you have been analyzing the last months. Here we have the gene expression of the infected intestinal epithelial cells of the host. So some genes are up- and some are downregulated inside the host after EPEC infection.
+
+What we want to investigate is: **is there a correlation between the presence/absence of effectors that EPEC injects and the gene expression in the host? Possible would be a certain combination of effectors that leads to a certain host response in the intestinal cells of the mice**.I hope it helps. Please let me know if anything is unclear.
+
+attached you find the present/absent-effector list for all strains that we discussed yesterday.“0” means this effector is not present in this strain (=absent), “1” means this effector is present once in this strain, and 2 means the effector is present twice.In case it’s too complicated to work with “three conditions” (“0”, “1”, “2”), you can just consider the “2”s as “1”s (so then you can consider that both “1” and “2” means “present”).
+
 
 ### 1. Correlation via matcor
 
@@ -28,3 +42,11 @@ output: html_notebook
 2. Since the effector status doesn't vary within strain, this will basically "pull out" an estimate of the group average of effector-positive and effector-negative strains, allowing for a direct comparison.
 
 3. Not sure if this is what we are going for in this 2D analysis. 
+
+### 5. Clustering
+
+1. To look for more complicated patterns, one could select the differentially expressed genes across all strains.
+2. cluster the expression matrix on those genes.
+3. Overlay the effector status (use a heatmap for such things).
+
+### 6. GSVD - Generalised Singular Value Decomposition
