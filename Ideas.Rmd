@@ -34,6 +34,11 @@ attached you find the present/absent-effector list for all strains that we discu
 4. Not sure the log2foldchange is better or the original gene expression matrix.
 
 ### 3. CCA - Canonical Correlation Analysis
+1. X numeric matrix (n * p), containing the X coordinates. Y numeric matrix (n * q), containing the Y coordinates.
+2. The canonical correlation analysis seeks linear combinations of the ’X’ variables which are the most
+correlated with linear combinations of the ’Y’ variables
+
+### 3a. Regularised CCA
 
 ### 4. Use Effector Presence in DESeq2 Metadata
 
