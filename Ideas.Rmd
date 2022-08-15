@@ -1,0 +1,30 @@
+---
+title: "Ideas for 2D Anlysis"
+output: html_notebook
+---
+
+### 1. Correlation via matcor
+
+1. Correlation between L2fc and Homology Numbers
+2. Obtain homology numbers of effectors but as per the strains vs effector names.
+3. We already have the l2fc table. 
+4. Filter it based on Differential Genes (keep only rows (genes) that are differential genes and also significant )
+5. Perform two matrix correlation between l2fc matrix and homology of effectors matrix and use network plots and heatmaps to visualise anddetermine associations.
+
+
+### 2. Splitting based on effector presence
+
+1. From the net_eff column, can see that only 10 effectors are mainly present. Divide the effectors into 3 groups - High , Medium and Low. 
+2. For every effector, say Effector_A, can we split the strains into two groups (with Effector_A, without Effector_A),then use wilcoxon test to test, which gene is highly related to the presence of a Effector_A.
+3. This mainly needs to be done for High value effectors --> most likley to contribute to Gene Expression.
+4. Not sure the log2foldchange is better or the original gene expression matrix.
+
+### 3. CCA - Canonical Correlation Analysis
+
+### 4. Use Effector Presence in DESeq2 Metadata
+
+1. One can do this directly in DESeq2 by including the effectors as a variable: ~ effector.A.status + strain + 0 (just cbind the effector matrix to metadata should be enough). 
+
+2. Since the effector status doesn't vary within strain, this will basically "pull out" an estimate of the group average of effector-positive and effector-negative strains, allowing for a direct comparison.
+
+3. Not sure if this is what we are going for in this 2D analysis. 
