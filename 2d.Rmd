@@ -1,9 +1,17 @@
 ---
 title: "2D Analysis Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
+```{r}
+library(tidyverse)
+```
 
-
+```{r}
+UpGene <- read.csv("~/R/Alina_RNAseq/UpGene.csv", sep = "", stringsAsFactors = FALSE )
+DownGene <- read.csv("C:/Users/kesha/Desktop/2danalysis/DownGenelist_infected_infectedvscontrol.csv )
+```
 
 ```{r}
 library(readxl)
@@ -14,28 +22,103 @@ effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forK
     "numeric", "numeric", "numeric", "numeric", "numeric"
   )
 ))
-```
 
-```{r}
 rownames(effector) <- effector[,1] # move effectors to rownames
 effector <- subset(effector, select = - ...1) #remove effector symbol column
 net_eff <- rowSums(effector, na.rm = TRUE, dims = 1)
 effector$net_effector <- net_eff
+head(effector)
 ```
 
 ```{r}
-l2fctable_InfectedvsControl <- read.csv("C:/Users/kesha/Desktop/2danalysis/l2fctable_InfectedvsControl.csv")
+l2fctable_InfectedvsControl <- read.csv("~/R/Alina_RNAseq/InfectedVsControl/l2fctableSIGNIFICANT_InfectedvsControl_BL6.csv")
 
+# filter the symbol column based on only the genes that are in UpGenes so that these are both significant and differentially regulated
+# l2fctable_InfectedvsControl <- filter(l2fctable_InfectedvsControl, 
+#                                       symbol %in% c(UpGene$UpGeneList, DownGene$x))
+l2fctable_InfectedvsControl <- filter(l2fctable_InfectedvsControl, 
+                                       symbol %in% UpGene$UpGeneList)
+```
+
+```{r}
 rownames(l2fctable_InfectedvsControl) <- l2fctable_InfectedvsControl[, 2] # make the symbols as rownames
 l2fctable_InfectedvsControl <- subset(l2fctable_InfectedvsControl, select = -c(X, symbol)) # remove the X and symbol columns
 net_l2fc <- rowSums(l2fctable_InfectedvsControl, na.rm = TRUE, dims = 1) # sum up the values in each row for every gene to get net infected gene expression
-l2fctable_InfectedvsControl$net_l2fc  <- net_l2fc 
+l2fctable_InfectedvsControl$net_l2fc  <- net_l2fc
+
+```
+```{r}
+library(stringr)
+colnames(l2fctable_InfectedvsControl) <- str_remove_all(colnames(l2fctable_InfectedvsControl),
+                                  pattern = "log2FoldChange_")
+
+l2fctable_InfectedvsControl <- l2fctable_InfectedvsControl[order(l2fctable_InfectedvsControl$net_l2fc, decreasing = TRUE), ]
 head(l2fctable_InfectedvsControl)
 ```
 
 ```{r}
-l2fctable_InfectedvsControl_sorted <- l2fctable_InfectedvsControl[order(l2fctable_InfectedvsControl$net_l2fc, decreasing = TRUE), ]
+#l2fc <- l2fctable_InfectedvsControl[ c(1:28, 227:254), ] 
+# l2fc <- l2fctable_InfectedvsControl[ c(1:28, 227:254), ] 
 ```
 
 
-obtain a log2fc table for which only significant values are present . else itS going to be waste fo so many entries that might be differentially regulated but not significant enough.
+```{r}
+# l <- t(l2fctable_InfectedvsControl)
+# e <- t(effector)
+# data_frame_merge <- merge(l, e, by = 'row.names', all = TRUE)
+```
+```{r}
+# cancor(l2fc$net_l2fc, effector$net_effector)
+```
+
+
+```{r}
+# library(GGally)
+# ggpairs(l2fc)
+```
+
+```{r}
+# ggcorr(l2fc)
+# ```
+# 
+# ```{r}
+# library(CCA)
+```
+```{r}
+mc <- matcor(t(l2fctable_InfectedvsControl), t(effector))
+
+```
+
+```{r}
+mc$XYcor
+
+```
+
+
+```{r}
+correlate <- mc$XYcor
+```
+
+```{r}
+library(corrplot)
+```
+
+```{r fig.height=15, fig.width=15}
+corrplot(correlate)
+```
+
+
+R Canonical Correlation Analysis
+
+
+```{r}
+# library(corrr)
+# cc1 <- cc(l2fc, effector)
+
+```
+
+```{r}
+# compute canonical loadings
+# cc2 <- comput(l2fc, effector, cc1)
+```
+
