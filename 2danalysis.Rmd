@@ -1,0 +1,153 @@
+---
+title: "2D Analysis Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(CCA)
+library(readxl)
+```
+
+# Read in the Datasets
+```{r}
+UpGene <- read.csv("~/Documents/AlinaRnaSeq/IvC/UpGenelist_infectedvscontrol.csv")
+
+DownGene <- read.csv("~/Documents/AlinaRnaSeq/IvC/DownGenelist_infected_infectedvscontrol.csv")
+```
+
+## Log2FC
+```{r}
+l2fctable_InfectedvsControl_BL6 <- read.csv("~/2D_Analysis/l2fctable_InfectedvsControl_BL6.csv")
+
+# filter the symbol column based on only the genes that are in UpGenes so that these are both significant and differentially regulated
+
+l2fctable_InfectedvsControl_BL6 <- filter(l2fctable_InfectedvsControl_BL6,
+                                      symbol %in% c(UpGene$x, DownGene$x))
+# l2fctable_InfectedvsControl_BL6 <- filter(l2fctable_InfectedvsControl_BL6, symbol %in% UpGene$x)
+```
+
+```{r}
+rownames(l2fctable_InfectedvsControl_BL6) <- l2fctable_InfectedvsControl_BL6[, 2] # make the symbols as rownames
+l2fctable_InfectedvsControl_BL6 <- subset(l2fctable_InfectedvsControl_BL6, select = -c(X, symbol)) # remove the X and symbol columns
+net_l2fc <- rowSums(l2fctable_InfectedvsControl_BL6, na.rm = TRUE, dims = 1)
+# sum up the values in each row for every gene to get net infected gene expression
+l2fctable_InfectedvsControl_BL6$net_l2fc <- net_l2fc
+```
+
+```{r}
+library(stringr)
+colnames(l2fctable_InfectedvsControl_BL6) <- str_remove_all(colnames(l2fctable_InfectedvsControl_BL6),
+  pattern = "log2FoldChange_"
+)
+l2fctable_InfectedvsControl_BL6 <- l2fctable_InfectedvsControl_BL6[order(l2fctable_InfectedvsControl_BL6$net_l2fc, decreasing = TRUE), ]
+head(l2fctable_InfectedvsControl_BL6)
+```
+
+## Effector Table
+
+```{r}
+effector <- as.data.frame(read_excel("~/2D_Analysis/allStrains_PresentAbsent_effectorlist_forKeshav.xlsx",
+  col_types = c(
+    "text", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric"
+  )
+))
+rownames(effector) <- effector[, 1] # move effectors to rownames
+effector <- subset(effector, select = -...1) # remove effector symbol column
+net_eff <- rowSums(effector, na.rm = TRUE, dims = 1)
+effector$net_effector <- net_eff
+head(effector)
+```
+
+
+# Objective:
+
+Hello Keshav,
+
+here is the little explanation for the “2D-analysis” that we want to do. We have 2 datasets that we want to compare.
+
+The first is the present/absent-effector list for all EPEC strains. So it tells us which effectors are present in each strain (they all have different sets of effectors). EPEC binds to the host (mouse) cell in the small intestine and ejects these effectors through the T3SS into the host cell. Inside the host cell, they alter epithelial cell function by blocking or inducing certain pathways.
+
+The second is the 3’RNA-Seq dataset that you have been analyzing the last months. Here we have the gene expression of the infected intestinal epithelial cells of the host. So some genes are up- and some are downregulated inside the host after EPEC infection.
+
+What we want to investigate is: is there a correlation between the presence/absence of effectors that EPEC injects and the gene expression in the host? Possible would be a certain combination of effectors that leads to a certain host response in the intestinal cells of the mice.I hope it helps. Please let me know if anything is unclear.
+
+attached you find the present/absent-effector list for all strains that we discussed yesterday.“0” means this effector is not present in this strain (=absent), “1” means this effector is present once in this strain, and 2 means the effector is present twice.In case it’s too complicated to work with “three conditions” (“0”, “1”, “2”), you can just consider the “2”s as “1”s (so then you can consider that both “1” and “2” means “present”).
+
+
+```{r}
+mc <- matcor(t(l2fctable_InfectedvsControl_BL6), t(effector))
+correlate <- mc$XYcor
+```
+```{r fig.height=15, fig.width=15}
+library(corrplot)
+corrplot(correlate, method = "color", type = "full", is.corr = TRUE, diag = TRUE)
+```
+
+
+```{r}
+library(corrr)
+corr_df <- as.data.frame(correlate) %>% fashion()
+```
+
+
+
+
+
+
+
+
+```{r}
+# library(CCA)
+# cc_results <- cor(l2fc_matrix, effectot_matrix)
+```
+
+```{r}
+# x <- cor(l2fc_matrix, effector_matrix,method = c("spearman"))
+#
+# out <- data.frame(MaxCorr = apply(x,1,max), T_ColIndex=apply(x,1,which.max),C_ColIndex=1:nrow(x))
+#
+# head(out)
+```
+
+
+```{r}
+# l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 227:254), ]
+# l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 227:254), ]
+```
+```{r}
+# l <- t(l2fctable_InfectedvsControl_BL6)
+# e <- t(effector)
+# data_frame_merge <- merge(l, e, by = 'row.names', all = TRUE)
+```
+```{r}
+# cancor(l2fc$net_l2fc, effector$net_effector)
+```
+```{r}
+# library(GGally)
+# ggpairs(l2fc)
+```
+
+
+R Canonical Correlation Analysis
+```{r}
+# library(corrr)
+# cc1 <- cc(l2fc, effector)
+```
+```{r}
+# compute canonical loadings
+# cc2 <- comput(l2fc, effector, cc1)
+```
+
+
+
+
+
+
+
+
+
