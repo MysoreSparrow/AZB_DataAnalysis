@@ -64,19 +64,7 @@ head(effector)
 ```
 
 
-# Objective:
 
-Hello Keshav,
-
-here is the little explanation for the “2D-analysis” that we want to do. We have 2 datasets that we want to compare.
-
-The first is the present/absent-effector list for all EPEC strains. So it tells us which effectors are present in each strain (they all have different sets of effectors). EPEC binds to the host (mouse) cell in the small intestine and ejects these effectors through the T3SS into the host cell. Inside the host cell, they alter epithelial cell function by blocking or inducing certain pathways.
-
-The second is the 3’RNA-Seq dataset that you have been analyzing the last months. Here we have the gene expression of the infected intestinal epithelial cells of the host. So some genes are up- and some are downregulated inside the host after EPEC infection.
-
-What we want to investigate is: is there a correlation between the presence/absence of effectors that EPEC injects and the gene expression in the host? Possible would be a certain combination of effectors that leads to a certain host response in the intestinal cells of the mice.I hope it helps. Please let me know if anything is unclear.
-
-attached you find the present/absent-effector list for all strains that we discussed yesterday.“0” means this effector is not present in this strain (=absent), “1” means this effector is present once in this strain, and 2 means the effector is present twice.In case it’s too complicated to work with “three conditions” (“0”, “1”, “2”), you can just consider the “2”s as “1”s (so then you can consider that both “1” and “2” means “present”).
 
 
 ```{r}
@@ -85,7 +73,7 @@ correlate <- mc$XYcor
 ```
 ```{r fig.height=15, fig.width=15}
 library(corrplot)
-corrplot(correlate, method = "color", type = "full", is.corr = TRUE, diag = TRUE)
+# corrplot(correlate, method = "color", type = "full", is.corr = TRUE, diag = TRUE)
 ```
 
 
@@ -93,13 +81,6 @@ corrplot(correlate, method = "color", type = "full", is.corr = TRUE, diag = TRUE
 library(corrr)
 corr_df <- as.data.frame(correlate) %>% fashion()
 ```
-
-
-
-
-
-
-
 
 ```{r}
 # library(CCA)
@@ -112,17 +93,6 @@ corr_df <- as.data.frame(correlate) %>% fashion()
 # out <- data.frame(MaxCorr = apply(x,1,max), T_ColIndex=apply(x,1,which.max),C_ColIndex=1:nrow(x))
 #
 # head(out)
-```
-
-
-```{r}
-# l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 227:254), ]
-# l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 227:254), ]
-```
-```{r}
-# l <- t(l2fctable_InfectedvsControl_BL6)
-# e <- t(effector)
-# data_frame_merge <- merge(l, e, by = 'row.names', all = TRUE)
 ```
 ```{r}
 # cancor(l2fc$net_l2fc, effector$net_effector)
@@ -144,10 +114,292 @@ R Canonical Correlation Analysis
 ```
 
 
+```{r}
+effnew <- read.csv("~/2D_Analysis/eff.csv")
+rownames(effnew) <- effnew[, 1] # move effectors to rownames
+effnew <- subset(effnew, select = - X) # remove effector symbol column
+head(effnew)
+```
+
+
+# Factor Analysis for Mixed Data - FAMD
+
+```{r}
+library(FactoMineR)
+```
+
+```{r}
+#l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 392:419), 1:14]
+l2fc <- l2fctable_InfectedvsControl_BL6[ 1:25, 1:14]
+#eff <- effector[1:6, 1:14]
+l2fc[is.na(l2fc)] <- 0.0000001
+```
+
+```{r}
+
+# eff[eff == '1'] <- 'Present'
+# eff[eff == '2'] <- 'Present'
+# eff[eff == '0'] <- 'Absent'
+```
+
+```{r}
+l <- t(l2fc)
+e <- t(effnew)
+
+df_merge <- merge(l, e, by = 'row.names', all = TRUE)
+row.names(df_merge) <- df_merge$Row.names
+df_merge <- subset(df_merge, select = -Row.names)
+```
+```{r}
+head(df_merge)
+```
+
+```{r}
+res.famd <- FAMD(df_merge, graph = TRUE)
+```
+```{r}
+res.famd$call
+```
+```{r}
+summary.FAMD(res.famd)
+```
+```{r}
+print.FAMD(res.famd)
+```
+
+
+
+## Eigen Value
+
+```{r}
+library("factoextra")
+eig.val <- get_eigenvalue(res.famd)
+head(eig.val)
+```
+
+
+### Visualize eigenvalues (scree plot). 
+
+Show the percentage of variances explained by each principal component.
+```{r}
+eig.val <- res.famd$eig
+barplot(eig.val[, 2], 
+        names.arg = 1:nrow(eig.val), 
+        main = "Variances Explained by Dimensions (%)",
+        xlab = "Principal Dimensions",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+# Add connected line segments to the plot
+lines(x = 1:nrow(eig.val), eig.val[, 2], 
+      type = "b", pch = 19, col = "red")
+```
+##Graph of variables
+```{r}
+var <- get_famd_var(res.famd)
+var
+```
+
+```{r}
+# Cos2: quality of representation on the factore map
+var$cos2
+```
+```{r}
+# Contributions to the  dimensions
+var$contrib
+```
+
+```{r fig.align='default', fig.width=10}
+# Plot of variables
+fviz_famd_var(res.famd, 
+              repel = TRUE, 
+              geom = c("point", "text"),
+              axes = c(1,2),
+              col.ind = "green",
+              col.var.sup = "green"
+              )
+```
+```{r fig.width=10}
+# Plot of variables
+fviz_famd_var(res.famd, repel = TRUE, axes = c(2,3))
+```
+
+
+```{r fig.width=10}
+# Plot of variables
+fviz_famd_var(res.famd, repel = TRUE, axes = c(3,4))
+```
+```{r fig.width=10}
+# Plot of variables
+fviz_famd_var(res.famd, repel = TRUE, axes = c(4,5))
+```
 
 
 
 
+```{r}
+# Contribution to the first dimension
+fviz_contrib(res.famd, "var", axes = 1, sort.val = "desc", top = 40)
+# Contribution to the second dimension
+fviz_contrib(res.famd, "var", axes = 2, sort.val = "desc", top = 40)
+```
+The red dashed line on the graph above indicates the expected average value, If the contributions were uniform. 
+
+## Quantitative variables
+
+```{r}
+quanti.var <- get_famd_var(res.famd, "quanti.var")
+quanti.var 
+```
+
+```{r}
+fviz_famd_var(res.famd, "quanti.var", repel = TRUE)
+```
+Briefly, the graph of variables (correlation circle) shows the relationship between variables, the quality of the representation of variables, as well as, the correlation between variables and the dimensions. 
+
+The most contributing quantitative variables can be highlighted on the scatter plot using the argument col.var = "contrib". This produces a gradient colors, which can be customized using the argument gradient.cols.
+
+```{r}
+fviz_famd_var(res.famd, "quanti.var", col.var = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+
+Similarly, you can highlight quantitative variables using their cos2 values representing the quality of representation on the factor map. If a variable is well represented by two dimensions, the sum of the cos2 is closed to one. For some of the items, more than 2 dimensions might be required to perfectly represent the data.
+
+```{r}
+# Color by cos2 values: quality on the factor map
+fviz_famd_var(res.famd, "quanti.var", 
+              col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE,
+             
+             )
+```
+## Graph of qualitative variables
+
+```{r}
+quali.var <- get_famd_var(res.famd, "quali.var")
+quali.var 
+```
+
+```{r fig.height=8, fig.width=8}
+fviz_famd_var(res.famd, "quali.var", col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+## Graph of individuals
+
+```{r}
+ind <- get_famd_ind(res.famd)
+ind
+```
+```{r fig.width=10}
+fviz_famd_ind(res.famd, 
+              col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+```{r fig.width=10}
+fviz_famd_ind(res.famd, 
+              col.ind = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+
+Individuals with similar profiles are close to each other on the factor map
+
+Graph of individuals. Qualitative variable categories are shown in bold.
+
+```{r fig.width=10}
+#plot(res.famd, choix = "ind")
+```
+
+Correlation between variables (qualitative and quantitative) with principal dimensions:
+```{r fig.width=10}
+plot(res.famd, choix = "var")
+```
+```{r}
+fviz_hmfa_quali_biplot(res.famd, 1:2, repel = TRUE, 
+                       )
+```
 
 
+
+```{r}
+res.desc <- dimdesc(res.famd, axes = 1:5, proba = 0.05)
+
+```
+```{r}
+# Description of dimension 1
+res.desc[[1]]
+```
+```{r}
+# Description of dimension 2
+res.desc[[2]]
+```
+```{r}
+# Description of dimension 3
+res.desc[[3]]
+```
+```{r}
+# Description of dimension 4
+res.desc[[4]]
+```
+```{r}
+# Description of dimension 5
+res.desc[[5]]
+```
+```{r}
+# library(mixedCCA)
+# ```
+# ```{r}
+# n <- 100; p1 <- 15; p2 <- 10 # sample size and dimensions for two datasets.
+# maxcancor <- 0.9 # true canonical correlation
+# # Correlation structure within each data set
+# set.seed(0)
+# perm1 <- sample(1:p1, size = p1);
+# Sigma1 <- autocor(p1, 0.7)[perm1, perm1]
+# blockind <- sample(1:3, size = p2, replace = TRUE);
+# Sigma2 <- blockcor(blockind, 0.7)
+# mu <- rbinom(p1+p2, 1, 0.5)
+# 
+# # true variable indices for each dataset
+# trueidx1 <- c(rep(1, 3), rep(0, p1-3))
+# trueidx2 <- c(rep(1, 2), rep(0, p2-2))
+
+```
+
+```{r}
+# # Data generation
+# simdata <- GenerateData(n=n, trueidx1 = trueidx1, trueidx2 = trueidx2, maxcancor = maxcancor,
+#                         Sigma1 = Sigma1, Sigma2 = Sigma2,
+#                         copula1 = "exp", copula2 = "cube",
+#                         muZ = mu,
+#                         type1 = "trunc", type2 = "trunc",
+#                         c1 = rep(1, p1), c2 =  rep(0, p2)
+# )
+# X1 <- simdata$X1
+# X2 <- simdata$X2
+```
+
+
+
+
+```{r}
+# mixedCCAresult <- mixedCCA(X1, X2, type1 = "trunc", type2 = "trunc", BICtype = 1)
+# ```
+# ```{r}
+# mixedCCAresult$KendallR # estimated latent correlation matrix
+# ```
+# ```{r}
+# mixedCCAresult$w1 # estimated canonical vector for X1
+# ```
+# ```{r}
+# mixedCCAresult$w2 # estimated canonical vector for X2
+# 
+# ```
+# 
+# ```{r}
+# mixedCCAresult$cancor # estimated canonical correlation
+```
 
