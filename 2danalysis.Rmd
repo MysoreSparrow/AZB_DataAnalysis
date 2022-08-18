@@ -1,8 +1,12 @@
 ---
 title: "2D Analysis Notebook"
 output:
-  html_document:
-    df_print: paged
+  html_document: 
+    toc: yes
+    theme: united
+    fig_width: 10
+    fig_height: 10
+    fig_caption: yes
 ---
 
 ```{r}
@@ -125,54 +129,55 @@ head(effnew)
 # Factor Analysis for Mixed Data - FAMD
 
 ```{r}
-library(FactoMineR)
+library("FactoMineR")
+library("factoextra")
 ```
 
 ```{r}
 #l2fc <- l2fctable_InfectedvsControl_BL6[ c(1:28, 392:419), 1:14]
-l2fc <- l2fctable_InfectedvsControl_BL6[ 1:25, 1:14]
+l2fc <- l2fctable_InfectedvsControl_BL6[c(1:20 , 220:240), 1:14]
 #eff <- effector[1:6, 1:14]
 l2fc[is.na(l2fc)] <- 0.0000001
 ```
 
-```{r}
+```{r fig.height=15, fig.width=10}
+library("gplots")
 
+# 1. convert the data as a table
+l2fc_matrix <- as.table(as.matrix(l2fc))
+# 2. Graph
+balloonplot(t(l2fc_matrix), main = "l2fc", xlab = "", ylab = "",label.lines = T,
+            label = FALSE, show.margins = F)
+```
+```{r}
 # eff[eff == '1'] <- 'Present'
 # eff[eff == '2'] <- 'Present'
 # eff[eff == '0'] <- 'Absent'
-```
 
-```{r}
 l <- t(l2fc)
 e <- t(effnew)
 
 df_merge <- merge(l, e, by = 'row.names', all = TRUE)
 row.names(df_merge) <- df_merge$Row.names
 df_merge <- subset(df_merge, select = -Row.names)
-```
-```{r}
+
 head(df_merge)
 ```
 
 ```{r}
-res.famd <- FAMD(df_merge, graph = TRUE)
-```
-```{r}
-res.famd$call
-```
-```{r}
-summary.FAMD(res.famd)
-```
-```{r}
-print.FAMD(res.famd)
-```
+res.famd <- FAMD(df_merge, graph = F)
 
-
+print(res.famd)
+```
+```{r}
+summary(res.famd)
+```
 
 ## Eigen Value
 
+Eigenvalues correspond to the amount of information retained by each axis. Dimensions are ordered decreasingly and listed according to the amount of variance explained in the solution. Dimension 1 explains the most variance in the solution, followed by dimension 2 and so on.
+
 ```{r}
-library("factoextra")
 eig.val <- get_eigenvalue(res.famd)
 head(eig.val)
 ```
@@ -182,31 +187,27 @@ head(eig.val)
 
 Show the percentage of variances explained by each principal component.
 ```{r}
-eig.val <- res.famd$eig
 barplot(eig.val[, 2], 
         names.arg = 1:nrow(eig.val), 
         main = "Variances Explained by Dimensions (%)",
         xlab = "Principal Dimensions",
         ylab = "Percentage of variances",
-        col ="steelblue")
+        col = "steelblue")
 # Add connected line segments to the plot
 lines(x = 1:nrow(eig.val), eig.val[, 2], 
       type = "b", pch = 19, col = "red")
 ```
-##Graph of variables
+## Variables
 ```{r}
 var <- get_famd_var(res.famd)
 var
 ```
+### Contribution of Variables to dimensions
 
 ```{r}
-# Cos2: quality of representation on the factore map
-var$cos2
-```
-```{r}
-# Contributions to the  dimensions
 var$contrib
 ```
+## Graph of variables for different dimensions
 
 ```{r fig.align='default', fig.width=10}
 # Plot of variables
@@ -234,7 +235,9 @@ fviz_famd_var(res.famd, repel = TRUE, axes = c(4,5))
 ```
 
 
+## Contributions Plots
 
+This function can be used to visualize the contribution of rows/columns from the results of FAMD.
 
 ```{r}
 # Contribution to the first dimension
@@ -281,50 +284,59 @@ fviz_famd_var(res.famd, "quanti.var",
 quali.var <- get_famd_var(res.famd, "quali.var")
 quali.var 
 ```
+### Qualitative Variables Categories
 
-```{r fig.height=8, fig.width=8}
+The plot below shows the relationships between row points (Qualitative Variables):
+
+1. Rows with a similar profile are grouped together.
+2. Negatively correlated rows are positioned on opposite sides of the plot origin (opposed quadrants).
+3. The distance between row points and the origin measures the quality of the row points on the factor map. 
+
+```{r fig.height=8, fig.width=12}
 fviz_famd_var(res.famd, "quali.var", col.var = "contrib",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
              )
 ```
+
+
 ## Graph of individuals
 
+Individuals with similar profiles are close to each other on the factor map. Qualitative variable categories are shown in black.
 ```{r}
 ind <- get_famd_ind(res.famd)
 ind
 ```
-```{r fig.width=10}
-fviz_famd_ind(res.famd, 
-              col.ind = "cos2",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE)
-```
-```{r fig.width=10}
-fviz_famd_ind(res.famd, 
-              col.ind = "contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE)
-```
 
-Individuals with similar profiles are close to each other on the factor map
+## Biplot/Symmetric Plot
 
-Graph of individuals. Qualitative variable categories are shown in bold.
+1. The graph below is called symmetric plot and shows a global pattern within the qualitative data. 
+2. Rows are represented by blue points and columns by red triangles.
+3. The distance between any row points or column points gives a measure of their similarity (or dissimilarity). 
+4. Row points with similar profile are closed on the factor map. The same holds true for column points.
+5. Symetric plot represents the row and column profiles simultaneously in a common space. In this case, only the            distance between row points or the distance between column points can be really interpreted.
 
-```{r fig.width=10}
-#plot(res.famd, choix = "ind")
-```
+6. The distance between any row and column items is not meaningful! One can only make a general statements about the       observed pattern.
 
-Correlation between variables (qualitative and quantitative) with principal dimensions:
-```{r fig.width=10}
-plot(res.famd, choix = "var")
-```
 ```{r}
 fviz_hmfa_quali_biplot(res.famd, 1:2, repel = TRUE, 
                        )
 ```
 
+```{r fig.width=10}
+fviz_famd_ind(res.famd, 
+              col.ind = "contrib",
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+              repel = TRUE)
+```
+
+### Correlation between variables and principal dimensions (qualitative and quantitative)
+```{r fig.height =10, fig.width=10}
+plot(res.famd, choix = "var")
+```
 
 
+
+## Dimension Description
 ```{r}
 res.desc <- dimdesc(res.famd, axes = 1:5, proba = 0.05)
 
@@ -349,57 +361,6 @@ res.desc[[4]]
 # Description of dimension 5
 res.desc[[5]]
 ```
-```{r}
-# library(mixedCCA)
-# ```
-# ```{r}
-# n <- 100; p1 <- 15; p2 <- 10 # sample size and dimensions for two datasets.
-# maxcancor <- 0.9 # true canonical correlation
-# # Correlation structure within each data set
-# set.seed(0)
-# perm1 <- sample(1:p1, size = p1);
-# Sigma1 <- autocor(p1, 0.7)[perm1, perm1]
-# blockind <- sample(1:3, size = p2, replace = TRUE);
-# Sigma2 <- blockcor(blockind, 0.7)
-# mu <- rbinom(p1+p2, 1, 0.5)
-# 
-# # true variable indices for each dataset
-# trueidx1 <- c(rep(1, 3), rep(0, p1-3))
-# trueidx2 <- c(rep(1, 2), rep(0, p2-2))
-
-```
-
-```{r}
-# # Data generation
-# simdata <- GenerateData(n=n, trueidx1 = trueidx1, trueidx2 = trueidx2, maxcancor = maxcancor,
-#                         Sigma1 = Sigma1, Sigma2 = Sigma2,
-#                         copula1 = "exp", copula2 = "cube",
-#                         muZ = mu,
-#                         type1 = "trunc", type2 = "trunc",
-#                         c1 = rep(1, p1), c2 =  rep(0, p2)
-# )
-# X1 <- simdata$X1
-# X2 <- simdata$X2
-```
 
 
-
-
-```{r}
-# mixedCCAresult <- mixedCCA(X1, X2, type1 = "trunc", type2 = "trunc", BICtype = 1)
-# ```
-# ```{r}
-# mixedCCAresult$KendallR # estimated latent correlation matrix
-# ```
-# ```{r}
-# mixedCCAresult$w1 # estimated canonical vector for X1
-# ```
-# ```{r}
-# mixedCCAresult$w2 # estimated canonical vector for X2
-# 
-# ```
-# 
-# ```{r}
-# mixedCCAresult$cancor # estimated canonical correlation
-```
 
