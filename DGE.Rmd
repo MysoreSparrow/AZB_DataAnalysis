@@ -17,37 +17,37 @@ suppressPackageStartupMessages(library("DESeq2"))
 suppressPackageStartupMessages(library("pheatmap"))
 suppressPackageStartupMessages(library("PoiClaClu"))
 suppressPackageStartupMessages(library("RColorBrewer"))
-suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("tidyverse"))
 suppressPackageStartupMessages(library("PoiClaClu"))
 suppressPackageStartupMessages(library("vsn"))
-suppressPackageStartupMessages(library('EnhancedVolcano'))
-suppressPackageStartupMessages(library('gplots'))
-suppressPackageStartupMessages(library('org.Mm.eg.db'))
-suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("EnhancedVolcano"))
+suppressPackageStartupMessages(library("gplots"))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
+suppressPackageStartupMessages(library("stringr"))
 suppressPackageStartupMessages(library("genefilter"))
 suppressPackageStartupMessages(library("dplyr"))
 suppressPackageStartupMessages(library("ggplot2"))
 suppressPackageStartupMessages(library("glmpca"))
-suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
 suppressPackageStartupMessages(library("AnnotationDbi"))
 suppressPackageStartupMessages(library("apeglm"))
 suppressPackageStartupMessages(library("ComplexHeatmap"))
 suppressPackageStartupMessages(library("clusterProfiler"))
-suppressPackageStartupMessages(library('ggrepel'))
-suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("ggrepel"))
+suppressPackageStartupMessages(library("corrplot"))
 suppressPackageStartupMessages(library("GO.db"))
-suppressPackageStartupMessages(library('edgeR'))
-suppressPackageStartupMessages(library('GOstats'))
-suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("edgeR"))
+suppressPackageStartupMessages(library("GOstats"))
+suppressPackageStartupMessages(library("pathview"))
 suppressPackageStartupMessages(library("gage"))
 suppressPackageStartupMessages(library("gageData"))
-suppressPackageStartupMessages(library('GOSemSim'))
-suppressPackageStartupMessages(library('DOSE'))
-suppressPackageStartupMessages(library('enrichplot'))
-suppressPackageStartupMessages(library('ggnewscale'))
-suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("GOSemSim"))
+suppressPackageStartupMessages(library("DOSE"))
+suppressPackageStartupMessages(library("enrichplot"))
+suppressPackageStartupMessages(library("ggnewscale"))
+suppressPackageStartupMessages(library("glue"))
 suppressPackageStartupMessages(library("ggupset"))
-#suppressPackageStartupMessages(library("SPIA"))
+# suppressPackageStartupMessages(library("SPIA"))
 suppressPackageStartupMessages(library("stats"))
 suppressPackageStartupMessages(library("FactoMineR"))
 suppressPackageStartupMessages(library("factoextra"))
@@ -68,11 +68,13 @@ head(sample_ID)
 ```
 
 ```{r}
-condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-               "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-               "Infected", "Infected", "control", "control")
+condition <- c(
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "control", "control"
+)
 coldata <- data.frame(sample_ID, condition)
-colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+colnames(coldata) <- c("Sample_Name", "condition") # change name of one of the columns
 # The metadata can be found in a df called coldata!
 head(coldata)
 ```
@@ -83,31 +85,32 @@ head(coldata)
 
 ```{r}
 # tidying up the names od samples in both columns that list of samples
-#coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+# coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
 coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
-                                  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
+  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+)
 coldata$condition <- as.factor(coldata$condition)
 ```
 
 Changing the names of samples (as per Alina)
 
 ```{r}
-coldata[coldata == '476_R1'] <- 'T'
-coldata[coldata == '754_R1'] <- 'S54'
-coldata[coldata == '755_R1'] <- 'S55'
-coldata[coldata == '757_R1'] <- 'L57'
-coldata[coldata == '758_R1'] <- 'A58'
-coldata[coldata == '760_R1'] <- 'L60'
-coldata[coldata == '761_R1'] <- 'S61'
-coldata[coldata == '762_R1'] <- 'A62'
-coldata[coldata == '763_R1'] <- 'L63'
-coldata[coldata == '764_R1'] <- 'A64'
-coldata[coldata == '765_R1'] <- 'S65'
-coldata[coldata == '766_R1'] <- 'L66'
-coldata[coldata == '768_R1'] <- 'A68'
-coldata[coldata == '769_R1'] <- 'L69'
-coldata[coldata == 'Ctrl1_R1'] <- 'C1'
-coldata[coldata == 'Ctrl2_R2'] <- 'C2'
+coldata[coldata == "476_R1"] <- "T"
+coldata[coldata == "754_R1"] <- "S54"
+coldata[coldata == "755_R1"] <- "S55"
+coldata[coldata == "757_R1"] <- "L57"
+coldata[coldata == "758_R1"] <- "A58"
+coldata[coldata == "760_R1"] <- "L60"
+coldata[coldata == "761_R1"] <- "S61"
+coldata[coldata == "762_R1"] <- "A62"
+coldata[coldata == "763_R1"] <- "L63"
+coldata[coldata == "764_R1"] <- "A64"
+coldata[coldata == "765_R1"] <- "S65"
+coldata[coldata == "766_R1"] <- "L66"
+coldata[coldata == "768_R1"] <- "A68"
+coldata[coldata == "769_R1"] <- "L69"
+coldata[coldata == "Ctrl1_R1"] <- "C1"
+coldata[coldata == "Ctrl2_R2"] <- "C2"
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
 ```
@@ -167,27 +170,29 @@ NOTE:
 
 ```{r}
 # Readin  countsmatrix
-#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+# countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
 countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/newcounts.csv")
-#countsmatrix <- as.data.frame(countsmatrix)
+# countsmatrix <- as.data.frame(countsmatrix)
 ```
 
 ```{r}
 ## Removal of Gender Genes from ENSEMBL ID itself
-countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
-                                  countsmatrix$X != "ENSMUSG00000097571",
-                                  countsmatrix$X != "ENSMUSG00000086370",
-                                  countsmatrix$X != "ENSMUSG00000031329")
+countsmatrix <- countsmatrix %>% filter(
+  countsmatrix$X != "ENSMUSG00000086503",
+  countsmatrix$X != "ENSMUSG00000097571",
+  countsmatrix$X != "ENSMUSG00000086370",
+  countsmatrix$X != "ENSMUSG00000031329"
+)
 nrow(countsmatrix)
-#countsmatrix <- as.matrix(countsmatrix)
+# countsmatrix <- as.matrix(countsmatrix)
 ```
 
 ```{r}
-#tidying up these names again
-#colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
-rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# tidying up these names again
+# colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[, 1] # converting first column of gene names into rownames, to be used for sanity check later
 # It is IMPORTANT to keep the names of the genes in the rownames
-countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
+countsmatrix <- subset(countsmatrix, select = -X) # dropping the X column
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
 colnames(countsmatrix) <- coldata$Sample_Name
 # Display the column names
@@ -204,11 +209,10 @@ head(cm_row)
 symbols <- mapIds(
   org.Mm.eg.db,
   keys = cm_row,
-  column = c('SYMBOL'),
-  keytype = 'ENSEMBL',
+  column = c("SYMBOL"),
+  keytype = "ENSEMBL",
   multiVals = "first"
 )
-
 ```
 ```{r}
 symbols <- symbols[!is.na(symbols)]
@@ -229,11 +233,11 @@ countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
 
 ```{r}
 # Now make the ganename column into rownames of count matrix
-rownames(countsmatrix) <- countsmatrix[,"genename"]
+rownames(countsmatrix) <- countsmatrix[, "genename"]
 # Keeping this version of countsmatrix for later use
 cm_table <- countsmatrix
 # dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
-countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
+countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID)) #
 
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
 countsmatrix <- as.matrix(countsmatrix)
@@ -261,23 +265,27 @@ dim(countsmatrix)
 ## Creating the DESeq Data set Object
 
 ```{r}
-dds_infected <- DESeqDataSetFromMatrix(countData = countsmatrix,
-                              colData = coldata, 
-                              design = ~ condition)
+dds_infected <- DESeqDataSetFromMatrix(
+  countData = countsmatrix,
+  colData = coldata,
+  design = ~condition
+)
 nrow(dds_infected)
 ```
 
 ```{r}
 # Function to save generic plots
-saveplot <- function(plot,name ){
+saveplot <- function(plot, name) {
   # Function to save the plots
-  ggsave(filename = 
-           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/{name}.png'),
-       plot = plot,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+  ggsave(
+    filename =
+      glue("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/{name}.png"),
+    plot = plot,
+    dpi = 300,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
 }
 ```
 
@@ -298,7 +306,7 @@ later step in the workflow.
 
 ```{r}
 keep <- rowSums(counts(dds_infected)) > 1
-dds_infected <- dds_infected[keep,]
+dds_infected <- dds_infected[keep, ]
 nrow(dds_infected)
 ```
 
@@ -308,7 +316,7 @@ nrow(dds_infected)
 
 ```{r}
 vsd <- vst(dds_infected, blind = FALSE)
-#head(assay(vsd), 3)
+# head(assay(vsd), 3)
 colData(vsd)
 vsd_coldata <- colData(vsd)
 ```
@@ -334,124 +342,134 @@ from all genes, we use it on the VST data.
 
 ```{r}
 sampleDists <- dist(t(assay(vsd)))
-sampleDistMatrix <- as.matrix( sampleDists )
+sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- vsd$Sample_Name
 colnames(sampleDistMatrix) <- vsd$Sample_Name
 
-colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
 (EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         main = "Sample-to-Sample Euclidean Distance of BL6 - Infected vs Control",
-         col = colors))
-
+  clustering_distance_rows = sampleDists,
+  clustering_distance_cols = sampleDists,
+  main = "Sample-to-Sample Euclidean Distance of BL6 - Infected vs Control",
+  col = colors
+))
 ```
 
 ```{r}
-#saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
+# saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
 ```
 
 ### Poisson Distance between Samples
 
 ```{r}
 poisd <- PoissonDistance(t(counts(dds_infected))) # raw counts or unnormalised data
-samplePoisDistMatrix <- as.matrix( poisd$dd )
+samplePoisDistMatrix <- as.matrix(poisd$dd)
 rownames(samplePoisDistMatrix) <- dds_infected$Sample_Name
 colnames(samplePoisDistMatrix) <- dds_infected$Sample_Name
 
-colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
+colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
 (poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
-         clustering_distance_rows = poisd$dd,
-         clustering_distance_cols = poisd$dd,
-         main = "Sample-to-Sample Poisson Distance of BL6 - Infected vs Control",
-         col = colors))
-         
+  clustering_distance_rows = poisd$dd,
+  clustering_distance_cols = poisd$dd,
+  main = "Sample-to-Sample Poisson Distance of BL6 - Infected vs Control",
+  col = colors
+))
 ```
 
 ```{r}
-#saveplot(poisson_dist_plot, "poisson_dist_plot")
+# saveplot(poisson_dist_plot, "poisson_dist_plot")
 ```
 
 # PCA Plot
 ```{r}
 ### Functions for Plot aethetics and saving PCA Plots
-color_values <- c("red", "red","red","red", "black","black","red","red", "red",
-                  "red", "red","red","red", "red", "red" ,"blue")
+color_values <- c(
+  "red", "red", "red", "red", "black", "black", "red", "red", "red",
+  "red", "red", "red", "red", "red", "red", "blue"
+)
 
-# the basic set of common aesthetic settings for PCA plots, 
-theme.my.own <- list(theme_bw() ,
-                      geom_point(size = 3),
-                      coord_fixed() ,
-                      scale_y_continuous(breaks = seq(-20, 20, 5), 
-                                         sec.axis = sec_axis(~. *1, 
-                                                             labels = NULL,
-                                                             breaks = NULL)) ,
-                      scale_x_continuous(breaks = seq(-20, 20, 5), 
-                                         sec.axis = sec_axis(~. *1, 
-                                                             labels = NULL,
-                                                             breaks = NULL)) ,
-                      theme_classic() ,
-                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
-                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
-                      theme(text = element_text(size = 15),
-                            axis.text = element_text(size = 15),
-                            legend.position = "right",
-                            aspect.ratio = 1) ,
-                      #geom_text(size = 4, hjust = 0, vjust = 0)
-                      geom_text_repel(size = 5,min.segment.length = 0.5)
-  )
-
+# the basic set of common aesthetic settings for PCA plots,
+theme.my.own <- list(
+  theme_bw(),
+  geom_point(size = 3),
+  coord_fixed(),
+  scale_y_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  scale_x_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  theme_classic(),
+  geom_hline(yintercept = 0, color = "gray", size = 1),
+  geom_vline(xintercept = 0, color = "gray", size = 1),
+  theme(
+    text = element_text(size = 15),
+    axis.text = element_text(size = 15),
+    legend.position = "bottom",
+    aspect.ratio = 1
+  ),
+  # geom_text(size = 4, hjust = 0, vjust = 0)
+  geom_text_repel(size = 5, min.segment.length = 0.5)
+)
 ```
 
 ## Calculating all PCA Values
 
 ```{r}
-plotPCA_local = function(object,
-                         intgroup = "condition",
-                         ntop = 500,
-                         returnData = TRUE,
-                         nPC = 4)
-{
+plotPCA_local <- function(object,
+                          intgroup = "condition",
+                          ntop = 500,
+                          returnData = TRUE,
+                          nPC = 4) {
   # calculate the variance for each gene
   rv <- rowVars(assay(object))
   ntop <- 500
-  
+
   # select the ntop genes by variance
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-  
+
   # perform a PCA on the data in assay(x) for the selected genes
   pca <- prcomp(t(assay(object)[select, ]))
-  #summary(pca)
-  
+  # summary(pca)
+
   # the contribution to the total variance for each component
-  percentVar <- pca$sdev ^ 2 / sum(pca$sdev ^ 2)
-  
+  percentVar <- pca$sdev^2 / sum(pca$sdev^2)
+
   if (!all(intgroup %in% names(colData(object)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
   }
-  
+
   intgroup.df <-
     as.data.frame(colData(object)[, intgroup, drop = FALSE])
-  
+
   # add the intgroup factors together to create a new grouping factor
   group <- if (length(intgroup) > 1) {
     factor(apply(intgroup.df, 1, paste, collapse = ":"))
   } else {
     colData(object)[[intgroup]]
   }
-  
+
   # assembly the data for the plot
-  d <- cbind(pca$x[, seq_len(min(nPC, ncol(pca$x))), drop = FALSE],
-             data.frame(group = group, intgroup.df, name = colnames(object)))
-  
+  d <- cbind(
+    pca$x[, seq_len(min(nPC, ncol(pca$x))), drop = FALSE],
+    data.frame(group = group, intgroup.df, name = colnames(object))
+  )
+
   if (returnData) {
     attr(d, "percentVar") <- percentVar[1:nPC]
     # l <- list(pca,d)
     # return(l)
-     return(d)
+    return(d)
   }
 }
-  
 ```
 
 ## PCA Plot with VST Data
@@ -459,26 +477,28 @@ plotPCA_local = function(object,
 ### Function for calculating percentvar
 
 ```{r}
-percentvar_calculation <- function(pcaData_variable){
+percentvar_calculation <- function(pcaData_variable) {
   # function to calculate percentvar for different variables
-  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3)
   return(percentvar_variable)
 }
 
-savingFunction <- function(plotname, metadatacolumn){
+savingFunction <- function(plotname, metadatacolumn) {
   # Function to save the PCA plots
-  ggsave(filename = 
-           glue('/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot_InfectedvsControl_{metadatacolumn}.png'),
-       plot = plotname,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+  ggsave(
+    filename =
+      glue("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot_InfectedvsControl_{metadatacolumn}.png"),
+    plot = plotname,
+    dpi = 300,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
 }
 ```
 
 ```{r}
-pcaData_infected <- plotPCA_local(vsd, intgroup = c("condition","Sample_Name"),returnData = T)
+pcaData_infected <- plotPCA_local(vsd, intgroup = c("condition", "Sample_Name"), returnData = T)
 pcaData_infected
 percentVar_infected <- percentvar_calculation(pcaData_infected)
 ```
@@ -486,67 +506,81 @@ percentVar_infected <- percentvar_calculation(pcaData_infected)
 ```{r }
 percentVar_infected
 ```
-```{r }
-(PCAplot_vst <- ggplot(pcaData_infected,
-                      aes(x = PC1,
-                          y = PC2,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedvsControl") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
+```{r fig.height=6, fig.width=8}
+(PCAplot_vst <- ggplot(
+  pcaData_infected,
+  aes(
+    x = PC1,
+    y = PC2,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
 
 savingFunction(PCAplot_vst, "condition")
 ```
 ## PCA Plot for PC2 vs PC3
 
-```{r}
+```{r fig.height=6, fig.width=8}
 
-(PCAplot_vst23 <- ggplot(pcaData_infected,
-                      aes(x = PC2,
-                          y = PC3,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
-        ylab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
-        ggtitle("PCA Plot - InfectedvsControl") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
+(PCAplot_vst23 <- ggplot(
+  pcaData_infected,
+  aes(
+    x = PC2,
+    y = PC3,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
+  ylab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
 
-ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot23_InfectedvsControl.png',
-       plot = PCAplot_vst23,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot23_InfectedvsControl.png",
+  plot = PCAplot_vst23,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 
 ## PCA Plot for PC3 vs PC4
 
-```{r}
+```{r fig.height=6, fig.width=8}
 
-(PCAplot_vst34 <- ggplot(pcaData_infected,
-                      aes(x = PC3,
-                          y = PC4,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
-        ylab(paste0("PC4: ", percentVar_infected[4], "% variance")) +
-        ggtitle("PCA Plot - InfectedvsControl") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
+(PCAplot_vst34 <- ggplot(
+  pcaData_infected,
+  aes(
+    x = PC3,
+    y = PC4,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
+  ylab(paste0("PC4: ", percentVar_infected[4], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
 
-ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot34_InfectedvsControl.png',
-       plot = PCAplot_vst34,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
-
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot34_InfectedvsControl.png",
+  plot = PCAplot_vst34,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 
@@ -554,132 +588,167 @@ ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/PCAplot34_I
 
 ### PCA for Epithelial Response
 
-```{r}
+```{r fig.height=6, fig.width=8}
 PCAdata_infected_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
 percentVar_infected_ER <- percentvar_calculation(PCAdata_infected_ER)
 
-(PCAplot_ER <- ggplot(PCAdata_infected_ER,
-                     aes(x = PC1, y = PC2,
-                         color = Epithelial_response,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_ER[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_ER[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedvsControl - Epithelial_response") +
-        theme.my.own)
+(PCAplot_ER <- ggplot(
+  PCAdata_infected_ER,
+  aes(
+    x = PC1, y = PC2,
+    color = Epithelial_response,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_ER[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_ER[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedvsControl - Epithelial_response") +
+  theme.my.own)
 
 savingFunction(PCAplot_ER, "Epithelial_response")
 ```
 
 ### PCA for Microcolonies
 
-```{r}
-PCAdata_infected_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), 
-                               returnData = TRUE)
+```{r fig.height=6, fig.width=8}
+PCAdata_infected_MC <- plotPCA(vsd,
+  intgroup = c("Sample_Name", "microcolonies"),
+  returnData = TRUE
+)
 percentVar_infected_MC <- percentvar_calculation(PCAdata_infected_MC)
 
-(PCAplot_MC <- ggplot(PCAdata_infected_MC,
-                     aes(x = PC1, y = PC2,
-                         color = microcolonies,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_MC[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_MC[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedvsControl - Microcolonies") +
-        theme.my.own)
+(PCAplot_MC <- ggplot(
+  PCAdata_infected_MC,
+  aes(
+    x = PC1, y = PC2,
+    color = microcolonies,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_MC[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_MC[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedvsControl - Microcolonies") +
+  theme.my.own)
 
 savingFunction(PCAplot_MC, "microcolonies")
 ```
 
 ### PCA for Clinical Outcome
 
-```{r}
-PCAdata_infected_CO <- plotPCA(vsd, 
-                                 intgroup = c("Sample_Name", "clinical_outcome"), 
-                                 returnData = TRUE)
+```{r fig.height=6, fig.width=8}
+PCAdata_infected_CO <- plotPCA(vsd,
+  intgroup = c("Sample_Name", "clinical_outcome"),
+  returnData = TRUE
+)
 percentVar_infected_CO <- percentvar_calculation(PCAdata_infected_CO)
 
-(PCAplot_CO <- ggplot(PCAdata_infected_CO,
-                     aes(x = PC1, y = PC2,
-                         color = clinical_outcome,
-                         label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_CO[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_CO[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedVs Control Inducer - Clinical Outcome") +
-        theme.my.own)
+(PCAplot_CO <- ggplot(
+  PCAdata_infected_CO,
+  aes(
+    x = PC1, y = PC2,
+    color = clinical_outcome,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_CO[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_CO[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedVsControl - Clinical Outcome") +
+  theme.my.own)
 
 savingFunction(PCAplot_CO, "clinical_outcome")
 ```
 
 ### PCA for ER_Microcolonies
 
-```{r}
+```{r fig.height=6, fig.width=8}
 PCAdata_infected_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
 percentVar_infected_ERMC <- percentvar_calculation(PCAdata_infected_ERMC)
 
-(PCAplot_ERMC <- ggplot(PCAdata_infected_ERMC,
-                       aes(x = PC1, y = PC2,
-                           color = ER_microcolonies,
-                           label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_ERMC[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_ERMC[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedVs Control Inducer - ER_Microcolonies") +
-        theme.my.own)
+(PCAplot_ERMC <- ggplot(
+  PCAdata_infected_ERMC,
+  aes(
+    x = PC1, y = PC2,
+    color = ER_microcolonies,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_ERMC[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_ERMC[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedVsControl - ER_Microcolonies") +
+  theme.my.own)
 
 savingFunction(PCAplot_ERMC, "ER_microcolonies")
 ```
 
 ### PCA for Phylogenomic Lineage
 
-```{r}
-PCAdata_infected_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
-                                                   "phylogenomic_lineage"), 
-                                 returnData = TRUE)
+```{r fig.height=6, fig.width=8}
+PCAdata_infected_PL <- plotPCA(vsd,
+  intgroup = c(
+    "Sample_Name",
+    "phylogenomic_lineage"
+  ),
+  returnData = TRUE
+)
 percentVar_infected_PL <- percentvar_calculation(PCAdata_infected_PL)
 
-(PCAplot_PL <- ggplot(PCAdata_infected_PL,
-                       aes(x = PC1, y = PC2,
-                           color = phylogenomic_lineage,
-                           label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_PL[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_PL[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedVs Control Inducer - Phylogenomic Lineage") +
-        theme.my.own)
+(PCAplot_PL <- ggplot(
+  PCAdata_infected_PL,
+  aes(
+    x = PC1, y = PC2,
+    color = phylogenomic_lineage,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_PL[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_PL[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedVsControl - Phylogenomic Lineage") +
+  theme.my.own)
 
 savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```
 
 ### PCA for Phylogroup
 
-```{r}
+```{r fig.height=6, fig.width=8}
 PCAdata_infected_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
 percentVar_infected_PG <- percentvar_calculation(PCAdata_infected_PG)
 
-(PCAplot_PG <- ggplot(PCAdata_infected_PG,
-                     aes(x = PC1, y = PC2,
-                         color = phylogroup,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_PG[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_PG[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedVs Control Inducer - Phylogroup") +
-        theme.my.own)
+(PCAplot_PG <- ggplot(
+  PCAdata_infected_PG,
+  aes(
+    x = PC1, y = PC2,
+    color = phylogroup,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_PG[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_PG[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedVsControl - Phylogroup") +
+  theme.my.own)
 
 savingFunction(PCAplot_PG, "phylogroup")
 ```
 
 ### PCA for Intimin Group
 
-```{r}
+```{r fig.height=6, fig.width=8} 
 PCAdata_infected_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"), returnData = TRUE)
 head(PCAdata_infected_IT)
 percentVar_infected_IT <- round(100 * attr(PCAdata_infected_IT, "percentVar"), digits = 4)
 
-(PCAplot_IT <- ggplot(PCAdata_infected_IT,
-                     aes(x = PC1, y = PC2,
-                         color = Intimin_Type,
-                         label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_infected_IT[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_infected_IT[2], "% variance")) +
-        ggtitle("PCA Plot - InfectedVs Control Inducer - Intimin type") +
-        theme.my.own)
+(PCAplot_IT <- ggplot(
+  PCAdata_infected_IT,
+  aes(
+    x = PC1, y = PC2,
+    color = Intimin_Type,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_infected_IT[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_infected_IT[2], "% variance")) +
+  ggtitle("PCA Plot - BL6 InfectedVs Control - Intimin type") +
+  theme.my.own)
 
 savingFunction(PCAplot_IT, "Intimin_Type")
 ```
@@ -690,10 +759,10 @@ rv <- rowVars(assay(vsd))
 ntop <- 500
 # select the ntop genes by variance
 select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-df1 <- t(assay(vsd)[select,])
+df1 <- t(assay(vsd)[select, ])
 ```
 ```{r}
-res.pca <- PCA(df1,  graph = FALSE, scale.unit = FALSE)
+res.pca <- PCA(df1, graph = FALSE, scale.unit = FALSE)
 summary.PCA(res.pca)
 ```
 ```{r}
@@ -707,7 +776,7 @@ eig.val
 ```
 ```{r}
 # var <- get_pca_var(res.pca)
-#fviz_pca_var(res.pca, repel = TRUE)
+# fviz_pca_var(res.pca, repel = TRUE)
 ```
 
 ```{r fig.width=10}
@@ -718,15 +787,18 @@ eig.val
 ## Genes + PCA Biplots
 
 ```{r}
-fviz_pca_biplot(res.pca, repel = TRUE,
-                gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"))
+fviz_pca_biplot(res.pca,
+  repel = TRUE,
+  gradient.cols = c("pink", "blue", "yellow", "green", "red", "black")
+)
 ```
 
 ```{r fig.height=10, fig.width=10}
 heat.colors <- brewer.pal(6, "RdYlBu")
-fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
-             gradient.cols = c("Gray", "blue", "yellow","orange", "green", "red", "black"),
-             )
+fviz_pca_var(res.pca,
+  col.var = "contrib", repel = TRUE,
+  gradient.cols = c("Gray", "blue", "yellow", "orange", "green", "red", "black"),
+)
 ```
 
 ```{r}
@@ -749,26 +821,26 @@ head(assay(rld), 3)
 
 ```{r}
 ### Extract the rlog matrix from the object
-rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+rld_mat <- assay(rld) # assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
 
 ### Compute pairwise correlation values
-rld_cor <- cor(rld_mat)    ## cor() is a base R function
-head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
+rld_cor <- cor(rld_mat) ## cor() is a base R function
+head(rld_cor) ## check the output of cor(), make note of the rownames and colnames
 ```
 
 ```{r}
 ### Plot heatmap
 heat.colors <- brewer.pal(6, "RdYlBu")
-(Hclust_plot <- pheatmap(rld_cor, 
-                        color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - ER - Correlation Matrix'
-                        #filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Hclust_plot.tiff'
-                       ))
-#Hclust_plot
+(Hclust_plot <- pheatmap(rld_cor,
+  color = heat.colors,
+  main = "Heirarchical Clustering of Samples - Correlation Matrix"
+  # filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Hclust_plot.tiff'
+))
+# Hclust_plot
 ```
 
 ```{r}
-#saveplot(Hclust_plot, "Hclust_plot")
+# saveplot(Hclust_plot, "Hclust_plot")
 ```
 
 
@@ -778,14 +850,15 @@ heat.colors <- brewer.pal(6, "RdYlBu")
 
 ```{r}
 dds1_infected <- DESeq(dds_infected)
-#str(dds1)
+# str(dds1)
 ```
 
 ### Building the results table
 
 ```{r}
 res_infected <- results(dds1_infected,
-                        contrast = c("condition", "Infected", "control"))
+  contrast = c("condition", "Infected", "control")
+)
 head(res_infected, 30)
 ```
 
@@ -836,7 +909,6 @@ head(res2_infected, 30)
 
 ```{r}
 res2df_infected <- as.data.frame(res2_infected) # convert the results table to a df
-
 ```
 ```{r}
 head(res2df_infected, 20)
@@ -858,7 +930,8 @@ Further Filtering: baseMean \> 1
 
 ```{r}
 hist(res2_infected$pvalue[res2_infected$baseMean > 10],
-     breaks = 50, col = "grey50", border = "blue")
+  breaks = 50, col = "grey50", border = "blue"
+)
 ```
 ```{r}
 head(res2df_infected)
@@ -903,11 +976,12 @@ nrow(res3df_infected)
 ## Saving the Results
 
 ```{r}
-resOrdered_infected <- res3df_infected[order(res3df_infected$pvalue),]
+resOrdered_infected <- res3df_infected[order(res3df_infected$pvalue), ]
 head(resOrdered_infected)
 
 write.csv(as.data.frame(resOrdered_infected),
-          file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/results_DGE.csv")
+  file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/results_DGE.csv"
+)
 ```
 
 ## Heatmap of count matrix
@@ -917,20 +991,19 @@ To explore a count matrix, it is often instructive to look at it as a heatmap.
 ```{r fig.width=8, fig.height=9}
 library(circlize)
 
-select <- order(rowMeans(counts(dds2_infected,normalized = FALSE)),decreasing = TRUE)[1:50]
-df <- as.data.frame(colData(dds2_infected)[,c("condition","Sample_Name")])
+select <- order(rowMeans(counts(dds2_infected, normalized = FALSE)), decreasing = TRUE)[1:50]
+df <- as.data.frame(colData(dds2_infected)[, c("condition", "Sample_Name")])
 
-colors <- colorRampPalette( rev(brewer.pal(5, "RdYlBu")) )(255)
-Heatmap(assay(vsd)[select,], 
-         cluster_columns = TRUE,
-        #col = colors,
-        show_heatmap_legend = TRUE,
-        column_title = "EPEC Samples",
-        row_title = "Top 50 Genes",
-        name = "Count Matrix Heatmap
+colors <- colorRampPalette(rev(brewer.pal(5, "RdYlBu")))(255)
+Heatmap(assay(vsd)[select, ],
+  cluster_columns = TRUE,
+  # col = colors,
+  show_heatmap_legend = TRUE,
+  column_title = "EPEC Samples",
+  row_title = "Top 50 Genes",
+  name = "Count Matrix Heatmap
         of Top50 Genes"
-        
-        )
+)
 ```
 
 ## Effect of Transformations on Variance
@@ -971,94 +1044,110 @@ Heatmap(assay(vsd)[select,],
 
 ```{r fig.height= 10, fig.width= 10}
 p1 <- EnhancedVolcano(res3df_infected,
-    lab = res3df_infected$symbol,
-    x = 'log2FoldChange',
-    y = 'pvalue',
-    xlab = bquote(~Log[2]~'FoldChange'),
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE genes: Log2FoldChange Vs -Log10 Pvalue',
-    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
-    pointSize = 2.0,
-    labSize = 5.0,
-    boxedLabels = FALSE,
-    gridlines.major = FALSE,
-    gridlines.minor = FALSE,
-    colAlpha = 0.5,
-    legendPosition = 'bottom',
-    legendLabSize = 12,
-    legendIconSize = 4.0,
-    drawConnectors = T,
-    widthConnectors = 0.75,
-    max.overlaps = 8
-    )
-(volcano1 <- p1 + scale_y_continuous(limits = c(0, 8),
-                                    breaks = seq(0, 8, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
- 
-                  scale_x_continuous(limits = c(-4, 5), 
-                                     breaks = seq(-4, 5, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                      xlab(expression(DownRegulated %<->% UpRegulated))
+  lab = res3df_infected$symbol,
+  x = "log2FoldChange",
+  y = "pvalue",
+  xlab = bquote(~ Log[2] ~ "FoldChange"),
+  pCutoff = 0.05,
+  FCcutoff = 1.0,
+  title = "DE genes: Log2FoldChange Vs -Log10 Pvalue",
+  subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
+  pointSize = 2.0,
+  labSize = 5.0,
+  boxedLabels = FALSE,
+  gridlines.major = FALSE,
+  gridlines.minor = FALSE,
+  colAlpha = 0.5,
+  legendPosition = "bottom",
+  legendLabSize = 12,
+  legendIconSize = 4.0,
+  drawConnectors = T,
+  widthConnectors = 0.75,
+  max.overlaps = 8
+)
+(volcano1 <- p1 + scale_y_continuous(
+  limits = c(0, 8),
+  breaks = seq(0, 8, 1),
+  sec.axis = sec_axis(~ . * 1,
+    labels = NULL,
+    breaks = NULL
   )
+) +
 
-ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano1_L2fcVsPvalue.png',
-       plot = volcano1,
-       dpi = 300,
-       width = 5,
-       height = 5,
-       units = "in")
+  scale_x_continuous(
+    limits = c(-4, 5),
+    breaks = seq(-4, 5, 1),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ) +
+  xlab(expression(DownRegulated %<->% UpRegulated))
+)
+
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano1_L2fcVsPvalue.png",
+  plot = volcano1,
+  dpi = 300,
+  width = 5,
+  height = 5,
+  units = "in"
+)
 ```
 ## volcano Plot of Log2FC vs Padj
 
 ```{r fig.height= 10, fig.width= 10}
 p2 <- EnhancedVolcano(res3df_infected,
-    lab = res3df_infected$symbol,
-    x = 'log2FoldChange',
-    y = 'padj',
-    xlab = bquote(~Log[2]~'FoldChange'),
-    ylab = bquote(~Log[10]~'Padj'),
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE genes: Log2FoldChange Vs -Log10 Padj',
-    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
-    pointSize = 2.0,
-    labSize = 5.0,
-    boxedLabels = FALSE,
-    gridlines.major = FALSE,
-    gridlines.minor = FALSE,
-    colAlpha = 0.5,
-    legendPosition = 'bottom',
-    legendLabSize = 12,
-    legendIconSize = 4.0,
-    drawConnectors = T,
-    widthConnectors = 0.75,
-    max.overlaps = 10
-    )
+  lab = res3df_infected$symbol,
+  x = "log2FoldChange",
+  y = "padj",
+  xlab = bquote(~ Log[2] ~ "FoldChange"),
+  ylab = bquote(~ Log[10] ~ "Padj"),
+  pCutoff = 0.05,
+  FCcutoff = 1.0,
+  title = "DE genes: Log2FoldChange Vs -Log10 Padj",
+  subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
+  pointSize = 2.0,
+  labSize = 5.0,
+  boxedLabels = FALSE,
+  gridlines.major = FALSE,
+  gridlines.minor = FALSE,
+  colAlpha = 0.5,
+  legendPosition = "bottom",
+  legendLabSize = 12,
+  legendIconSize = 4.0,
+  drawConnectors = T,
+  widthConnectors = 0.75,
+  max.overlaps = 10
+)
 
-(volcano2 <- p2 + scale_y_continuous(limits = c(0, 4),
-                                    breaks = seq(0, 4, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                  scale_x_continuous(limits = c(-3, 4), 
-                                     breaks = seq(-3, 4, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                      xlab(expression(DownRegulated %<->% UpRegulated))
+(volcano2 <- p2 + scale_y_continuous(
+  limits = c(0, 4),
+  breaks = seq(0, 4, 1),
+  sec.axis = sec_axis(~ . * 1,
+    labels = NULL,
+    breaks = NULL
   )
+) +
+  scale_x_continuous(
+    limits = c(-3, 4),
+    breaks = seq(-3, 4, 1),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ) +
+  xlab(expression(DownRegulated %<->% UpRegulated))
+)
 
-ggsave(filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano2_L2fcVsPadj.png',
-       plot = volcano2,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/Volcano2_L2fcVsPadj.png",
+  plot = volcano2,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 ## Significant Differentially Expressed Genes
@@ -1080,29 +1169,31 @@ res3df_infected$delabel[res3df_infected$diffexpressed != "NS"] <- res3df_infecte
 ### Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_infected <- res3df_infected[(abs(res3df_infected$log2FoldChange) > 1) & (res3df_infected$pvalue < 0.05),]
+sigsdf_infected <- res3df_infected[(abs(res3df_infected$log2FoldChange) > 1) & (res3df_infected$pvalue < 0.05), ]
 
 nrow(sigsdf_infected)
 ```
 ### Gender Genes Removed from Table
 
 ```{r}
-sigsdf_infected <- filter(sigsdf_infected,
-                          symbol != "Xist",
-                          symbol != "Jpx", 
-                          symbol != "Ftx", 
-                          symbol != "Tsx",
-                          symbol != "Cnbp2" )
+sigsdf_infected <- filter(
+  sigsdf_infected,
+  symbol != "Xist",
+  symbol != "Jpx",
+  symbol != "Ftx",
+  symbol != "Tsx",
+  symbol != "Cnbp2"
+)
 
 nrow(sigsdf_infected)
-#head(sigsdf_infected)
+# head(sigsdf_infected)
 ```
 
 Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
 
-write.csv(sigsdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/SignificantGenes_IvC.csv")
+write.csv(sigsdf_infected, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/SignificantGenes_IvC.csv")
 ```
 ### Significant Differentialy Expressed Genes (SDEG)
 
@@ -1114,8 +1205,8 @@ head(sigsdf_infected, 20)
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
 
 ```{r}
-sigsdf_infected_UP <- sigsdf_infected[(sigsdf_infected$log2FoldChange) > 1, ] #UP Regulation Table
-sigsdf_infected_DOWN <- sigsdf_infected[(sigsdf_infected$log2FoldChange) < -1, ] #DOWN Regulation Table
+sigsdf_infected_UP <- sigsdf_infected[(sigsdf_infected$log2FoldChange) > 1, ] # UP Regulation Table
+sigsdf_infected_DOWN <- sigsdf_infected[(sigsdf_infected$log2FoldChange) < -1, ] # DOWN Regulation Table
 
 nrow(sigsdf_infected_UP)
 nrow(sigsdf_infected_DOWN)
@@ -1125,15 +1216,18 @@ nrow(sigsdf_infected_DOWN)
 
 ```{r}
 # sorted based on highest Log2FC value
-UpGene_infected <- sigsdf_infected_UP[order(-sigsdf_infected_UP$log2FoldChange,decreasing = TRUE), ]$symbol
-DownGene_infected <- sigsdf_infected_DOWN[order(-sigsdf_infected_DOWN$log2FoldChange,decreasing = TRUE), ]$symbol
-
+UpGene_infected <- sigsdf_infected_UP[order(-sigsdf_infected_UP$log2FoldChange, decreasing = TRUE), ]$symbol
+DownGene_infected <- sigsdf_infected_DOWN[order(-sigsdf_infected_DOWN$log2FoldChange, decreasing = TRUE), ]$symbol
 ```
 ```{r}
-write.csv(UpGene_infected,
-          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/UpGenelist_infectedvscontrol.csv")
-write.csv(DownGene_infected,
-          "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/DownGenelist_infected_infectedvscontrol.csv")
+write.csv(
+  UpGene_infected,
+  "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/UpGenelist_infectedvscontrol.csv"
+)
+write.csv(
+  DownGene_infected,
+  "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/DownGenelist_infected_infectedvscontrol.csv"
+)
 ```
 
 ### Top20 UP Genes and Top20 DOWN Genes
@@ -1150,7 +1244,7 @@ head(DownGene_infected, 20)
 
 ```{r}
 # Determining the significant Genes based on Log2FC and pvalue thresholds
-sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) &  (res2df_infected$pvalue < 0.05),]
+sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) & (res2df_infected$pvalue < 0.05), ]
 ```
 
 ## Z-score based Gene Heatmaps
@@ -1158,48 +1252,48 @@ sigs2df_infected <- res2df_infected[(abs(res2df_infected$log2FoldChange) > 1) & 
 ### with Whole table (all genes together!)
 
 ```{r}
-#mat <- counts(dds2_infected, normalized = TRUE)[rownames(sigsdf_infected),]
-mat <- counts(dds2_infected, normalized = TRUE)[(sigsdf_infected$symbol),]
+# mat <- counts(dds2_infected, normalized = TRUE)[rownames(sigsdf_infected),]
+mat <- counts(dds2_infected, normalized = TRUE)[(sigsdf_infected$symbol), ]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat.zs)
 ```
 
 ```{r}
-mat2 <- counts(dds2_infected, normalized = TRUE)[(sigsdf_infected$symbol),]
+mat2 <- counts(dds2_infected, normalized = TRUE)[(sigsdf_infected$symbol), ]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat2.zs)
-#pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
+# pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
 ```{r}
-newHP <- Heatmap(mat2.zs, 
-        cluster_columns = TRUE, 
-        cluster_rows = TRUE, 
-        column_labels = colnames(mat2.zs),
-        name = 'DE Genes Heatmap',
-        show_row_names = FALSE, 
-        use_raster = TRUE, 
-        raster_quality = 5,
-        #width = unit(8, "in"), 
-        #height = unit(8, "in")
-        row_labels = sigs2df_infected[rownames(mat2.zs),]$symbol
-        )
+newHP <- Heatmap(mat2.zs,
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat2.zs),
+  name = "DE Genes Heatmap",
+  show_row_names = FALSE,
+  use_raster = TRUE,
+  raster_quality = 5,
+  # width = unit(8, "in"),
+  # height = unit(8, "in")
+  row_labels = sigs2df_infected[rownames(mat2.zs), ]$symbol
+)
 newHP
 ```
 ```{r fig.height= 75, fig.width= 10}
-LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
-        cluster_columns = TRUE, 
-        cluster_rows = TRUE, 
-        column_labels = colnames(mat2.zs),
-        row_labels = sigs2df_infected$symbol,
-        name = 'All DE Genes',
-        show_row_names = TRUE, 
-        use_raster = TRUE, 
-        raster_quality = 5,
-        )
+LongHeatMap_Allgenes <- Heatmap(mat2.zs,
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat2.zs),
+  row_labels = sigs2df_infected$symbol,
+  name = "All DE Genes",
+  show_row_names = TRUE,
+  use_raster = TRUE,
+  raster_quality = 5,
+)
 LongHeatMap_Allgenes
-#saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
+# saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
 ```
 
 Need to filter these results to accommodate better the heat maps and also volcano plots
@@ -1207,8 +1301,8 @@ Need to filter these results to accommodate better the heat maps and also volcan
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1df_infected <- res2df_infected[(res2df_infected$baseMean > 500) & (abs(res2df_infected$log2FoldChange) > 1) & (res2df_infected$pvalue < 0.05),]
-mat1 <- counts(dds2_infected, normalized = TRUE)[(sigs1df_infected$symbol),]
+sigs1df_infected <- res2df_infected[(res2df_infected$baseMean > 500) & (abs(res2df_infected$log2FoldChange) > 1) & (res2df_infected$pvalue < 0.05), ]
+mat1 <- counts(dds2_infected, normalized = TRUE)[(sigs1df_infected$symbol), ]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat1.zs)
@@ -1216,11 +1310,12 @@ head(mat1.zs)
 
 ```{r}
 Heatmap(mat1.zs,
-        cluster_columns = TRUE,
-        cluster_rows = TRUE,
-        column_labels = colnames(mat1.zs),
-        name = 'DE Genes',
-        row_labels = sigs1df_infected$symbol)
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat1.zs),
+  name = "DE Genes",
+  row_labels = sigs1df_infected$symbol
+)
 ```
 
 # GO Terms with clusterProfiler
@@ -1231,14 +1326,16 @@ Heatmap(mat1.zs,
 ```{r}
 UPgene_ENS_ID <- (sigsdf_infected_UP$ensemblID)
 
-GO_UPRegResults_infected <- enrichGO(gene = UPgene_ENS_ID,
-                                       OrgDb = "org.Mm.eg.db",
-                                       keyType = "ENSEMBL",
-                                       ont = "BP",
-                                       pAdjustMethod = "BH",
-                                       pvalueCutoff  = 0.01,
-                                       qvalueCutoff  = 0.05,
-                                       readable      = TRUE)
+GO_UPRegResults_infected <- enrichGO(
+  gene = UPgene_ENS_ID,
+  OrgDb = "org.Mm.eg.db",
+  keyType = "ENSEMBL",
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
 ```
 
 ```{r}
@@ -1249,23 +1346,33 @@ head(GO_UpRegdf_infected, 20)
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_infected ,"/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/GO_UpReg_results_Epithelial.csv")
+write.csv(GO_UpRegdf_infected, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/GO_UpReg_results_Epithelial.csv")
 ```
 
-```{r fig.height=10, fig.width=10}
-GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 22))
+```{r fig.height=8}
+GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 21, 
+                                          font.size = 20,
+                                          title = "InfectedVsControl Up Regulated",
+                                          label_format = 75))
 saveplot(GO_UPReg_Barplot_infected, "GO_UPReg_Barplot_infected")
 ```
 
-```{r fig.height=10, fig.width=10}
-GO_UPReg_Dotplot_infected <- plot(dotplot(GO_UPRegResults_infected, showCategory = 23))
-
-saveplot(GO_UPReg_Dotplot_infected, "GO_UPReg_Dotplot_infected")
+```{r fig.height=10}
+GO_UPReg_Dotplot_infected <- plot(dotplot(GO_UPRegResults_infected, 
+                                          showCategory = 23, 
+                                          font.size = 22,
+                                          title = "InfectedVsControl Up Regulated",
+                                          label_format = 75
+                                          ))
+#GO_UPReg_Dotplot_infected1 <- GO_UPReg_Dotplot_infected + scale_y_discrete(labels=function(y) str_wrap(y, width=40))
+#saveplot(GO_UPReg_Dotplot_infected, "GO_UPReg_Dotplot_infected")
 ```
 
 ```{r fig.height=10, fig.width=12}
-GO_UPReg_Cnetplot_infected <- plot(cnetplot(GO_UPRegResults_infected, showCategory = 13))
-
+GO_UPReg_Cnetplot_infected <- plot(cnetplot(GO_UPRegResults_infected, showCategory = 13, 
+                                          font.size = 25,
+                                          title = "InfectedVsControl Up Regulated",
+                                          label_format = 75))
 saveplot(GO_UPReg_Cnetplot_infected, "GO_UPReg_Cnetplot_infected")
 ```
 
@@ -1281,7 +1388,7 @@ saveplot(GO_UPReg_Cnetplot_infected, "GO_UPReg_Cnetplot_infected")
 The heatplot is similar to cnetplot, while displaying the relationships as a heatmap. The gene-concept network may become too complicated if user want to show a large number significant terms. The heatplot can simplify the result and more easy to identify expression patterns.
 
 ```{r fig.height= 12, fig.width=15}
-GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_infected))
+GO_UPReg_Heatplot <- plot(heatplot(GO_UPRegResults_infected, label_format = 75))
 saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
 
@@ -1300,15 +1407,16 @@ saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
 ```{r}
 DOWNgene_ENS_ID <- (sigsdf_infected_DOWN$ensemblID)
 
-GO_DOWNRegResults_infected <- enrichGO(gene = DOWNgene_ENS_ID,
-                       OrgDb = "org.Mm.eg.db",
-                       keyType = "ENSEMBL",
-                       ont = "BP",
-                       pAdjustMethod = "BH",
-                       pvalueCutoff  = 0.01,
-                       qvalueCutoff  = 0.05,
-                       readable      = TRUE
-                       )
+GO_DOWNRegResults_infected <- enrichGO(
+  gene = DOWNgene_ENS_ID,
+  OrgDb = "org.Mm.eg.db",
+  keyType = "ENSEMBL",
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
 GO_DOWNRegdf_infected <- as.data.frame(GO_DOWNRegResults_infected)
 head(GO_DOWNRegdf_infected)
 ```
@@ -1325,17 +1433,17 @@ head(GO_DOWNRegdf_infected)
 
 ```{r}
 # GO_DOWNReg_Dotplot_infected <- plot(dotplot(GO_DOWNRegResults_infected))
-# 
+#
 # saveplot(GO_DOWNReg_Dotplot_infected, "GO_DOWNReg_Dotplot_infected")
 ```
 
 ```{r }
-# GO_DOWNReg_Cnetplot_infected <- plot(cnetplot(GO_DOWNRegResults_infected, 
-#                                                 showCategory = 13, 
-#                                                 circular = FALSE, 
+# GO_DOWNReg_Cnetplot_infected <- plot(cnetplot(GO_DOWNRegResults_infected,
+#                                                 showCategory = 13,
+#                                                 circular = FALSE,
 #                                                 colorEdge = TRUE
 #                                                 ))
-# 
+#
 # saveplot(GO_DOWNReg_Cnetplot_infected, "GO_DOWNReg_Cnetplot_infected")
 ```
 
@@ -1361,8 +1469,8 @@ overlapping among different gene sets.
 
 ```{r}
 # edox1 <- pairwise_termsim(GO_DOWNRegResults_infected)
-#GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
-#saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
+# GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox1))
+# saveplot(GO_DOWNReg_enrichtreeplot, "GO_DOWNReg_enrichtreeplot")
 ```
 
 ## Pathway Analysis
@@ -1396,8 +1504,8 @@ sigsdf_infected_unique <- unique(dplyr::filter(sigsdf_infected, entrez != "NA"))
 extract and name the fold changes
 
 ```{r}
-foldchanges <-  sigsdf_infected$log2FoldChange
-names(foldchanges) <-  sigsdf_infected$entrez
+foldchanges <- sigsdf_infected$log2FoldChange
+names(foldchanges) <- sigsdf_infected$entrez
 
 ## Sort fold changes in decreasing order
 foldchanges <- sort(foldchanges, decreasing = TRUE)
@@ -1407,7 +1515,7 @@ head(foldchanges)
 ```{r}
 data(kegg.sets.mm)
 data(sigmet.idx.mm)
-kegg.sets.mm <-  kegg.sets.mm[sigmet.idx.mm]
+kegg.sets.mm <- kegg.sets.mm[sigmet.idx.mm]
 ```
 
 Here, I am using same.dir = TRUE, which will give us separate lists for
@@ -1416,15 +1524,16 @@ Let's look at the first few results from each.
 
 ```{r}
 # Get the results
-keggres = gage(exprs = foldchanges, 
-               gsets = kegg.sets.mm, 
-               same.dir = TRUE)
+keggres <- gage(
+  exprs = foldchanges,
+  gsets = kegg.sets.mm,
+  same.dir = TRUE
+)
 ```
 
 ```{r}
 # Look at both up (greater), down (less), and statatistics.
 lapply(keggres, head)
-
 ```
 
 Now, process the results to pull out the top 20 up-regulated pathways,
@@ -1433,18 +1542,20 @@ pathway IDs downstream for plotting.
 
 ```{r}
 # Get the pathways
-keggrespathways = data.frame(id = rownames(keggres$greater),
-                             keggres$greater) %>% 
-                  tibble::as_tibble() %>% 
-                  filter(row_number() <= 10) %>% 
-                  .$id %>% 
-                  as.character()
+keggrespathways <- data.frame(
+  id = rownames(keggres$greater),
+  keggres$greater
+) %>%
+  tibble::as_tibble() %>%
+  filter(row_number() <= 10) %>%
+  .$id %>%
+  as.character()
 keggrespathways
 ```
 
 ```{r}
 # Get the IDs.
-keggresids = substr(keggrespathways, start = 1, stop = 8)
+keggresids <- substr(keggrespathways, start = 1, stop = 8)
 keggresids
 ```
 
@@ -1453,18 +1564,22 @@ function is written below to loop through and draw plots for the top 10
 pathways we created above.
 
 ```{r}
-#devtools::install_github("javadnoorb/pathview")
+# devtools::install_github("javadnoorb/pathview")
 library("pathview")
 # Define plotting function for applying later
-plot_pathway = function(pid) pathview(gene.data = foldchanges, 
-                                      pathway.id = pid, 
-                                      species = "mouse", 
-                                      new.signature = FALSE)
+plot_pathway <- function(pid) {
+  pathview(
+    gene.data = foldchanges,
+    pathway.id = pid,
+    species = "mouse",
+    new.signature = FALSE
+  )
+}
 
 
 # plot multiple pathways (plots saved to disk and returns a throwaway list object)
-# tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-#                                                 pathway.id = pid, 
+# tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges,
+#                                                 pathway.id = pid,
 #                                                 species = "mouse"))
 ```
 ## GSEA - Gene Set Enrichment Analysis
@@ -1484,7 +1599,7 @@ Perform the GSEA using KEGG gene sets:
 # minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
 # pvalueCutoff = 0.05, # padj cutoff value
 # verbose = T)
-# 
+#
 # ## Extract the GSEA results
 # gseaKEGG_results <- gseaKEGG@result
 ```
@@ -1495,7 +1610,7 @@ How many pathways are enriched? View the enriched pathways:
 
 ```{r}
 # head(gseaKEGG_results)
-# 
+#
 # write.csv(gseaKEGG_results, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/gseaOE_kegg.csv")
 ```
 
@@ -1504,7 +1619,7 @@ list:
 
 ```{r fig.width=10, fig.height=6}
 ## Plot the GSEA plot for a single enriched pathway, `mmu04621`
-#gseaplot(gseaKEGG, geneSetID = 'mmu04621')
+# gseaplot(gseaKEGG, geneSetID = 'mmu04621')
 ```
 
 Use the Pathview R package to integrate the KEGG pathway data from
@@ -1512,7 +1627,7 @@ clusterProfiler into pathway images:
 
 ```{r}
 # detach("package:dplyr", unload = TRUE) # first unload dplyr to avoid conflicts
-# 
+#
 # ## Output images for a single significant KEGG pathway
 # pathview(gene.data = foldchanges,
 #               pathway.id = "mmu04621",
@@ -1524,31 +1639,33 @@ clusterProfiler into pathway images:
 # Gene Ontology - Hyper Geometric Test
 
 ```{r}
-selectUPGenes_entrezid = unique(sigsdf_infected_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_infected_DOWN['entrez'] )
-UniverseGenes = unique(sigsdf_infected$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
+selectUPGenes_entrezid <- unique(sigsdf_infected_UP["entrez"])
+selectDOWNGenes_entrezid <- unique(sigsdf_infected_DOWN["entrez"])
+UniverseGenes <- unique(sigsdf_infected$entrez)
+cutOff <- 0.01 # setting the cutoff at 1%
 ```
 
 ```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
+upParams <- new("GOHyperGParams",
+  geneIds = selectUPGenes_entrezid,
+  universeGeneIds = UniverseGenes,
+  annotation = "org.Mm.eg.db",
+  ontology = "BP",
+  pvalueCutoff = cutOff,
+  testDirection = "over"
+)
+downParams <- new("GOHyperGParams",
+  geneIds = selectDOWNGenes_entrezid,
+  universeGeneIds = UniverseGenes,
+  annotation = "org.Mm.eg.db",
+  ontology = "BP",
+  pvalueCutoff = cutOff,
+  testDirection = "over"
+)
 ```
 
 ```{r}
-upBP = hyperGTest(upParams)
+upBP <- hyperGTest(upParams)
 upBP_df <- as.data.frame(summary(upBP))
 plot(upBP_df)
 ```
@@ -1558,7 +1675,7 @@ htmlReport(upBP, file = "upBP.html")
 ```
 
 ```{r}
-downBP = hyperGTest(downParams)
+downBP <- hyperGTest(downParams)
 downBP_df <- as.data.frame(summary(downBP))
 plot(downBP_df)
 ```
@@ -1578,7 +1695,7 @@ selectGenes_entrezid <- as.character(UniverseGenes)
 
 
 ```{r}
-#spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
+# spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
 ```
 
 The analysis with SPIA requires the conversion of gene-gene networks in a suitable format.
@@ -1594,7 +1711,6 @@ into the SPIA edge type "indirect effect". For more details see the SPIA package
 # library(SPIA)
 # data(colorectalcancer)
 # library(hgu133plus2.db)
-
 ```
 
 ```{r}
@@ -1605,7 +1721,6 @@ into the SPIA edge type "indirect effect". For more details see the SPIA package
 # DE_Colorectal = tg1$logFC
 # names(DE_Colorectal) <- tg1$ENTREZ
 # ALL_Colorectal <- top$ENTREZ
-
 ```
 
 # Log2Fold Change Table
@@ -1619,36 +1734,37 @@ Design a generic function
 
 ```{r}
 run_individualDESeq <- function(namelist, cd, cm) {
-  #cd is coldata, cm is countsmatrix
-  
+  # cd is coldata, cm is countsmatrix
+
   # Create an empty list for the results
   resultslist <- list()
-  
+
   for (i in 1:14) {
-    
-    name = namelist[[i]]
+    name <- namelist[[i]]
     print(glue("Working with Strain:{name}"))
-    
+
     cm_input <- cm[, c(i, 15:16)]
     coldata_input <- cd[c(i, 15:16), ]
-    #print(head(cm_input, 3))
-    #print(head(coldata_input, 3))
-    
+    # print(head(cm_input, 3))
+    # print(head(coldata_input, 3))
+
     rownames(coldata_input)
     colnames(cm_input)
-    
+
     all(rownames(coldata_input) %in% colnames(cm_input))
     ncol(cm_input) == nrow(coldata_input)
-    
-    dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~ condition)
+
+    dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~condition)
     # nrow(dds)
     dds <- DESeq(dds)
     dds1 <- DESeq(dds, minReplicatesForReplace = Inf)
-    
-    res <- results(dds1, cooksCutoff = FALSE, independentFiltering = FALSE,
-                   contrast = c("condition", "Infected", "control"))
+
+    res <- results(dds1,
+      cooksCutoff = FALSE, independentFiltering = FALSE,
+      contrast = c("condition", "Infected", "control")
+    )
     # head(res, 30)
-    
+
     res_df <- as.data.frame(res) # convert the results table to a df
     # nrow(res_df)
 
@@ -1658,7 +1774,7 @@ run_individualDESeq <- function(namelist, cd, cm) {
     colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
     res_df <- as.data.frame(res_df)
     print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
-  
+
     # Appending each new results table into a resultslist
     resultslist[[length(resultslist) + 1]] <- res_df
   }
@@ -1673,20 +1789,20 @@ resulttable <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = cou
 # Mapping -> converting the list of objects to list of dataframes
 list_df <- Map(as.data.frame, resulttable)
 
-#merge all data frames in list based on symbol column
-table <- list_df %>% reduce(full_join, by = 'symbol')
+# merge all data frames in list based on symbol column
+table <- list_df %>% reduce(full_join, by = "symbol")
 ```
 
 ```{r}
 l2fctable <- table %>% select(
-  "symbol" ,
+  "symbol",
   "log2FoldChange_T",
   "log2FoldChange_S54",
   "log2FoldChange_S55",
   "log2FoldChange_L57",
   "log2FoldChange_L57",
   "log2FoldChange_A58",
-  "log2FoldChange_L60" ,
+  "log2FoldChange_L60",
   "log2FoldChange_S61",
   "log2FoldChange_A62",
   "log2FoldChange_L63",
@@ -1712,43 +1828,42 @@ write.csv(l2fctable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/l2fctabl
 
 ```{r}
 run_individualDESeq2 <- function(namelist, cd, cm) {
-  #cd is coldata, cm is countsmatrix
-  
+  # cd is coldata, cm is countsmatrix
+
   # Create an empty list for the results
   cpmlist <- list()
-  
+
   for (i in 1:14) {
-    
-    name = namelist[[i]]
+    name <- namelist[[i]]
     print(glue("Working with Strain:{name}"))
-    
+
     cm_input <- cm[, i]
     coldata_input <- cd[i, ]
-    #print(head(cm_input, 3))
-    #print(head(coldata_input, 3))
-    
+    # print(head(cm_input, 3))
+    # print(head(coldata_input, 3))
+
     # CPM Values
     # as DGEList
     dge_er <- DGEList(counts = cm_input)
-  
+
     dim(dge_er)
     colnames(dge_er)
-    #dge_er$samples
-  
+    # dge_er$samples
+
     ## calculate norm. factors
     nr <- calcNormFactors(dge_er)
-  
+
     ## get normalized counts
     cpm_df <- as.data.frame(cpm(nr))
-    
+
     colnames(cpm_df) <- glue("CPM_{name}")
-    
-    cpm_df <- tibble::rownames_to_column(cpm_df,"symbol")
-    
+
+    cpm_df <- tibble::rownames_to_column(cpm_df, "symbol")
+
     # Appending each new result table into cpmlist
     cpmlist[[length(cpmlist) + 1]] <- cpm_df
   }
-    return(cpmlist)
+  return(cpmlist)
 }
 ```
 
@@ -1759,16 +1874,15 @@ cpmT <- run_individualDESeq2(namelist = samplelist, cd = coldata, cm = countsmat
 # Mapping -> converting the list of objects to list of dataframes
 list_df2 <- Map(as.data.frame, cpmT)
 
-#merge all data frames in list based on symbol column
-cpmtable <- list_df2 %>% reduce(full_join, by = 'symbol')
+# merge all data frames in list based on symbol column
+cpmtable <- list_df2 %>% reduce(full_join, by = "symbol")
 nrow(cpmtable)
 
-rownames(cpmtable) <- cpmtable[,1]
+rownames(cpmtable) <- cpmtable[, 1]
 cpmtable <- subset(cpmtable, select = -symbol)
 keep <- rowSums(cpmtable) > 0
-cpmtable <- cpmtable[keep,]
+cpmtable <- cpmtable[keep, ]
 nrow(cpmtable)
-
 ```
 
 ```{r}
@@ -1786,22 +1900,22 @@ library("GeneTonic")
 ```
 
 ```{r}
-#1. dds object 
+# 1. dds object
 dds1_infected
 ```
 
 ```{r}
-#2. Results
+# 2. Results
 res_gt <- res2df_infected
-res_gt <- res_gt[!duplicated(res_gt[c('ensemblID')]), ]
+res_gt <- res_gt[!duplicated(res_gt[c("ensemblID")]), ]
 res_gt <- as.data.frame(res_gt)
 
-rownames(res_gt) <- res_gt[,9]
-#res_gt <- subset(res_gt, select = - ensemblID)
+rownames(res_gt) <- res_gt[, 9]
+# res_gt <- subset(res_gt, select = - ensemblID)
 ```
 
 ```{r}
-#3. res_enrich
+# 3. res_enrich
 res_enrich_infected <- shake_enrichResult(GO_UPRegResults_infected)
 ```
 
@@ -1816,9 +1930,9 @@ res_enrich_infected
 ```{r}
 library("org.Mm.eg.db")
 library(pcaExplorer)
-#4. annoattion data frame
+# 4. annoattion data frame
 
-#anno_df <- data.frame(res_gt$ensemblID, res_gt$symbol)
+# anno_df <- data.frame(res_gt$ensemblID, res_gt$symbol)
 anno_df <- pcaExplorer::get_annotation_orgdb(dds1_infected, "org.Mm.eg.db", "SYMBOL")
 ```
 
@@ -1832,15 +1946,14 @@ anno_df <- pcaExplorer::get_annotation_orgdb(dds1_infected, "org.Mm.eg.db", "SYM
 ```
 
 ```{r}
-GeneTonic(dds = dds1_infected,
-          res_de = res_infected,
-          res_enrich = res_enrich_infected,
-          annotation_obj = anno_df,
-          project_id = "Alina_1"
-          )
+# GeneTonic(dds = dds1_infected,
+#           res_de = res_infected,
+#           res_enrich = res_enrich_infected,
+#           annotation_obj = anno_df,
+#           project_id = "Alina_1"
+#           )
 ```
 
 ```{r}
-checkup_gtl(gtl)
+# checkup_gtl(gtl)
 ```
-
