@@ -3,12 +3,12 @@ title: 'DGE Analysis Notebook: BL6 Left vs Right'
 output:
   html_document: 
     toc: yes
-    fig_width: 8
-    fig_height: 8
     fig_caption: yes
     number_sections: yes
     toc_depth: 4
-    df_print: tibble
+    df_print: default
+    fig_width: 8
+    fig_height: 8
 ---
 
 ```{r, message = FALSE, warning = FALSE}
@@ -17,37 +17,37 @@ suppressPackageStartupMessages(library("DESeq2"))
 suppressPackageStartupMessages(library("pheatmap"))
 suppressPackageStartupMessages(library("PoiClaClu"))
 suppressPackageStartupMessages(library("RColorBrewer"))
-suppressPackageStartupMessages(library('tidyverse'))
+suppressPackageStartupMessages(library("tidyverse"))
 suppressPackageStartupMessages(library("PoiClaClu"))
 suppressPackageStartupMessages(library("vsn"))
-suppressPackageStartupMessages(library('EnhancedVolcano'))
-suppressPackageStartupMessages(library('gplots'))
-suppressPackageStartupMessages(library('org.Mm.eg.db'))
-suppressPackageStartupMessages(library('stringr'))
+suppressPackageStartupMessages(library("EnhancedVolcano"))
+suppressPackageStartupMessages(library("gplots"))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
+suppressPackageStartupMessages(library("stringr"))
 suppressPackageStartupMessages(library("genefilter"))
 suppressPackageStartupMessages(library("dplyr"))
 suppressPackageStartupMessages(library("ggplot2"))
 suppressPackageStartupMessages(library("glmpca"))
-suppressPackageStartupMessages(library('org.Mm.eg.db'))
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
 suppressPackageStartupMessages(library("AnnotationDbi"))
 suppressPackageStartupMessages(library("apeglm"))
 suppressPackageStartupMessages(library("ComplexHeatmap"))
 suppressPackageStartupMessages(library("clusterProfiler"))
-suppressPackageStartupMessages(library('ggrepel'))
-suppressPackageStartupMessages(library('corrplot'))
+suppressPackageStartupMessages(library("ggrepel"))
+suppressPackageStartupMessages(library("corrplot"))
 suppressPackageStartupMessages(library("GO.db"))
-suppressPackageStartupMessages(library('edgeR'))
-suppressPackageStartupMessages(library('GOstats'))
-suppressPackageStartupMessages(library('pathview'))
+suppressPackageStartupMessages(library("edgeR"))
+suppressPackageStartupMessages(library("GOstats"))
+suppressPackageStartupMessages(library("pathview"))
 suppressPackageStartupMessages(library("gage"))
 suppressPackageStartupMessages(library("gageData"))
-suppressPackageStartupMessages(library('GOSemSim'))
-suppressPackageStartupMessages(library('DOSE'))
-suppressPackageStartupMessages(library('enrichplot'))
-suppressPackageStartupMessages(library('ggnewscale'))
-suppressPackageStartupMessages(library('glue'))
+suppressPackageStartupMessages(library("GOSemSim"))
+suppressPackageStartupMessages(library("DOSE"))
+suppressPackageStartupMessages(library("enrichplot"))
+suppressPackageStartupMessages(library("ggnewscale"))
+suppressPackageStartupMessages(library("glue"))
 suppressPackageStartupMessages(library("ggupset"))
-#suppressPackageStartupMessages(library("SPIA"))
+# suppressPackageStartupMessages(library("SPIA"))
 suppressPackageStartupMessages(library("stats"))
 suppressPackageStartupMessages(library("FactoMineR"))
 suppressPackageStartupMessages(library("factoextra"))
@@ -63,16 +63,18 @@ Let's create the sample information
 
 ```{r}
 # Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
-sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+sample_ID <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/samples.csv")
 head(sample_ID)
 ```
 
 ```{r}
-condition <- c("Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-               "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-               "Infected", "Infected", "control", "control")
+condition <- c(
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "control", "control"
+)
 coldata <- data.frame(sample_ID, condition)
-colnames(coldata) <- c('Sample_Name','condition') # change name of one of the columns
+colnames(coldata) <- c("Sample_Name", "condition") # change name of one of the columns
 # The metadata can be found in a df called coldata!
 head(coldata)
 ```
@@ -83,31 +85,32 @@ head(coldata)
 
 ```{r}
 # tidying up the names od samples in both columns that list of samples
-#coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+# coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
 coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
-                                  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d" )
+  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+)
 coldata$condition <- as.factor(coldata$condition)
 ```
 
 Changing the names of samples (as per Alina)
 
 ```{r}
-coldata[coldata == '476_R1'] <- 'T'
-coldata[coldata == '754_R1'] <- 'S54'
-coldata[coldata == '755_R1'] <- 'S55'
-coldata[coldata == '757_R1'] <- 'L57'
-coldata[coldata == '758_R1'] <- 'A58'
-coldata[coldata == '760_R1'] <- 'L60'
-coldata[coldata == '761_R1'] <- 'S61'
-coldata[coldata == '762_R1'] <- 'A62'
-coldata[coldata == '763_R1'] <- 'L63'
-coldata[coldata == '764_R1'] <- 'A64'
-coldata[coldata == '765_R1'] <- 'S65'
-coldata[coldata == '766_R1'] <- 'L66'
-coldata[coldata == '768_R1'] <- 'A68'
-coldata[coldata == '769_R1'] <- 'L69'
-coldata[coldata == 'Ctrl1_R1'] <- 'C1'
-coldata[coldata == 'Ctrl2_R2'] <- 'C2'
+coldata[coldata == "476_R1"] <- "T"
+coldata[coldata == "754_R1"] <- "S54"
+coldata[coldata == "755_R1"] <- "S55"
+coldata[coldata == "757_R1"] <- "L57"
+coldata[coldata == "758_R1"] <- "A58"
+coldata[coldata == "760_R1"] <- "L60"
+coldata[coldata == "761_R1"] <- "S61"
+coldata[coldata == "762_R1"] <- "A62"
+coldata[coldata == "763_R1"] <- "L63"
+coldata[coldata == "764_R1"] <- "A64"
+coldata[coldata == "765_R1"] <- "S65"
+coldata[coldata == "766_R1"] <- "L66"
+coldata[coldata == "768_R1"] <- "A68"
+coldata[coldata == "769_R1"] <- "L69"
+coldata[coldata == "Ctrl1_R1"] <- "C1"
+coldata[coldata == "Ctrl2_R2"] <- "C2"
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
 coldata
@@ -116,33 +119,51 @@ coldata
 ### Adding the groupings by Alina for further Metadata Information
 
 ```{r}
-coldata$Epithelial_response <- c("LowInducer", "LowInducer", "HighInducer",
-                                  "HighInducer", "LowInducer", "LowInducer",
-                                  "HighInducer", "HighInducer", "LowInducer",
-                                  "HighInducer", "LowInducer", "HighInducer",
-                                  "LowInducer", "LowInducer", 'NR', 'NR')
-coldata$clinical_outcome <- c('symptomatic', 'symptomatic', 'symptomatic',
-                              'Lethal', 'asymptomatic', 'Lethal', 'symptomatic',
-                              'asymptomatic', 'Lethal', 'symptomatic', 'symptomatic',
-                              'Lethal', 'asymptomatic', 'Lethal', 'NR', 'NR')
-coldata$microcolonies <- c('Low', 'Low', 'Low', 'High', 'Low', 'Low',
-                           'High', 'High', 'Low', 'High', 'Low', 'High', 'Low',
-                           'Low', 'NR', 'NR')
-coldata$ER_microcolonies <- c("LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
-                              "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
-                              "LI_LM", "LI_LM", 'NR', 'NR')
-coldata$phylogenomic_lineage <- c("EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
-                                  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
-                                  "EPEC2", "EPEC2", 'NR', 'NR')
-coldata$phylogroup <- c("B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
-                        "B2", "B1", "B2", 'NR', 'NR')
-coldata$Intimin_Type <- c("alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
-                          "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
-                          "beta", 'NR', 'NR')
-coldata$HPosition <- c("Left","Left","Right","Right","Left","Left","Right","Right","Left",
-                      "Right","Left","Right","Left","Left","NR", 'NR')
-coldata$VPosition <- c("Top","Top","Bottom","Top","Bottom","Bottom","Top","Top","Bottom",
-                      "Top","Bottom","Bottom","Bottom","Bottom","NR", 'NR')
+coldata$Epithelial_response <- c(
+  "LowInducer", "LowInducer", "HighInducer",
+  "HighInducer", "LowInducer", "LowInducer",
+  "HighInducer", "HighInducer", "LowInducer",
+  "HighInducer", "LowInducer", "HighInducer",
+  "LowInducer", "LowInducer", "NR", "NR"
+)
+coldata$clinical_outcome <- c(
+  "symptomatic", "symptomatic", "symptomatic",
+  "Lethal", "asymptomatic", "Lethal", "symptomatic",
+  "asymptomatic", "Lethal", "symptomatic", "symptomatic",
+  "Lethal", "asymptomatic", "Lethal", "NR", "NR"
+)
+coldata$microcolonies <- c(
+  "Low", "Low", "Low", "High", "Low", "Low",
+  "High", "High", "Low", "High", "Low", "High", "Low",
+  "Low", "NR", "NR"
+)
+coldata$ER_microcolonies <- c(
+  "LI_LM", "LI_LM", "HI_LM", "HI_HM", "LI_LM", "LI_LM",
+  "HI_HM", "HI_HM", "LI_LM", "HI_HM", "LI_LM", "HI_HM",
+  "LI_LM", "LI_LM", "NR", "NR"
+)
+coldata$phylogenomic_lineage <- c(
+  "EPEC1", "EPEC10", "EPEC9", "EPEC9", "NC", "EPEC5",
+  "EPEC8", "NC", "EPEC7", "NC", "EPEC2", "EPEC9",
+  "EPEC2", "EPEC2", "NR", "NR"
+)
+coldata$phylogroup <- c(
+  "B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
+  "B2", "B1", "B2", "NR", "NR"
+)
+coldata$Intimin_Type <- c(
+  "alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
+  "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
+  "beta", "NR", "NR"
+)
+coldata$HPosition <- c(
+  "Left", "Left", "Right", "Right", "Left", "Left", "Right", "Right", "Left",
+  "Right", "Left", "Right", "Left", "Left", "NR", "NR"
+)
+coldata$VPosition <- c(
+  "Top", "Top", "Bottom", "Top", "Bottom", "Bottom", "Top", "Top", "Bottom",
+  "Top", "Bottom", "Bottom", "Bottom", "Bottom", "NR", "NR"
+)
 ```
 
 #### then fix Countsmatrix:
@@ -154,27 +175,29 @@ NOTE:
 
 ```{r}
 # Readin  countsmatrix
-#countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
-countsmatrix <- read.csv("~/R/Alina_RNAseq/newcounts.csv")
-#countsmatrix <- as.data.frame(countsmatrix)
+# countsmatrix <-as.matrix(read.csv("~/R/Rtuts/Data/Alina_EPEC_project/counts.csv"))
+countsmatrix <- read.csv("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/countmatrices/newcounts.csv")
+# countsmatrix <- as.data.frame(countsmatrix)
 ```
 
 ```{r}
 ## Removal of Gender Genes from ENSEMBL ID itself
-countsmatrix <- countsmatrix %>% filter(countsmatrix$X != "ENSMUSG00000086503",
-                                  countsmatrix$X != "ENSMUSG00000097571",
-                                  countsmatrix$X != "ENSMUSG00000086370",
-                                  countsmatrix$X != "ENSMUSG00000031329")
+countsmatrix <- countsmatrix %>% filter(
+  countsmatrix$X != "ENSMUSG00000086503",
+  countsmatrix$X != "ENSMUSG00000097571",
+  countsmatrix$X != "ENSMUSG00000086370",
+  countsmatrix$X != "ENSMUSG00000031329"
+)
 nrow(countsmatrix)
-#countsmatrix <- as.matrix(countsmatrix)
+# countsmatrix <- as.matrix(countsmatrix)
 ```
 
 ```{r}
-#tidying up these names again
-#colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
-rownames(countsmatrix) <- countsmatrix[,1] #converting first column of gene names into rownames, to be used for sanity check later
+# tidying up these names again
+# colnames(countsmatrix) <- str_remove_all(colnames(countsmatrix), pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+rownames(countsmatrix) <- countsmatrix[, 1] # converting first column of gene names into rownames, to be used for sanity check later
 # It is IMPORTANT to keep the names of the genes in the rownames
-countsmatrix <- subset(countsmatrix, select = - X)#dropping the X column
+countsmatrix <- subset(countsmatrix, select = -X) # dropping the X column
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
 colnames(countsmatrix) <- coldata$Sample_Name
 # Display the column names
@@ -191,8 +214,8 @@ head(cm_row)
 symbols <- mapIds(
   org.Mm.eg.db,
   keys = cm_row,
-  column = c('SYMBOL'),
-  keytype = 'ENSEMBL',
+  column = c("SYMBOL"),
+  keytype = "ENSEMBL",
   multiVals = "first"
 )
 ```
@@ -213,30 +236,14 @@ countsmatrix <- distinct(countsmatrix[!duplicated(countsmatrix$genename), ])
 
 ```{r}
 # Now make the ganename column into rownames of count matrix
-rownames(countsmatrix) <- countsmatrix[,"genename"]
+rownames(countsmatrix) <- countsmatrix[, "genename"]
 # Keeping this version of countsmatrix for later use
 cm_table <- countsmatrix
 # dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
-countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID))#
+countsmatrix <- subset(countsmatrix, select = -c(genename, E_ID)) #
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
 countsmatrix <- as.matrix(countsmatrix)
 class(countsmatrix) <- "numeric"
-```
-
-
-# Calculating CPM Values
-
-```{r}
-# as DGEList
-dge_er <- DGEList(counts = countsmatrix)
-dim(dge_er)
-colnames(dge_er)
-#dge_er$samples
-## calculate norm. factors
-nr <- calcNormFactors(dge_er)
-## get normalized counts
-cpmvalues <- cpm(nr)
-cpmvalues_d <- cpm.default(nr)
 ```
 
 # Differential Gene Expression analysis using DESeq2
@@ -256,23 +263,27 @@ dim(countsmatrix)
 ## Creating the DESeq Data set Object
 
 ```{r}
-dds_Hposition <- DESeqDataSetFromMatrix(countData = countsmatrix,
-                              colData = coldata, 
-                              design = ~ HPosition)
+dds_Hposition <- DESeqDataSetFromMatrix(
+  countData = countsmatrix,
+  colData = coldata,
+  design = ~HPosition
+)
 nrow(dds_Hposition)
 ```
 
 ```{r}
 # Function to save generic plots
-saveplot <- function(plot,name ){
+saveplot <- function(plot, name) {
   # Function to save the plots
-  ggsave(filename = 
-           glue('~/R/Alina_RNAseq/Hposition/{name}.png'),
-       plot = plot,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+  ggsave(
+    filename =
+      glue("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/{name}.png"),
+    plot = plot,
+    dpi = 300,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
 }
 ```
 
@@ -293,7 +304,7 @@ later step in the workflow.
 
 ```{r}
 keep <- rowSums(counts(dds_Hposition)) > 1
-dds_Hposition <- dds_Hposition[keep,]
+dds_Hposition <- dds_Hposition[keep, ]
 nrow(dds_Hposition)
 ```
 
@@ -303,7 +314,7 @@ nrow(dds_Hposition)
 
 ```{r}
 vsd <- vst(dds_Hposition, blind = FALSE)
-#head(assay(vsd), 3)
+# head(assay(vsd), 3)
 colData(vsd)
 vsd_coldata <- colData(vsd)
 dds_Hposition <- estimateSizeFactors(dds_Hposition)
@@ -325,120 +336,132 @@ ONLY normalized data. To ensure we have a roughly equal contribution
 from all genes, we use it on the VST data.
 
 ```{r}
-sampleDists <- dist(t(assay(vsd)))
-sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- vsd$Sample_Name
-colnames(sampleDistMatrix) <- vsd$Sample_Name
-colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-(EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         main = "Sample-to-Sample Euclidean Distance of BL6 - Left vs Right",
-         col = colors))
+# sampleDists <- dist(t(assay(vsd)))
+# sampleDistMatrix <- as.matrix(sampleDists)
+# rownames(sampleDistMatrix) <- vsd$Sample_Name
+# colnames(sampleDistMatrix) <- vsd$Sample_Name
+# colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
+# (EuclideanDistanceHeatmap <- pheatmap(sampleDistMatrix,
+#   clustering_distance_rows = sampleDists,
+#   clustering_distance_cols = sampleDists,
+#   main = "Sample-to-Sample Euclidean Distance of BL6 - Left vs Right",
+#   col = colors
+# ))
 ```
 
 ```{r}
-#saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
+# saveplot(EuclideanDistanceHeatmap, "EuclideanDistanceHeatmap")
 ```
 
 ### Poisson Distance between Samples
 
 ```{r}
-poisd <- PoissonDistance(t(counts(dds_Hposition))) # raw counts or unnormalised data
-samplePoisDistMatrix <- as.matrix( poisd$dd )
-rownames(samplePoisDistMatrix) <- dds_Hposition$Sample_Name
-colnames(samplePoisDistMatrix) <- dds_Hposition$Sample_Name
-colors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(255)
-(poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
-         clustering_distance_rows = poisd$dd,
-         clustering_distance_cols = poisd$dd,
-         main = "Sample-to-Sample Poisson Distance of BL6 - Left vs Right",
-         col = colors))
-         
+# poisd <- PoissonDistance(t(counts(dds_Hposition))) # raw counts or unnormalised data
+# samplePoisDistMatrix <- as.matrix(poisd$dd)
+# rownames(samplePoisDistMatrix) <- dds_Hposition$Sample_Name
+# colnames(samplePoisDistMatrix) <- dds_Hposition$Sample_Name
+# colors <- colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(255)
+# (poisson_dist_plot <- pheatmap(samplePoisDistMatrix,
+#   clustering_distance_rows = poisd$dd,
+#   clustering_distance_cols = poisd$dd,
+#   main = "Sample-to-Sample Poisson Distance of BL6 - Left vs Right",
+#   col = colors
+# ))
 ```
 
 ```{r}
-#saveplot(poisson_dist_plot, "poisson_dist_plot")
+# saveplot(poisson_dist_plot, "poisson_dist_plot")
 ```
 
 # PCA Plot
 ```{r}
 ### Functions for Plot aethetics and saving PCA Plots
-color_values <- c("red", "red","red","red", "black","black","red","red", "red",
-                  "red", "red","red","red", "red", "red" ,"blue")
-# the basic set of common aesthetic settings for PCA plots, 
-theme.my.own <- list(theme_bw() ,
-                      geom_point(size = 3),
-                      coord_fixed() ,
-                      scale_y_continuous(breaks = seq(-20, 20, 5), 
-                                         sec.axis = sec_axis(~. *1, 
-                                                             labels = NULL,
-                                                             breaks = NULL)) ,
-                      scale_x_continuous(breaks = seq(-20, 20, 5), 
-                                         sec.axis = sec_axis(~. *1, 
-                                                             labels = NULL,
-                                                             breaks = NULL)) ,
-                      theme_classic() ,
-                      geom_hline(yintercept = 0, color = "gray", size = 1) ,
-                      geom_vline(xintercept = 0, color = "gray", size = 1) ,
-                      theme(text = element_text(size = 15),
-                            axis.text = element_text(size = 15),
-                            legend.position = "right",
-                            aspect.ratio = 1) ,
-                      #geom_text(size = 4, hjust = 0, vjust = 0)
-                      geom_text_repel(size = 5,min.segment.length = 0.5)
-  )
+color_values <- c(
+  "red", "red", "red", "red", "black", "black", "red", "red", "red",
+  "red", "red", "red", "red", "red", "red", "blue"
+)
+# the basic set of common aesthetic settings for PCA plots,
+theme.my.own <- list(
+  theme_bw(),
+  geom_point(size = 3),
+  coord_fixed(),
+  scale_y_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  scale_x_continuous(
+    breaks = seq(-20, 20, 5),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ),
+  theme_classic(),
+  geom_hline(yintercept = 0, color = "gray", size = 1),
+  geom_vline(xintercept = 0, color = "gray", size = 1),
+  theme(
+    text = element_text(size = 15),
+    axis.text = element_text(size = 15),
+    legend.position = "bottom",
+    aspect.ratio = 1
+  ),
+  # geom_text(size = 4, hjust = 0, vjust = 0)
+  geom_text_repel(size = 5, min.segment.length = 0.5)
+)
 ```
 
 ## Calculating all PCA Values
 
 ```{r}
-plotPCA_local = function(object,
-                         intgroup = "condition",
-                         ntop = 500,
-                         returnData = TRUE,
-                         nPC = 4)
-{
+plotPCA_local <- function(object,
+                          intgroup = "condition",
+                          ntop = 500,
+                          returnData = TRUE,
+                          nPC = 4) {
   # calculate the variance for each gene
   rv <- rowVars(assay(object))
   ntop <- 500
-  
+
   # select the ntop genes by variance
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-  
+
   # perform a PCA on the data in assay(x) for the selected genes
   pca <- prcomp(t(assay(object)[select, ]))
-  #summary(pca)
-  
+  # summary(pca)
+
   # the contribution to the total variance for each component
-  percentVar <- pca$sdev ^ 2 / sum(pca$sdev ^ 2)
-  
+  percentVar <- pca$sdev^2 / sum(pca$sdev^2)
+
   if (!all(intgroup %in% names(colData(object)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
   }
-  
+
   intgroup.df <-
     as.data.frame(colData(object)[, intgroup, drop = FALSE])
-  
+
   # add the intgroup factors together to create a new grouping factor
   group <- if (length(intgroup) > 1) {
     factor(apply(intgroup.df, 1, paste, collapse = ":"))
   } else {
     colData(object)[[intgroup]]
   }
-  
+
   # assembly the data for the plot
-  d <- cbind(pca$x[, seq_len(min(nPC, ncol(pca$x))), drop = FALSE],
-             data.frame(group = group, intgroup.df, name = colnames(object)))
-  
+  d <- cbind(
+    pca$x[, seq_len(min(nPC, ncol(pca$x))), drop = FALSE],
+    data.frame(group = group, intgroup.df, name = colnames(object))
+  )
+
   if (returnData) {
     attr(d, "percentVar") <- percentVar[1:nPC]
     # l <- list(pca,d)
     # return(l)
-     return(d)
+    return(d)
   }
 }
-  
 ```
 
 ## PCA Plot with VST Data
@@ -446,25 +469,27 @@ plotPCA_local = function(object,
 ### Function for calculating percentvar
 
 ```{r}
-percentvar_calculation <- function(pcaData_variable){
+percentvar_calculation <- function(pcaData_variable) {
   # function to calculate percentvar for different variables
-  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3 )
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3)
   return(percentvar_variable)
 }
-savingFunction <- function(plotname, metadatacolumn){
+savingFunction <- function(plotname, metadatacolumn) {
   # Function to save the PCA plots
-  ggsave(filename = 
-           glue('~/R/Alina_RNAseq/Hposition/PCAplot_Hposition_{metadatacolumn}.png'),
-       plot = plotname,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+  ggsave(
+    filename =
+      glue("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/PCAplot_Hposition_{metadatacolumn}.png"),
+    plot = plotname,
+    dpi = 300,
+    width = 25,
+    height = 25,
+    units = "in"
+  )
 }
 ```
 
 ```{r}
-pcaData_Hposition <- plotPCA_local(vsd, intgroup = c("condition","Sample_Name"),returnData = T)
+pcaData_Hposition <- plotPCA_local(vsd, intgroup = c("condition", "Sample_Name"), returnData = T)
 pcaData_Hposition
 percentVar_Hposition <- percentvar_calculation(pcaData_Hposition)
 ```
@@ -473,59 +498,83 @@ percentVar_Hposition <- percentvar_calculation(pcaData_Hposition)
 percentVar_Hposition
 ```
 ```{r }
-(PCAplot_vst <- ggplot(pcaData_Hposition,
-                      aes(x = PC1,
-                          y = PC2,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
-savingFunction(PCAplot_vst, "condition")
+(PCAplot_vst <- ggplot(
+  pcaData_Hposition,
+  aes(
+    x = PC1,
+    y = PC2,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC1: ", percentVar_Hposition[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar_Hposition[2], "% variance")) +
+  ggtitle("PCA Plot - Right vs Left ") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+#savingFunction(PCAplot_vst, "condition")
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/PCAplot_Hposition.png",
+  plot = PCAplot_vst,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 ## PCA Plot for PC2 vs PC3
 
 ```{r}
-(PCAplot_vst23 <- ggplot(pcaData_Hposition,
-                      aes(x = PC2,
-                          y = PC3,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC2: ", percentVar_Hposition[2], "% variance")) +
-        ylab(paste0("PC3: ", percentVar_Hposition[3], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
-ggsave(filename = '~/R/Alina_RNAseq/Hposition/PCAplot23_HpositionvsControl.png',
-       plot = PCAplot_vst23,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_vst23 <- ggplot(
+  pcaData_Hposition,
+  aes(
+    x = PC2,
+    y = PC3,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC2: ", percentVar_Hposition[2], "% variance")) +
+  ylab(paste0("PC3: ", percentVar_Hposition[3], "% variance")) +
+  ggtitle("PCA Plot - Right vs Left") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/PCAplot23_HpositionvsControl.png",
+  plot = PCAplot_vst23,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 
 ## PCA Plot for PC3 vs PC4
 
 ```{r}
-(PCAplot_vst34 <- ggplot(pcaData_Hposition,
-                      aes(x = PC3,
-                          y = PC4,
-                          color = Sample_Name,
-                          label = Sample_Name)) +
-        xlab(paste0("PC3: ", percentVar_Hposition[3], "% variance")) +
-        ylab(paste0("PC4: ", percentVar_Hposition[4], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right") +
-        scale_colour_manual(values = color_values) +
-        theme.my.own )
-ggsave(filename = '~/R/Alina_RNAseq/Hposition/PCAplot34_HpositionvsControl.png',
-       plot = PCAplot_vst34,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+(PCAplot_vst34 <- ggplot(
+  pcaData_Hposition,
+  aes(
+    x = PC3,
+    y = PC4,
+    color = Sample_Name,
+    label = Sample_Name
+  )
+) +
+  xlab(paste0("PC3: ", percentVar_Hposition[3], "% variance")) +
+  ylab(paste0("PC4: ", percentVar_Hposition[4], "% variance")) +
+  ggtitle("PCA Plot - Right vs Left") +
+  scale_colour_manual(values = color_values) +
+  theme.my.own)
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/PCAplot34_HpositionvsControl.png",
+  plot = PCAplot_vst34,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 
@@ -534,120 +583,157 @@ ggsave(filename = '~/R/Alina_RNAseq/Hposition/PCAplot34_HpositionvsControl.png',
 ### PCA for Epithelial Response
 
 ```{r}
-PCAdata_Hposition_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
-percentVar_Hposition_ER <- percentvar_calculation(PCAdata_Hposition_ER)
-(PCAplot_ER <- ggplot(PCAdata_Hposition_ER,
-                     aes(x = PC1, y = PC2,
-                         color = Epithelial_response,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_ER[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_ER[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Epithelial_response") +
-        theme.my.own)
-savingFunction(PCAplot_ER, "Epithelial_response")
+# PCAdata_Hposition_ER <- plotPCA(vsd, intgroup = c("Sample_Name", "Epithelial_response"), returnData = TRUE)
+# percentVar_Hposition_ER <- percentvar_calculation(PCAdata_Hposition_ER)
+# (PCAplot_ER <- ggplot(
+#   PCAdata_Hposition_ER,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = Epithelial_response,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_ER[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_ER[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Epithelial_response") +
+#   theme.my.own)
+# savingFunction(PCAplot_ER, "Epithelial_response")
 ```
 
 ### PCA for Microcolonies
 
 ```{r}
-PCAdata_Hposition_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
-percentVar_Hposition_MC <- percentvar_calculation(PCAdata_Hposition_MC)
-(PCAplot_MC <- ggplot(PCAdata_Hposition_MC,
-                     aes(x = PC1, y = PC2,
-                         color = microcolonies,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_MC[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_MC[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Microcolonies") +
-        theme.my.own)
-savingFunction(PCAplot_MC, "microcolonies")
+# PCAdata_Hposition_MC <- plotPCA(vsd, intgroup = c("Sample_Name", "microcolonies"), returnData = TRUE)
+# percentVar_Hposition_MC <- percentvar_calculation(PCAdata_Hposition_MC)
+# (PCAplot_MC <- ggplot(
+#   PCAdata_Hposition_MC,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = microcolonies,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_MC[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_MC[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Microcolonies") +
+#   theme.my.own)
+# savingFunction(PCAplot_MC, "microcolonies")
 ```
 
 ### PCA for Clinical Outcome
 
 ```{r}
-PCAdata_Hposition_CO <- plotPCA(vsd, 
-                                 intgroup = c("Sample_Name", "clinical_outcome"), 
-                                 returnData = TRUE)
-percentVar_Hposition_CO <- percentvar_calculation(PCAdata_Hposition_CO)
-(PCAplot_CO <- ggplot(PCAdata_Hposition_CO,
-                     aes(x = PC1, y = PC2,
-                         color = clinical_outcome,
-                         label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_CO[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_CO[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Clinical Outcome") +
-        theme.my.own)
-savingFunction(PCAplot_CO, "clinical_outcome")
+# PCAdata_Hposition_CO <- plotPCA(vsd,
+#   intgroup = c("Sample_Name", "clinical_outcome"),
+#   returnData = TRUE
+# )
+# percentVar_Hposition_CO <- percentvar_calculation(PCAdata_Hposition_CO)
+# (PCAplot_CO <- ggplot(
+#   PCAdata_Hposition_CO,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = clinical_outcome,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_CO[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_CO[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Clinical Outcome") +
+#   theme.my.own)
+# savingFunction(PCAplot_CO, "clinical_outcome")
 ```
 
 ### PCA for ER_Microcolonies
 
 ```{r}
-PCAdata_Hposition_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), 
-                                  returnData = TRUE)
-percentVar_Hposition_ERMC <- percentvar_calculation(PCAdata_Hposition_ERMC)
-(PCAplot_ERMC <- ggplot(PCAdata_Hposition_ERMC,
-                       aes(x = PC1, y = PC2,
-                           color = ER_microcolonies,
-                           label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_ERMC[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_ERMC[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - ER_Microcolonies") +
-        theme.my.own)
-savingFunction(PCAplot_ERMC, "ER_microcolonies")
+# PCAdata_Hposition_ERMC <- plotPCA(vsd,
+#   intgroup = c("Sample_Name", "ER_microcolonies"),
+#   returnData = TRUE
+# )
+# percentVar_Hposition_ERMC <- percentvar_calculation(PCAdata_Hposition_ERMC)
+# (PCAplot_ERMC <- ggplot(
+#   PCAdata_Hposition_ERMC,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = ER_microcolonies,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_ERMC[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_ERMC[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - ER_Microcolonies") +
+#   theme.my.own)
+# savingFunction(PCAplot_ERMC, "ER_microcolonies")
 ```
 
 ### PCA for Phylogenomic Lineage
 
 ```{r}
-PCAdata_Hposition_PL <- plotPCA(vsd, intgroup = c("Sample_Name", 
-                                                   "phylogenomic_lineage"), 
-                                 returnData = TRUE)
-percentVar_Hposition_PL <- percentvar_calculation(PCAdata_Hposition_PL)
-(PCAplot_PL <- ggplot(PCAdata_Hposition_PL,
-                       aes(x = PC1, y = PC2,
-                           color = phylogenomic_lineage,
-                           label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_PL[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_PL[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Phylogenomic Lineage") +
-        theme.my.own)
-savingFunction(PCAplot_PL, "phylogenomic_lineage")
+# PCAdata_Hposition_PL <- plotPCA(vsd,
+#   intgroup = c(
+#     "Sample_Name",
+#     "phylogenomic_lineage"
+#   ),
+#   returnData = TRUE
+# )
+# percentVar_Hposition_PL <- percentvar_calculation(PCAdata_Hposition_PL)
+# (PCAplot_PL <- ggplot(
+#   PCAdata_Hposition_PL,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = phylogenomic_lineage,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_PL[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_PL[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Phylogenomic Lineage") +
+#   theme.my.own)
+# savingFunction(PCAplot_PL, "phylogenomic_lineage")
 ```
 
 ### PCA for Phylogroup
 
 ```{r}
-PCAdata_Hposition_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
-percentVar_Hposition_PG <- percentvar_calculation(PCAdata_Hposition_PG)
-(PCAplot_PG <- ggplot(PCAdata_Hposition_PG,
-                     aes(x = PC1, y = PC2,
-                         color = phylogroup,
-                         label= Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_PG[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_PG[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Phylogroup") +
-        theme.my.own)
-savingFunction(PCAplot_PG, "phylogroup")
+# PCAdata_Hposition_PG <- plotPCA(vsd, intgroup = c("Sample_Name", "phylogroup"), returnData = TRUE)
+# percentVar_Hposition_PG <- percentvar_calculation(PCAdata_Hposition_PG)
+# (PCAplot_PG <- ggplot(
+#   PCAdata_Hposition_PG,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = phylogroup,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_PG[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_PG[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Phylogroup") +
+#   theme.my.own)
+# savingFunction(PCAplot_PG, "phylogroup")
 ```
 
 ### PCA for Intimin Group
 
 ```{r}
-PCAdata_Hposition_IT <- plotPCA(vsd, intgroup = c("Sample_Name", "Intimin_Type"),
-                                returnData = TRUE)
-head(PCAdata_Hposition_IT)
-percentVar_Hposition_IT <- round(100 * attr(PCAdata_Hposition_IT, "percentVar"), digits = 4)
-(PCAplot_IT <- ggplot(PCAdata_Hposition_IT,
-                     aes(x = PC1, y = PC2,
-                         color = Intimin_Type,
-                         label = Sample_Name)) +
-        xlab(paste0("PC1: ", percentVar_Hposition_IT[1], "% variance")) +
-        ylab(paste0("PC2: ", percentVar_Hposition_IT[2], "% variance")) +
-        ggtitle("PCA Plot - Left vs Right - Intimin type") +
-        theme.my.own)
-savingFunction(PCAplot_IT, "Intimin_Type")
+# PCAdata_Hposition_IT <- plotPCA(vsd,
+#   intgroup = c("Sample_Name", "Intimin_Type"),
+#   returnData = TRUE
+# )
+# head(PCAdata_Hposition_IT)
+# percentVar_Hposition_IT <- round(100 * attr(PCAdata_Hposition_IT, "percentVar"), digits = 4)
+# (PCAplot_IT <- ggplot(
+#   PCAdata_Hposition_IT,
+#   aes(
+#     x = PC1, y = PC2,
+#     color = Intimin_Type,
+#     label = Sample_Name
+#   )
+# ) +
+#   xlab(paste0("PC1: ", percentVar_Hposition_IT[1], "% variance")) +
+#   ylab(paste0("PC2: ", percentVar_Hposition_IT[2], "% variance")) +
+#   ggtitle("PCA Plot - Left vs Right - Intimin type") +
+#   theme.my.own)
+# savingFunction(PCAplot_IT, "Intimin_Type")
 ```
 
 ```{r}
@@ -656,52 +742,46 @@ rv <- rowVars(assay(vsd))
 ntop <- 500
 # select the ntop genes by variance
 select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
-df1 <- t(assay(vsd)[select,])
+df1 <- t(assay(vsd)[select, ])
 ```
 ```{r}
-res.pca <- PCA(df1,  graph = FALSE, scale.unit = FALSE)
+res.pca <- PCA(df1, graph = FALSE, scale.unit = FALSE)
 summary.PCA(res.pca)
 ```
 ```{r}
 # Visualize eigenvalues/variances
-fviz_screeplot(res.pca, addlabels = TRUE)
+# fviz_screeplot(res.pca, addlabels = TRUE)
 ```
 ```{r}
 library("factoextra")
 eig.val <- get_eigenvalue(res.pca)
 eig.val
 ```
-```{r}
-var <- get_pca_var(res.pca)
-#fviz_pca_var(res.pca, repel = TRUE)
-```
-
-```{r fig.width=10}
-library("corrplot")
-corrplot(var$cos2, is.corr=T)
-```
 
 ## Genes + PCA Biplots
 
 ```{r}
-fviz_pca_biplot(res.pca, repel = TRUE,
-                gradient.cols = c("pink", "blue", "yellow", "green", "red", "black"))
+# fviz_pca_biplot(res.pca,
+#   repel = TRUE,
+#   gradient.cols = c("pink", "blue", "yellow", "green", "red", "black")
+# )
 ```
 
 ```{r fig.height=10, fig.width=10}
-heat.colors <- brewer.pal(6, "RdYlBu")
-fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
-             gradient.cols = c("Gray", "blue", "yellow","orange", "green", "red", "black"),
-             )
+# heat.colors <- brewer.pal(6, "RdYlBu")
+# fviz_pca_var(res.pca,
+#   col.var = "contrib", repel = TRUE,
+#   gradient.cols = c("Gray", "blue", "yellow", "orange", "green", "red", "black"),
+# )
 ```
 
 ```{r}
 # Contributions of variables to PC2
-fviz_pca_contrib(res.pca, choice = "var", axes = 2, top = 25)
+# fviz_pca_contrib(res.pca, choice = "var", axes = 2, top = 25)
 ```
 ```{r}
 # Contributions of variables to PC1
-fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
+# fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
 ```
 
 ## Hierarchical Clustering
@@ -709,31 +789,29 @@ fviz_contrib(res.pca, choice = "var", axes = 1, top = 25)
 ### applying rlog Transformation
 
 ```{r}
-rld <- rlog(dds_Hposition, blind = FALSE)
-head(assay(rld), 3)
-```
-
-```{r}
-### Extract the rlog matrix from the object
-rld_mat <- assay(rld) #assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
-### Compute pairwise correlation values
-rld_cor <- cor(rld_mat)    ## cor() is a base R function
-head(rld_cor)   ## check the output of cor(), make note of the rownames and colnames
+# rld <- rlog(dds_Hposition, blind = FALSE)
+# head(assay(rld), 3)
+#
+# ### Extract the rlog matrix from the object
+# rld_mat <- assay(rld) # assay() is function from the "SummarizedExperiment" package that was loaded when you loaded DESeq2
+# ### Compute pairwise correlation values
+# rld_cor <- cor(rld_mat) ## cor() is a base R function
+# head(rld_cor) ## check the output of cor(), make note of the rownames and colnames
 ```
 
 ```{r}
 ### Plot heatmap
-heat.colors <- brewer.pal(6, "RdYlBu")
-(Hclust_plot <- pheatmap(rld_cor, 
-                        color = heat.colors,
-                        main = 'Heirarchical Clustering of Samples - ER - Correlation Matrix'
-                        #filename = '~/R/Alina_RNAseq/Hposition/Hclust_plot.tiff'
-                       ))
-#Hclust_plot
+# heat.colors <- brewer.pal(6, "RdYlBu")
+# (Hclust_plot <- pheatmap(rld_cor,
+#   color = heat.colors,
+#   main = "Heirarchical Clustering of Samples - ER - Correlation Matrix"
+#   # filename = '/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/Hclust_plot.tiff'
+# ))
+# Hclust_plot
 ```
 
 ```{r}
-#saveplot(Hclust_plot, "Hclust_plot")
+# saveplot(Hclust_plot, "Hclust_plot")
 ```
 
 
@@ -743,7 +821,7 @@ heat.colors <- brewer.pal(6, "RdYlBu")
 
 ```{r}
 dds1_Hposition <- DESeq(dds_Hposition)
-#str(dds1)
+# str(dds1)
 ```
 
 ### Building the results table
@@ -792,7 +870,6 @@ res2_Hposition <- results(
   cooksCutoff = FALSE,
   independentFiltering = FALSE,
   contrast = c("HPosition", "Right", "Left")
-  
 )
 head(res2_Hposition, 30)
 ```
@@ -803,13 +880,6 @@ head(res2_Hposition, 30)
 res2df_Hposition <- as.data.frame(res2_Hposition) # convert the results table to a df
 head(res2df_Hposition)
 ```
-
-## MA Plot
-
-```{r}
-plotMA_res2_Hposition <- plotMA(res2_Hposition, ylim = c(-2, 2))
-```
-
 ### Histogram of p-values
 
 ```{r}
@@ -820,7 +890,8 @@ Further Filtering: baseMean \> 1
 
 ```{r}
 hist(res2_Hposition$pvalue[res2_Hposition$baseMean > 10],
-     breaks = 50, col = "grey50", border = "blue")
+  breaks = 50, col = "grey50", border = "blue"
+)
 ```
 ```{r}
 head(res2df_Hposition)
@@ -861,10 +932,11 @@ nrow(res3df_Hposition)
 ## Saving the Results
 
 ```{r}
-resOrdered_Hposition <- res3df_Hposition[order(res3df_Hposition$pvalue),]
+resOrdered_Hposition <- res3df_Hposition[order(res3df_Hposition$pvalue), ]
 head(resOrdered_Hposition)
 write.csv(as.data.frame(resOrdered_Hposition),
-          file = "~/R/Alina_RNAseq/Hposition/results_DGE_ER.csv")
+  file = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/results_DGE.csv"
+)
 ```
 
 ## Heatmap of count matrix
@@ -872,11 +944,11 @@ write.csv(as.data.frame(resOrdered_Hposition),
 To explore a count matrix, it is often instructive to look at it as a heatmap.
 
 ```{r}
-select <- order(rowMeans(counts(dds2_Hposition,normalized = FALSE)),decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds2_Hposition)[,c("HPosition","Sample_Name")])
-Heatmap(assay(vsd)[select,], 
-         cluster_columns = TRUE
-        )
+select <- order(rowMeans(counts(dds2_Hposition, normalized = FALSE)), decreasing = TRUE)[1:20]
+df <- as.data.frame(colData(dds2_Hposition)[, c("HPosition", "Sample_Name")])
+Heatmap(assay(vsd)[select, ],
+  cluster_columns = TRUE
+)
 ```
 
 ## Effect of Transformations on Variance
@@ -887,20 +959,20 @@ Heatmap(assay(vsd)[select,],
 ### Based on Shifted Log Transformation
 
 ```{r}
-ntd <- normTransform(dds2_Hposition)
-meanSdPlot(assay(ntd))
+# ntd <- normTransform(dds2_Hposition)
+# meanSdPlot(assay(ntd))
 ```
 
 ### Based on Rlog Transformation
 
 ```{r}
-meanSdPlot(assay(rld))
+# meanSdPlot(assay(rld))
 ```
 
 ### Based on Variance Stabilizing Transformation
 
 ```{r}
-meanSdPlot(assay(vsd))
+# meanSdPlot(assay(vsd))
 ```
 
 ## Dispersion Plots
@@ -908,7 +980,7 @@ meanSdPlot(assay(vsd))
 -   Its a useful diagnostic to plot the dispersion estimates.
 
 ```{r}
-plotDispEsts(dds2_Hposition)
+# plotDispEsts(dds2_Hposition)
 ```
 
 # Volcano Plots
@@ -917,91 +989,107 @@ plotDispEsts(dds2_Hposition)
 
 ```{r fig.height= 10, fig.width= 10}
 p1 <- EnhancedVolcano(res3df_Hposition,
-    lab = res3df_Hposition$symbol,
-    x = 'log2FoldChange',
-    y = 'pvalue',
-    xlab = bquote(~Log[2]~'FoldChange'),
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE genes: Log2FoldChange Vs -Log10 Pvalue',
-    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
-    pointSize = 2.0,
-    labSize = 5.0,
-    boxedLabels = FALSE,
-    gridlines.major = FALSE,
-    gridlines.minor = FALSE,
-    colAlpha = 0.5,
-    legendPosition = 'bottom',
-    legendLabSize = 12,
-    legendIconSize = 4.0,
-    drawConnectors = T,
-    widthConnectors = 0.75,
-    max.overlaps = 8
-    )
-(volcano1 <- p1 + scale_y_continuous(limits = c(0, 8),
-                                    breaks = seq(0, 8, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
- 
-                  scale_x_continuous(limits = c(-4, 5), 
-                                     breaks = seq(-4, 5, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                      xlab(expression(DownRegulated %<->% UpRegulated))
+  lab = res3df_Hposition$symbol,
+  x = "log2FoldChange",
+  y = "pvalue",
+  xlab = bquote(~ Log[2] ~ "FoldChange"),
+  pCutoff = 0.05,
+  FCcutoff = 1.0,
+  title = "DE genes: Log2FoldChange Vs -Log10 Pvalue",
+  subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
+  pointSize = 2.0,
+  labSize = 5.0,
+  boxedLabels = FALSE,
+  gridlines.major = FALSE,
+  gridlines.minor = FALSE,
+  colAlpha = 0.5,
+  legendPosition = "bottom",
+  legendLabSize = 12,
+  legendIconSize = 4.0,
+  drawConnectors = T,
+  widthConnectors = 0.75,
+  max.overlaps = 8
+)
+(volcano1 <- p1 + scale_y_continuous(
+  limits = c(0, 8),
+  breaks = seq(0, 8, 1),
+  sec.axis = sec_axis(~ . * 1,
+    labels = NULL,
+    breaks = NULL
   )
-ggsave(filename = '~/R/Alina_RNAseq/Hposition/Volcano1_L2fcVsPvalue.png',
-       plot = volcano1,
-       dpi = 300,
-       width = 5,
-       height = 5,
-       units = "in")
+) +
+
+  scale_x_continuous(
+    limits = c(-4, 5),
+    breaks = seq(-4, 5, 1),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ) +
+  xlab(expression(DownRegulated %<->% UpRegulated))
+)
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/Volcano1_L2fcVsPvalue.png",
+  plot = volcano1,
+  dpi = 300,
+  width = 5,
+  height = 5,
+  units = "in"
+)
 ```
-## volcano Plot of Log2FC vs Padj
+## Volcano Plot of Log2FC vs Padj
 
 ```{r fig.height= 10, fig.width= 10}
 p2 <- EnhancedVolcano(res3df_Hposition,
-    lab = res3df_Hposition$symbol,
-    x = 'log2FoldChange',
-    y = 'padj',
-    xlab = bquote(~Log[2]~'FoldChange'),
-    ylab = bquote(~Log[10]~'Padj'),
-    pCutoff = 0.05,
-    FCcutoff = 1.0,
-    title = 'DE genes: Log2FoldChange Vs -Log10 Padj',
-    subtitle = bquote(~Log[2]~'|FoldChange| = 1, pvalue < 0.05') ,
-    pointSize = 2.0,
-    labSize = 5.0,
-    boxedLabels = FALSE,
-    gridlines.major = FALSE,
-    gridlines.minor = FALSE,
-    colAlpha = 0.5,
-    legendPosition = 'bottom',
-    legendLabSize = 12,
-    legendIconSize = 4.0,
-    drawConnectors = T,
-    widthConnectors = 0.75,
-    max.overlaps = 8
-    )
-(volcano2 <- p2 + scale_y_continuous(limits = c(0, 5),
-                                    breaks = seq(0, 5, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                  scale_x_continuous(limits = c(-4, 5), 
-                                     breaks = seq(-4, 5, 1),
-                                    sec.axis = sec_axis(~. *1,
-                                                        labels = NULL,
-                                                        breaks = NULL)) +
-                      xlab(expression(DownRegulated %<->% UpRegulated))
+  lab = res3df_Hposition$symbol,
+  x = "log2FoldChange",
+  y = "padj",
+  xlab = bquote(~ Log[2] ~ "FoldChange"),
+  ylab = bquote(~ Log[10] ~ "Padj"),
+  pCutoff = 0.05,
+  FCcutoff = 1.0,
+  title = "DE genes: Log2FoldChange Vs -Log10 Padj",
+  subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
+  pointSize = 2.0,
+  labSize = 5.0,
+  boxedLabels = FALSE,
+  gridlines.major = FALSE,
+  gridlines.minor = FALSE,
+  colAlpha = 0.5,
+  legendPosition = "bottom",
+  legendLabSize = 12,
+  legendIconSize = 4.0,
+  drawConnectors = T,
+  widthConnectors = 0.75,
+  max.overlaps = 8
+)
+(volcano2 <- p2 + scale_y_continuous(
+  limits = c(0, 5),
+  breaks = seq(0, 5, 1),
+  sec.axis = sec_axis(~ . * 1,
+    labels = NULL,
+    breaks = NULL
   )
-ggsave(filename = '~/R/Alina_RNAseq/Hposition/Volcano2_L2fcVsPadj.png',
-       plot = volcano2,
-       dpi = 300,
-       width = 10,
-       height = 10,
-       units = "in")
+) +
+  scale_x_continuous(
+    limits = c(-4, 5),
+    breaks = seq(-4, 5, 1),
+    sec.axis = sec_axis(~ . * 1,
+      labels = NULL,
+      breaks = NULL
+    )
+  ) +
+  xlab(expression(DownRegulated %<->% UpRegulated))
+)
+ggsave(
+  filename = "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/Volcano2_L2fcVsPadj.png",
+  plot = volcano2,
+  dpi = 300,
+  width = 10,
+  height = 10,
+  units = "in"
+)
 ```
 
 ## Significant Differentially Expressed Genes
@@ -1020,33 +1108,35 @@ res3df_Hposition$delabel[res3df_Hposition$diffexpressed != "NS"] <- res3df_Hposi
 ### Arrive at relevant genes by imposing thresholds.
 
 ```{r}
-sigsdf_Hposition <- res3df_Hposition[(abs(res3df_Hposition$log2FoldChange) > 1) & (res3df_Hposition$pvalue < 0.05),]
+sigsdf_Hposition <- res3df_Hposition[(abs(res3df_Hposition$log2FoldChange) > 1) & (res3df_Hposition$pvalue < 0.05), ]
 nrow(sigsdf_Hposition)
 ```
 ### Gender Genes Removed from Table
 
 ```{r}
-sigsdf_Hposition <- filter(sigsdf_Hposition,
-                          symbol != "Xist",
-                          symbol != "Jpx", 
-                          symbol != "Ftx", 
-                          symbol != "Tsx",
-                          symbol != "Cnbp2" )
+sigsdf_Hposition <- filter(
+  sigsdf_Hposition,
+  symbol != "Xist",
+  symbol != "Jpx",
+  symbol != "Ftx",
+  symbol != "Tsx",
+  symbol != "Cnbp2"
+)
 nrow(sigsdf_Hposition)
-#head(sigsdf_Hposition)
+# head(sigsdf_Hposition)
 ```
 
 Therefore, gender genes werent so much in play in terms of significance!
 
 ```{r}
-write.csv(sigsdf_Hposition ,"~/R/Alina_RNAseq/Hposition/SignificantGenes_ER.csv")
+write.csv(sigsdf_Hposition, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/SignificantGenes.csv")
 ```
 
 ### Number of Genes from different strains that are contributing to UP/DOWN regulation.
 
 ```{r}
-sigsdf_Hposition_UP <- sigsdf_Hposition[(sigsdf_Hposition$log2FoldChange) > 1, ] #UP Regulation Table
-sigsdf_Hposition_DOWN <- sigsdf_Hposition[(sigsdf_Hposition$log2FoldChange) < -1, ] #DOWN Regulation Table
+sigsdf_Hposition_UP <- sigsdf_Hposition[(sigsdf_Hposition$log2FoldChange) > 1, ] # UP Regulation Table
+sigsdf_Hposition_DOWN <- sigsdf_Hposition[(sigsdf_Hposition$log2FoldChange) < -1, ] # DOWN Regulation Table
 nrow(sigsdf_Hposition_UP)
 nrow(sigsdf_Hposition_DOWN)
 ```
@@ -1054,14 +1144,14 @@ nrow(sigsdf_Hposition_DOWN)
 ### Determine Top20 UP Genes and Top20 DOWN Genes
 
 ```{r}
-UpGene_Hposition <- sigsdf_Hposition_UP[order(-sigsdf_Hposition_UP$log2FoldChange,decreasing = TRUE), ]$symbol
-DownGene_Hposition <- sigsdf_Hposition_DOWN[order(-sigsdf_Hposition_DOWN$log2FoldChange,decreasing = TRUE), ]$symbol
-DE_Genes_table_Hposition <- as.data.frame(cbind(UpGene_Hposition,DownGene_Hposition)) # sorted based on highest Log2FC value
+UpGene_Hposition <- sigsdf_Hposition_UP[order(-sigsdf_Hposition_UP$log2FoldChange, decreasing = TRUE), ]$symbol
+DownGene_Hposition <- sigsdf_Hposition_DOWN[order(-sigsdf_Hposition_DOWN$log2FoldChange, decreasing = TRUE), ]$symbol
+DE_Genes_table_Hposition <- as.data.frame(cbind(UpGene_Hposition, DownGene_Hposition)) # sorted based on highest Log2FC value
 ```
 
 ```{r}
-write.csv(UpGene_Hposition ,"~/R/Alina_RNAseq/Hposition/UpGene_Hposition.csv")
-write.csv(DownGene_Hposition ,"~/R/Alina_RNAseq/Hposition/DownGene_Hposition.csv")
+write.csv(UpGene_Hposition, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/UpGene_Hposition.csv")
+write.csv(DownGene_Hposition, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/DownGene_Hposition.csv")
 ```
 
 ```{r}
@@ -1070,7 +1160,7 @@ head(sigsdf_Hposition)
 
 ```{r}
 # Determining the significant Genes based on Log2FC and pvalue thresholds
-sigs2df_Hposition <- res2df_Hposition[(abs(res2df_Hposition$log2FoldChange) > 1) &  (res2df_Hposition$pvalue < 0.05),]
+sigs2df_Hposition <- res2df_Hposition[(abs(res2df_Hposition$log2FoldChange) > 1) & (res2df_Hposition$pvalue < 0.05), ]
 ```
 
 ## Z-score based Gene Heatmaps
@@ -1078,48 +1168,48 @@ sigs2df_Hposition <- res2df_Hposition[(abs(res2df_Hposition$log2FoldChange) > 1)
 ### with Whole table (all genes together!)
 
 ```{r}
-#mat <- counts(dds2_Hposition, normalized = TRUE)[rownames(sigsdf_Hposition),]
-mat <- counts(dds2_Hposition, normalized = TRUE)[(sigsdf_Hposition$symbol),]
+# mat <- counts(dds2_Hposition, normalized = TRUE)[rownames(sigsdf_Hposition),]
+mat <- counts(dds2_Hposition, normalized = TRUE)[(sigsdf_Hposition$symbol), ]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
 colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat.zs)
 ```
 
 ```{r}
-mat2 <- counts(dds2_Hposition, normalized = TRUE)[(sigsdf_Hposition$symbol),]
+mat2 <- counts(dds2_Hposition, normalized = TRUE)[(sigsdf_Hposition$symbol), ]
 mat2.zs <- t(apply(mat2, 1, scale)) # Calculating the zscore for each row
 colnames(mat2.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat2.zs)
-#pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
+# pheatmap(mat2.zs, cluster_cols = TRUE, cluster_rows = FALSE, show_rownames = FALSE)
 ```
 ```{r}
-newHP <- Heatmap(mat2.zs, 
-        cluster_columns = TRUE, 
-        cluster_rows = TRUE, 
-        column_labels = colnames(mat2.zs),
-        name = 'DE Genes Heatmap',
-        show_row_names = FALSE, 
-        use_raster = TRUE, 
-        raster_quality = 5,
-        #width = unit(8, "in"), 
-        #height = unit(8, "in")
-        row_labels = sigs2df_Hposition[rownames(mat2.zs),]$symbol
-        )
+newHP <- Heatmap(mat2.zs,
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat2.zs),
+  name = "DE Genes Heatmap",
+  show_row_names = FALSE,
+  use_raster = TRUE,
+  raster_quality = 5,
+  # width = unit(8, "in"),
+  # height = unit(8, "in")
+  row_labels = sigs2df_Hposition[rownames(mat2.zs), ]$symbol
+)
 newHP
 ```
 ```{r fig.height= 100, fig.width= 10}
-LongHeatMap_Allgenes <- Heatmap(mat2.zs, 
-        cluster_columns = TRUE, 
-        cluster_rows = TRUE, 
-        column_labels = colnames(mat2.zs),
-        row_labels = sigs2df_Hposition$symbol,
-        name = 'All DE Genes',
-        show_row_names = TRUE, 
-        use_raster = TRUE, 
-        raster_quality = 5,
-        )
+LongHeatMap_Allgenes <- Heatmap(mat2.zs,
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat2.zs),
+  row_labels = sigs2df_Hposition$symbol,
+  name = "All DE Genes",
+  show_row_names = TRUE,
+  use_raster = TRUE,
+  raster_quality = 5,
+)
 LongHeatMap_Allgenes
-#saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
+# saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
 ```
 
 Need to filter these results to accommodate better the heat maps and also volcano plots
@@ -1127,8 +1217,8 @@ Need to filter these results to accommodate better the heat maps and also volcan
 ### with tighter constraints (all genes together!)
 
 ```{r}
-sigs1df_Hposition <- res2df_Hposition[(res2df_Hposition$baseMean > 500) & (abs(res2df_Hposition$log2FoldChange) > 1) & (res2df_Hposition$pvalue < 0.05),]
-mat1 <- counts(dds2_Hposition, normalized = TRUE)[(sigs1df_Hposition$symbol),]
+sigs1df_Hposition <- res2df_Hposition[(res2df_Hposition$baseMean > 500) & (abs(res2df_Hposition$log2FoldChange) > 1) & (res2df_Hposition$pvalue < 0.05), ]
+mat1 <- counts(dds2_Hposition, normalized = TRUE)[(sigs1df_Hposition$symbol), ]
 mat1.zs <- t(apply(mat1, 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
 head(mat1.zs)
@@ -1136,11 +1226,12 @@ head(mat1.zs)
 
 ```{r fig.height=15}
 Heatmap(mat1.zs,
-        cluster_columns = TRUE,
-        cluster_rows = TRUE,
-        column_labels = colnames(mat1.zs),
-        name = 'DE Genes',
-        row_labels = sigs1df_Hposition$symbol)
+  cluster_columns = TRUE,
+  cluster_rows = TRUE,
+  column_labels = colnames(mat1.zs),
+  name = "DE Genes",
+  row_labels = sigs1df_Hposition$symbol
+)
 ```
 
 # GO Terms with clusterProfiler
@@ -1150,14 +1241,16 @@ Heatmap(mat1.zs,
 ### GO over-representation analysis for UP Regulated Genes
 ```{r}
 UPgene_ENS_ID <- (sigsdf_Hposition_UP$ensemblID)
-GO_UPRegResults_Hposition <- enrichGO(gene = UPgene_ENS_ID,
-                                       OrgDb = "org.Mm.eg.db",
-                                       keyType = "ENSEMBL",
-                                       ont = "BP",
-                                       pAdjustMethod = "BH",
-                                       pvalueCutoff  = 0.01,
-                                       qvalueCutoff  = 0.05,
-                                       readable      = TRUE)
+GO_UPRegResults_Hposition <- enrichGO(
+  gene = UPgene_ENS_ID,
+  OrgDb = "org.Mm.eg.db",
+  keyType = "ENSEMBL",
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
 ```
 
 ```{r}
@@ -1166,29 +1259,44 @@ head(GO_UpRegdf_Hposition)
 ```
 
 ```{r}
-write.csv(GO_UpRegdf_Hposition ,"~/R/Alina_RNAseq/Hposition/GO_UpReg_results_Hposition.csv")
+write.csv(GO_UpRegdf_Hposition, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/GO_UpReg_results_Hposition.csv")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Barplot_Hposition <- plot(barplot(GO_UPRegResults_Hposition, showCategory = 22))
+GO_UPReg_Barplot_Hposition <- plot(barplot(GO_UPRegResults_Hposition,
+  showCategory = 22,
+  font.size = 20,
+  title = "InfectedVsControl Up Regulated",
+  label_format = 40
+))
 saveplot(GO_UPReg_Barplot_Hposition, "GO_UPReg_Barplot_Hposition")
 ```
 
 ```{r fig.height=10, fig.width=10}
-GO_UPReg_Dotplot_Hposition <- plot(dotplot(GO_UPRegResults_Hposition, showCategory = 23))
+GO_UPReg_Dotplot_Hposition <- plot(dotplot(GO_UPRegResults_Hposition,
+  showCategory = 23,
+  font.size = 20,
+  title = "InfectedVsControl Up Regulated",
+  label_format = 40
+))
 saveplot(GO_UPReg_Dotplot_Hposition, "GO_UPReg_Dotplot_Hposition")
 ```
 
 ```{r fig.height=10, fig.width=12}
-GO_UPReg_Cnetplot_Hposition <- plot(cnetplot(GO_UPRegResults_Hposition, showCategory = 13))
+GO_UPReg_Cnetplot_Hposition <- plot(cnetplot(GO_UPRegResults_Hposition,
+  showCategory = 13,
+  font.size = 20,
+  title = "InfectedVsControl Up Regulated",
+  label_format = 50
+))
 saveplot(GO_UPReg_Cnetplot_Hposition, "GO_UPReg_Cnetplot_Hposition")
 ```
 
 ### Upset Plot
 
 ```{r fig.height= 8, fig.width=12}
-GO_UPReg_Upsetplot <- plot( upsetplot(GO_UPRegResults_Hposition))
-saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
+# GO_UPReg_Upsetplot <- plot(upsetplot(GO_UPRegResults_Hposition))
+# saveplot(GO_UPReg_Upsetplot, "GO_UPReg_Upsetplot")
 ```
 
 ### Heatplot
@@ -1199,7 +1307,7 @@ user want to show a large number significant terms. The heatplot can
 simplify the result and more easy to identify expression patterns.
 
 ```{r fig.height= 12, fig.width=15}
-GO_UPReg_Heatplot <- plot( heatplot(GO_UPRegResults_Hposition))
+GO_UPReg_Heatplot <- plot(heatplot(GO_UPRegResults_Hposition))
 saveplot(GO_UPReg_Heatplot, "GO_UPReg_Heatplot")
 ```
 
@@ -1217,41 +1325,52 @@ saveplot(GO_UPReg_enrichtreeplot, "GO_UPReg_enrichtreeplot")
 
 ```{r}
 DOWNgene_ENS_ID <- (sigsdf_Hposition_DOWN$ensemblID)
-GO_DOWNRegResults_Hposition <- enrichGO(gene = DOWNgene_ENS_ID,
-                       OrgDb = "org.Mm.eg.db",
-                       keyType = "ENSEMBL",
-                       ont = "BP",
-                       pAdjustMethod = "BH",
-                       pvalueCutoff  = 0.01,
-                       qvalueCutoff  = 0.05,
-                       readable      = TRUE
-                       )
+GO_DOWNRegResults_Hposition <- enrichGO(
+  gene = DOWNgene_ENS_ID,
+  OrgDb = "org.Mm.eg.db",
+  keyType = "ENSEMBL",
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
 GO_DOWNRegdf_Hposition <- as.data.frame(GO_DOWNRegResults_Hposition)
 head(GO_DOWNRegdf_Hposition)
 ```
 
 ```{r}
-write.csv(GO_DOWNRegdf_Hposition,
-          "~/R/Alina_RNAseq/Hposition/GO_DOWNReg_results_Epithelial.csv")
+write.csv(
+  GO_DOWNRegdf_Hposition,
+  "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/GO_DOWNReg_results_Epithelial.csv"
+)
 ```
 
 ```{r}
-GO_DOWNReg_Barplot_Hposition <- plot(barplot(GO_DOWNRegResults_Hposition))
+GO_DOWNReg_Barplot_Hposition <- plot(barplot(GO_DOWNRegResults_Hposition,
+  font.size = 20,
+  title = "InfectedVsControl Down Regulated",
+  label_format = 60
+))
 saveplot(GO_DOWNReg_Barplot_Hposition, "GO_DOWNReg_Barplot_Hposition")
 ```
 
 ```{r}
-GO_DOWNReg_Dotplot_Hposition <- plot(dotplot(GO_DOWNRegResults_Hposition))
+GO_DOWNReg_Dotplot_Hposition <- plot(dotplot(GO_DOWNRegResults_Hposition,
+  font.size = 20,
+  title = "InfectedVsControl Down Regulated",
+  label_format = 30
+))
 
 saveplot(GO_DOWNReg_Dotplot_Hposition, "GO_DOWNReg_Dotplot_Hposition")
 ```
 
 ```{r }
 GO_DOWNReg_Cnetplot_Hposition <- plot(cnetplot(GO_DOWNRegResults_Hposition,
-                                                showCategory = 13,
-                                                circular = FALSE,
-                                                colorEdge = TRUE
-                                                ))
+  font.size = 20,
+  title = "InfectedVsControl Down Regulated",
+  label_format = 60
+))
 
 saveplot(GO_DOWNReg_Cnetplot_Hposition, "GO_DOWNReg_Cnetplot_Hposition")
 ```
@@ -1263,7 +1382,7 @@ association between genes and gene sets. It emphasizes the gene
 overlapping among different gene sets.
 
 ```{r}
-GO_DOWNReg_Upsetplot <- plot( upsetplot(GO_DOWNRegResults_Hposition))
+GO_DOWNReg_Upsetplot <- plot(upsetplot(GO_DOWNRegResults_Hposition))
 saveplot(GO_DOWNReg_Upsetplot, "GO_DOWNReg_Upsetplot")
 ```
 
@@ -1313,8 +1432,8 @@ sigsdf_Hposition_unique <- unique(dplyr::filter(sigsdf_Hposition, entrez != "NA"
 extract and name the fold changes
 
 ```{r}
-foldchanges <-  sigsdf_Hposition$log2FoldChange
-names(foldchanges) <-  sigsdf_Hposition$entrez
+foldchanges <- sigsdf_Hposition$log2FoldChange
+names(foldchanges) <- sigsdf_Hposition$entrez
 ## Sort fold changes in decreasing order
 foldchanges <- sort(foldchanges, decreasing = TRUE)
 head(foldchanges)
@@ -1323,7 +1442,7 @@ head(foldchanges)
 ```{r}
 data(kegg.sets.mm)
 data(sigmet.idx.mm)
-kegg.sets.mm <-  kegg.sets.mm[sigmet.idx.mm]
+kegg.sets.mm <- kegg.sets.mm[sigmet.idx.mm]
 ```
 
 Here, I am using same.dir = TRUE, which will give us separate lists for
@@ -1332,9 +1451,11 @@ Let's look at the first few results from each.
 
 ```{r}
 # Get the results
-keggres = gage(exprs = foldchanges, 
-               gsets = kegg.sets.mm, 
-               same.dir = TRUE)
+keggres <- gage(
+  exprs = foldchanges,
+  gsets = kegg.sets.mm,
+  same.dir = TRUE
+)
 ```
 
 ```{r}
@@ -1348,18 +1469,20 @@ pathway IDs downstream for plotting.
 
 ```{r}
 # Get the pathways
-keggrespathways = data.frame(id = rownames(keggres$greater),
-                             keggres$greater) %>% 
-                  tibble::as_tibble() %>% 
-                  filter(row_number() <= 10) %>% 
-                  .$id %>% 
-                  as.character()
+keggrespathways <- data.frame(
+  id = rownames(keggres$greater),
+  keggres$greater
+) %>%
+  tibble::as_tibble() %>%
+  filter(row_number() <= 10) %>%
+  .$id %>%
+  as.character()
 keggrespathways
 ```
 
 ```{r}
 # Get the IDs.
-keggresids = substr(keggrespathways, start = 1, stop = 8)
+keggresids <- substr(keggrespathways, start = 1, stop = 8)
 keggresids
 ```
 
@@ -1371,14 +1494,22 @@ pathways we created above.
 devtools::install_github("javadnoorb/pathview")
 library("pathview")
 # Define plotting function for applying later
-plot_pathway = function(pid) pathview(gene.data = foldchanges, 
-                                      pathway.id = pid, 
-                                      species = "mouse", 
-                                      new.signature = FALSE)
+plot_pathway <- function(pid) {
+  pathview(
+    gene.data = foldchanges,
+    pathway.id = pid,
+    species = "mouse",
+    new.signature = FALSE
+  )
+}
 # plot multiple pathways (plots saved to disk and returns a throwaway list object)
-tmp = sapply(keggresids, function(pid) pathview(gene.data = foldchanges, 
-                                                pathway.id = pid, 
-                                                species = "mouse"))
+tmp <- sapply(keggresids, function(pid) {
+  pathview(
+    gene.data = foldchanges,
+    pathway.id = pid,
+    species = "mouse"
+  )
+})
 ```
 ## GSEA - Gene Set Enrichment Analysis
 
@@ -1397,7 +1528,7 @@ Perform the GSEA using KEGG gene sets:
 # minGSSize = 20, # minimum gene set size (# genes in set) - change to test more sets or recover sets with fewer # genes
 # pvalueCutoff = 0.05, # padj cutoff value
 # verbose = T)
-# 
+#
 # ## Extract the GSEA results
 # gseaKEGG_results <- gseaKEGG@result
 ```
@@ -1408,8 +1539,8 @@ How many pathways are enriched? View the enriched pathways:
 
 ```{r}
 # head(gseaKEGG_results)
-# 
-# write.csv(gseaKEGG_results, "~/R/Alina_RNAseq/Hposition/gseaOE_kegg.csv")
+#
+# write.csv(gseaKEGG_results, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Hposition/gseaOE_kegg.csv")
 ```
 
 Explore the GSEA plot of enrichment of one of the pathways in the ranked
@@ -1417,7 +1548,7 @@ list:
 
 ```{r fig.width=10, fig.height=6}
 ## Plot the GSEA plot for a single enriched pathway, `mmu04621`
-#gseaplot(gseaKEGG, geneSetID = 'mmu04621')
+# gseaplot(gseaKEGG, geneSetID = 'mmu04621')
 ```
 
 Use the Pathview R package to integrate the KEGG pathway data from
@@ -1425,7 +1556,7 @@ clusterProfiler into pathway images:
 
 ```{r}
 # detach("package:dplyr", unload = TRUE) # first unload dplyr to avoid conflicts
-# 
+#
 # ## Output images for a single significant KEGG pathway
 # pathview(gene.data = foldchanges,
 #               pathway.id = "mmu04621",
@@ -1437,31 +1568,33 @@ clusterProfiler into pathway images:
 # Gene Ontology - Hyper Geometric Test
 
 ```{r}
-selectUPGenes_entrezid = unique(sigsdf_Hposition_UP['entrez'] )
-selectDOWNGenes_entrezid = unique(sigsdf_Hposition_DOWN['entrez'] )
-UniverseGenes = unique(sigsdf_Hposition$entrez)
-cutOff = 0.01 # setting the cutoff at 1%
+selectUPGenes_entrezid <- unique(sigsdf_Hposition_UP["entrez"])
+selectDOWNGenes_entrezid <- unique(sigsdf_Hposition_DOWN["entrez"])
+UniverseGenes <- unique(sigsdf_Hposition$entrez)
+cutOff <- 0.01 # setting the cutoff at 1%
 ```
 
 ```{r}
-upParams = new("GOHyperGParams",
-               geneIds = selectUPGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
-downParams = new("GOHyperGParams",
-               geneIds = selectDOWNGenes_entrezid,
-               universeGeneIds = UniverseGenes,
-               annotation = "org.Mm.eg.db",
-               ontology = "BP",
-               pvalueCutoff = cutOff,
-               testDirection = "over")
+upParams <- new("GOHyperGParams",
+  geneIds = selectUPGenes_entrezid,
+  universeGeneIds = UniverseGenes,
+  annotation = "org.Mm.eg.db",
+  ontology = "BP",
+  pvalueCutoff = cutOff,
+  testDirection = "over"
+)
+downParams <- new("GOHyperGParams",
+  geneIds = selectDOWNGenes_entrezid,
+  universeGeneIds = UniverseGenes,
+  annotation = "org.Mm.eg.db",
+  ontology = "BP",
+  pvalueCutoff = cutOff,
+  testDirection = "over"
+)
 ```
 
 ```{r}
-upBP = hyperGTest(upParams)
+upBP <- hyperGTest(upParams)
 upBP_df <- as.data.frame(summary(upBP))
 plot(upBP_df)
 ```
@@ -1471,7 +1604,7 @@ htmlReport(upBP, file = "upBP.html")
 ```
 
 ```{r}
-downBP = hyperGTest(downParams)
+downBP <- hyperGTest(downParams)
 downBP_df <- as.data.frame(summary(downBP))
 plot(downBP_df)
 ```
@@ -1491,7 +1624,7 @@ selectGenes_entrezid <- as.character(UniverseGenes)
 
 
 ```{r}
-#spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
+# spia(de = foldchanges_vector, all = selectGenes_entrezid, organism = "mmu")
 ```
 
 The analysis with SPIA requires the conversion of gene-gene networks in a suitable format.
