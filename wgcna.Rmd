@@ -1,0 +1,151 @@
+---
+title: "WGCNA R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(WGCNA)
+suppressPackageStartupMessages(library("org.Mm.eg.db"))
+suppressPackageStartupMessages(library("AnnotationDbi"))
+```
+
+```{r}
+library(readxl)
+effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forKeshav.xlsx",
+  col_types = c(
+    "text", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric"
+  )
+))
+
+rownames(effector) <- effector[, 1] # move effectors to rownames
+effector <- subset(effector, select = -...1) # remove effector symbol column
+head(effector)
+```
+```{r}
+count_matrix0 <- read.csv("~/R/Alina_RNAseq/newcounts.csv",
+  stringsAsFactors = TRUE
+)
+rownames(count_matrix0) <- count_matrix0[, 1] # make the symbols as rownames
+count_matrix0 <- subset(count_matrix0, select = -X) # remove the X and symbol columns
+colnames(count_matrix0) <- str_remove_all(colnames(count_matrix0),
+  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+)
+```
+
+## Annotating and Exporting ENSEMBL ID into Gene Symbols
+
+Adding genes annotated from ENSEMBL ID to Gene symbols and ENTREZ Id to countsmatrix table. Will be keeping the symbols and entrez columsn to be added later into results table as it is for later use
+```{r}
+cm_row <- rownames(count_matrix0)
+head(cm_row)
+# Mapping the ENSEMBL ID to Symbol and ENTREZ ID
+symbols <- mapIds(
+  org.Mm.eg.db,
+  keys = cm_row,
+  column = c("SYMBOL"),
+  keytype = "ENSEMBL",
+  multiVals = "first"
+)
+
+symbols <- symbols[!is.na(symbols)]
+symbols <- symbols[match(rownames(count_matrix0), names(symbols))]
+head(symbols, 25)
+# Creating a new column called genename and putting in the symbols and entrez columns into count matrix
+count_matrix0$genename <- symbols
+# Removing all rows with NA values for genenames, so that those rows are filtered out.
+count_matrix0 <- unique(count_matrix0[rowSums(is.na(count_matrix0)) == 0, ]) # Apply rowSums & is.na
+nrow(count_matrix0)
+# Moving the ENSEMBL ID from rownames into separate column for itself.
+count_matrix0 <- tibble::rownames_to_column(count_matrix0, "E_ID")
+# Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
+count_matrix0 <- distinct(count_matrix0[!duplicated(count_matrix0$genename), ])
+
+# Now make the ganename column into rownames of count matrix
+rownames(count_matrix0) <- count_matrix0[, "genename"]
+
+# dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
+count_matrix0 <- subset(count_matrix0, select = -c(genename, E_ID)) #
+# Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
+count_matrix0 <- as.matrix(count_matrix0)
+class(count_matrix0) <- "numeric"
+```
+
+### The Count Matrix is:
+```{r}
+dim(count_matrix0)
+head(count_matrix0, 20)
+```
+
+```{r}
+# need data to be in transposed form
+count_matrix <- as.data.frame(t(count_matrix0))
+```
+
+
+# check for missing values and identify outliers
+
+```{r}
+gsg <- goodSamplesGenes(count_matrix, verbose = 5)
+gsg$allOK
+```
+```{r}
+if (!gsg$allOK) {
+  # Optionally, print the gene and sample names that were removed:
+  if (sum(!gsg$goodGenes) > 0) {
+    print(paste(
+      "Removing genes:",
+      paste(names(count_matrix)[!gsg$goodGenes],
+        collapse = ", "
+      )
+    ))
+  }
+  if (sum(!gsg$goodSamples) > 0) {
+    print(paste(
+      "Removing samples:",
+      paste(rownames(count_matrix)[!gsg$goodSamples],
+        collapse = ", "
+      )
+    ))
+  }
+  # Remove the offending genes and samples from the data:
+  count_matrix = count_matrix[gsg$goodSamples, gsg$goodGenes]
+}
+```
+
+```{r}
+dim(count_matrix)
+head(count_matrix)
+```
+
+## Cluster the samples
+
+```{r}
+sampleTree = hclust(dist(count_matrix), method = 'average')
+```
+```{r}
+plot(sampleTree, hang = -1)
+```
+
+```{r}
+sampleTree2 = hclust(dist(effector), method = 'average')
+#effectorColors
+effColors = numbers2colors(effector, signed = T)
+```
+```{r fig.width=10, fig.height=10}
+plotDendroAndColors(sampleTree2,
+                    effColors,
+                    groupLabels = names(effector),
+                    main = 'Sample Dendrogram of Effector'
+                    
+                    )
+```
+
+
+
+
+
