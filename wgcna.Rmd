@@ -84,6 +84,8 @@ head(count_matrix0, 20)
 ```{r}
 # need data to be in transposed form
 count_matrix <- as.data.frame(t(count_matrix0))
+# count_matrix <- t(count_matrix0)
+
 ```
 
 
@@ -95,25 +97,25 @@ gsg$allOK
 ```
 ```{r}
 if (!gsg$allOK) {
-  # Optionally, print the gene and sample names that were removed:
-  if (sum(!gsg$goodGenes) > 0) {
-    print(paste(
-      "Removing genes:",
-      paste(names(count_matrix)[!gsg$goodGenes],
-        collapse = ", "
-      )
-    ))
-  }
-  if (sum(!gsg$goodSamples) > 0) {
-    print(paste(
-      "Removing samples:",
-      paste(rownames(count_matrix)[!gsg$goodSamples],
-        collapse = ", "
-      )
-    ))
-  }
+  # # Optionally, print the gene and sample names that were removed:
+  # if (sum(!gsg$goodGenes) > 0) {
+  #   print(paste(
+  #     "Removing genes:",
+  #     paste(names(count_matrix)[!gsg$goodGenes],
+  #       collapse = ", "
+  #     )
+  #   ))
+  # }
+  # if (sum(!gsg$goodSamples) > 0) {
+  #   print(paste(
+  #     "Removing samples:",
+  #     paste(rownames(count_matrix)[!gsg$goodSamples],
+  #       collapse = ", "
+  #     )
+  #   ))
+  # }
   # Remove the offending genes and samples from the data:
-  count_matrix = count_matrix[gsg$goodSamples, gsg$goodGenes]
+  count_matrix <- count_matrix[gsg$goodSamples, gsg$goodGenes]
 }
 ```
 
@@ -125,27 +127,74 @@ head(count_matrix)
 ## Cluster the samples
 
 ```{r}
-sampleTree = hclust(dist(count_matrix), method = 'average')
+sampleTree <- hclust(dist(count_matrix), method = "average")
 ```
 ```{r}
 plot(sampleTree, hang = -1)
 ```
 
 ```{r}
-sampleTree2 = hclust(dist(effector), method = 'average')
-#effectorColors
-effColors = numbers2colors(effector, signed = T)
+sampleTree2 <- hclust(dist(effector), method = "average")
+# effectorColors
+effColors <- numbers2colors(effector, signed = T)
 ```
 ```{r fig.width=10, fig.height=10}
 plotDendroAndColors(sampleTree2,
-                    effColors,
-                    groupLabels = names(effector),
-                    main = 'Sample Dendrogram of Effector'
-                    
-                    )
+  effColors,
+  groupLabels = names(effector),
+  main = "Sample Dendrogram of Effector"
+)
 ```
 
+# Part 2
 
+```{r}
+# Choose a set of soft-thresholding powers
+powers <- c(c(1:16), seq(from = 1, to = 16, by = 1))
+# Call the network topology analysis function
+sft <- pickSoftThreshold(count_matrix, powerVector = powers, verbose = 5)
+```
 
+```{r fig.width=10, fig.height=10}
+# Plot the results:
+#sizeGrWindow(9, 5)
+#par(mfrow = c(1, 2))
+cex1 <- 0.7
+# Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+  xlab = "Soft Threshold (power)", ylab = "Scale Free Topology Model Fit,signed R^2", type = "n",
+  main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+  labels = powers, cex = cex1, col = "red"
+)
+# this line corresponds to using an R^2 cut-off of h
+abline(h = 0.70, col = "green")
 
+# Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[, 1], sft$fitIndices[, 5],
+  xlab = "Soft Threshold (power)", ylab = "Mean Connectivity", type = "n",
+  main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1], sft$fitIndices[, 5], labels = powers, cex = cex1, col = "red")
+```
+```{r}
+#cm <- lapply(count_matrix, as.numeric)
+#count_matrix <- as.numeric(count_matrix)
+```
+
+```{r}
+net <- blockwiseModules(count_matrix,
+                        power = 6,
+                        TOMType = "unsigned",
+                        minModuleSize = 30,
+                        reassignThreshold = 0,
+                        mergeCutHeight = 1,
+                        numericLabels = TRUE,
+                        pamRespectsDendro = FALSE,
+                        saveTOMs = TRUE,
+                        saveTOMFileBase = "TOM",
+                        verbose = 3
+)
+```
 
