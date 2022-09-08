@@ -7,13 +7,15 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(stringr)
+library(magrittr)
+library(readxl)
+library(org.Mm.eg.db)
+library(AnnotationDbi)
 library(WGCNA)
-suppressPackageStartupMessages(library("org.Mm.eg.db"))
-suppressPackageStartupMessages(library("AnnotationDbi"))
 ```
 
 ```{r}
-library(readxl)
+
 effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forKeshav.xlsx",
   col_types = c(
     "text", "numeric", "numeric", "numeric", "numeric",
@@ -128,8 +130,7 @@ head(count_matrix)
 
 ```{r}
 sampleTree <- hclust(dist(count_matrix), method = "average")
-```
-```{r}
+
 plot(sampleTree, hang = -1)
 ```
 
@@ -179,11 +180,14 @@ plot(sft$fitIndices[, 1], sft$fitIndices[, 5],
 text(sft$fitIndices[, 1], sft$fitIndices[, 5], labels = powers, cex = cex1, col = "red")
 ```
 ```{r}
-#cm <- lapply(count_matrix, as.numeric)
-#count_matrix <- as.numeric(count_matrix)
+
+count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
+
 ```
 
 ```{r}
+cor <- WGCNA::cor
+
 net <- blockwiseModules(count_matrix,
                         power = 6,
                         TOMType = "unsigned",
@@ -197,4 +201,27 @@ net <- blockwiseModules(count_matrix,
                         verbose = 3
 )
 ```
+```{r}
+table(net$colors)
+```
+```{r}
+mergedcolors = labels2colors(net$colors)
+```
+
+```{r}
+net$dendrograms
+```
+
+
+```{r}
+plotDendroAndColors(net$dendrograms[[2]],
+                    mergedcolors[net$blockGenes[[2]]],
+                    "Module Colors",
+                    dendroLabels = FALSE,
+                    addGuide = TRUE,
+                    hang = 0.05,
+                    guideHang = 0.05
+)
+```
+
 
