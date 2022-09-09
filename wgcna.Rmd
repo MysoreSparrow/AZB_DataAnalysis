@@ -28,15 +28,18 @@ rownames(effector) <- effector[, 1] # move effectors to rownames
 effector <- subset(effector, select = -...1) # remove effector symbol column
 head(effector)
 ```
+
+
 ```{r}
 count_matrix0 <- read.csv("~/R/Alina_RNAseq/newcounts.csv",
-  stringsAsFactors = TRUE
-)
+                          stringsAsFactors = TRUE
+                          )
 rownames(count_matrix0) <- count_matrix0[, 1] # make the symbols as rownames
 count_matrix0 <- subset(count_matrix0, select = -X) # remove the X and symbol columns
+
 colnames(count_matrix0) <- str_remove_all(colnames(count_matrix0),
-  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
-)
+                                          pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+                                          )
 ```
 
 ## Annotating and Exporting ENSEMBL ID into Gene Symbols
@@ -80,14 +83,12 @@ class(count_matrix0) <- "numeric"
 ### The Count Matrix is:
 ```{r}
 dim(count_matrix0)
-head(count_matrix0, 20)
+head(count_matrix0)
 ```
 
 ```{r}
 # need data to be in transposed form
 count_matrix <- as.data.frame(t(count_matrix0))
-# count_matrix <- t(count_matrix0)
-
 ```
 
 
@@ -158,8 +159,8 @@ sft <- pickSoftThreshold(count_matrix, powerVector = powers, verbose = 5)
 
 ```{r fig.width=10, fig.height=10}
 # Plot the results:
-#sizeGrWindow(9, 5)
-#par(mfrow = c(1, 2))
+# sizeGrWindow(9, 5)
+# par(mfrow = c(1, 2))
 cex1 <- 0.7
 # Scale-free topology fit index as a function of the soft-thresholding power
 plot(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
@@ -182,30 +183,29 @@ text(sft$fitIndices[, 1], sft$fitIndices[, 5], labels = powers, cex = cex1, col 
 ```{r}
 
 count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
-
 ```
 
 ```{r}
 cor <- WGCNA::cor
 
 net <- blockwiseModules(count_matrix,
-                        power = 6,
-                        TOMType = "unsigned",
-                        minModuleSize = 30,
-                        reassignThreshold = 0,
-                        mergeCutHeight = 1,
-                        numericLabels = TRUE,
-                        pamRespectsDendro = FALSE,
-                        saveTOMs = TRUE,
-                        saveTOMFileBase = "TOM",
-                        verbose = 3
+  power = 6,
+  TOMType = "unsigned",
+  minModuleSize = 30,
+  reassignThreshold = 0,
+  mergeCutHeight = 1,
+  numericLabels = TRUE,
+  pamRespectsDendro = FALSE,
+  saveTOMs = TRUE,
+  saveTOMFileBase = "TOM",
+  verbose = 3
 )
 ```
 ```{r}
 table(net$colors)
 ```
 ```{r}
-mergedcolors = labels2colors(net$colors)
+mergedcolors <- labels2colors(net$colors)
 ```
 
 ```{r}
@@ -215,13 +215,11 @@ net$dendrograms
 
 ```{r}
 plotDendroAndColors(net$dendrograms[[2]],
-                    mergedcolors[net$blockGenes[[2]]],
-                    "Module Colors",
-                    dendroLabels = FALSE,
-                    addGuide = TRUE,
-                    hang = 0.05,
-                    guideHang = 0.05
+  mergedcolors[net$blockGenes[[2]]],
+  "Module Colors",
+  dendroLabels = FALSE,
+  addGuide = TRUE,
+  hang = 0.05,
+  guideHang = 0.05
 )
 ```
-
-
