@@ -7,6 +7,7 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(stringr)
+library(DESeq2)
 library(magrittr)
 library(readxl)
 library(org.Mm.eg.db)
@@ -28,8 +29,65 @@ rownames(effector) <- effector[, 1] # move effectors to rownames
 effector <- subset(effector, select = -...1) # remove effector symbol column
 head(effector)
 ```
+## Creating metadata for the DGE Analysis
 
+DESeq2 needs sample information (metadata) for performing DGE analysis.
+Let's create the sample information
 
+```{r}
+# Read the csv file and change the column name
+sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+head(sample_ID)
+```
+
+```{r}
+condition <- c(
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
+  "Infected", "Infected", "control", "control"
+)
+coldata <- data.frame(sample_ID, condition)
+colnames(coldata) <- c("Sample_Name", "condition") # change name of one of the columns
+# The metadata can be found in a df called coldata!
+head(coldata)
+```
+
+### Tidying up the names for plots later!
+
+#### First from coldata
+
+```{r}
+# tidying up the names od samples in both columns that list of samples
+# coldata$Samples <- str_remove_all(coldata$Sampls, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <- str_remove_all(coldata$Sample_Name,
+  pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+)
+coldata$condition <- as.factor(coldata$condition)
+```
+
+### Changing the names of samples (as per Alina)
+```{r}
+coldata[coldata == "476_R1"] <- "T"
+coldata[coldata == "754_R1"] <- "S54"
+coldata[coldata == "755_R1"] <- "S55"
+coldata[coldata == "757_R1"] <- "L57"
+coldata[coldata == "758_R1"] <- "A58"
+coldata[coldata == "760_R1"] <- "L60"
+coldata[coldata == "761_R1"] <- "S61"
+coldata[coldata == "762_R1"] <- "A62"
+coldata[coldata == "763_R1"] <- "L63"
+coldata[coldata == "764_R1"] <- "A64"
+coldata[coldata == "765_R1"] <- "S65"
+coldata[coldata == "766_R1"] <- "L66"
+coldata[coldata == "768_R1"] <- "A68"
+coldata[coldata == "769_R1"] <- "L69"
+coldata[coldata == "Ctrl1_R1"] <- "C1"
+coldata[coldata == "Ctrl2_R2"] <- "C2"
+# convert column1 with sample names to row.names of coldata
+rownames(coldata) <- coldata$Sample_Name
+coldata
+```
+## Input Count Matrix 
 ```{r}
 count_matrix0 <- read.csv("~/R/Alina_RNAseq/newcounts.csv",
                           stringsAsFactors = TRUE
@@ -38,8 +96,12 @@ rownames(count_matrix0) <- count_matrix0[, 1] # make the symbols as rownames
 count_matrix0 <- subset(count_matrix0, select = -X) # remove the X and symbol columns
 
 colnames(count_matrix0) <- str_remove_all(colnames(count_matrix0),
-                                          pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
+                                      pattern="run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
                                           )
+# the elements from Sample_Name from coldata must the the colnames of countsmatrix
+colnames(count_matrix0) <- coldata$Sample_Name
+# Display the column names
+colnames(count_matrix0)
 ```
 
 ## Annotating and Exporting ENSEMBL ID into Gene Symbols
@@ -86,40 +148,92 @@ dim(count_matrix0)
 head(count_matrix0)
 ```
 
+
+## Differential Gene Expression analysis using DESeq2
+
+
 ```{r}
-# need data to be in transposed form
-count_matrix <- as.data.frame(t(count_matrix0))
+all(rownames(coldata) %in% colnames(count_matrix0))
+ncol(count_matrix0) == nrow(coldata)
+dim(count_matrix0)
+```
+
+## Creating the DESeq Data set Object
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = count_matrix0,
+                              colData = coldata,
+                              design = ~condition
+)
+
+dds <- DESeq(dds)
+nrow(dds)
+```
+
+## VST Transformation
+
+```{r}
+
+keep <- rowSums(counts(dds)) > 10
+dds <- dds[keep, ]
+nrow(dds)
+
+# vsd <- vst(dds, blind = FALSE)
+# head(assay(vsd), 3)
+vsd <- varianceStabilizingTransformation(dds)
+```
+```{r}
+library(genefilter)
+```
+```{r}
+wpn_vsd <- getVarianceStabilizedData(dds)
+# rv_wpn <- rowVars(wpn_vsd)
+# summary(rv_wpn)
+q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
+```
+```{r}
+normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
+head(normalized_input)
+```
+```{r}
+# normalized_input_df <- data.frame(normalized_input)
+```
+
+
+```{r}
+input_mat <- as.data.frame(t(normalized_input))
+head(input_mat)
 ```
 
 
 # check for missing values and identify outliers
 
 ```{r}
-gsg <- goodSamplesGenes(count_matrix, verbose = 5)
-gsg$allOK
+# gsg <- goodSamplesGenes(count_matrix, verbose = 10)
+# gsg$allOK
 ```
 ```{r}
-if (!gsg$allOK) {
-  # # Optionally, print the gene and sample names that were removed:
-  # if (sum(!gsg$goodGenes) > 0) {
-  #   print(paste(
-  #     "Removing genes:",
-  #     paste(names(count_matrix)[!gsg$goodGenes],
-  #       collapse = ", "
-  #     )
-  #   ))
-  # }
-  # if (sum(!gsg$goodSamples) > 0) {
-  #   print(paste(
-  #     "Removing samples:",
-  #     paste(rownames(count_matrix)[!gsg$goodSamples],
-  #       collapse = ", "
-  #     )
-  #   ))
-  # }
-  # Remove the offending genes and samples from the data:
-  count_matrix <- count_matrix[gsg$goodSamples, gsg$goodGenes]
-}
+# if (!gsg$allOK) {
+#   # # Optionally, print the gene and sample names that were removed:
+#   # if (sum(!gsg$goodGenes) > 0) {
+#   #   print(paste(
+#   #     "Removing genes:",
+#   #     paste(names(count_matrix)[!gsg$goodGenes],
+#   #       collapse = ", "
+#   #     )
+#   #   ))
+#   # }
+#   # if (sum(!gsg$goodSamples) > 0) {
+#   #   print(paste(
+#   #     "Removing samples:",
+#   #     paste(rownames(count_matrix)[!gsg$goodSamples],
+#   #       collapse = ", "
+#   #     )
+#   #   ))
+#   # }
+#   # Remove the offending genes and samples from the data:
+#   count_matrix <- count_matrix[gsg$goodSamples, gsg$goodGenes]
+# }
 ```
 
 ```{r}
@@ -152,16 +266,23 @@ plotDendroAndColors(sampleTree2,
 
 ```{r}
 # Choose a set of soft-thresholding powers
-powers <- c(c(1:16), seq(from = 1, to = 16, by = 1))
+powers <- c(c(1:10), seq(from = 12, to = 20, by = 2))
 # Call the network topology analysis function
-sft <- pickSoftThreshold(count_matrix, powerVector = powers, verbose = 5)
+sft <- pickSoftThreshold(count_matrix, 
+                         powerVector = powers,
+                         dataIsExpr = TRUE,
+                         RsquaredCut = 0.80,
+                         verbose = 10, 
+                         blockSize = 10,
+                         networkType = "unsigned"
+                         )
 ```
 
 ```{r fig.width=10, fig.height=10}
 # Plot the results:
 # sizeGrWindow(9, 5)
-# par(mfrow = c(1, 2))
-cex1 <- 0.7
+par(mfrow = c(1, 2))
+cex1 <- 1
 # Scale-free topology fit index as a function of the soft-thresholding power
 plot(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
   xlab = "Soft Threshold (power)", ylab = "Scale Free Topology Model Fit,signed R^2", type = "n",
@@ -171,17 +292,20 @@ text(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
   labels = powers, cex = cex1, col = "red"
 )
 # this line corresponds to using an R^2 cut-off of h
-abline(h = 0.70, col = "green")
+abline(h = 0.7, col = "green")
 
 # Mean connectivity as a function of the soft-thresholding power
-plot(sft$fitIndices[, 1], sft$fitIndices[, 5],
-  xlab = "Soft Threshold (power)", ylab = "Mean Connectivity", type = "n",
-  main = paste("Mean connectivity")
+plot(sft$fitIndices[, 1], 
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)", 
+     ylab = "Mean Connectivity", 
+     type = "n",
+     main = paste("Mean connectivity")
 )
-text(sft$fitIndices[, 1], sft$fitIndices[, 5], labels = powers, cex = cex1, col = "red")
+text(sft$fitIndices[, 1], sft$fitIndices[, 5], labels = powers, cex = cex1, 
+     col = "red")
 ```
 ```{r}
-
 count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
 ```
 
@@ -189,9 +313,9 @@ count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
 cor <- WGCNA::cor
 
 net <- blockwiseModules(count_matrix,
-  power = 6,
+  power = 10,
   TOMType = "unsigned",
-  minModuleSize = 30,
+  minModuleSize = 10,
   reassignThreshold = 0,
   mergeCutHeight = 1,
   numericLabels = TRUE,
@@ -214,8 +338,8 @@ net$dendrograms
 
 
 ```{r}
-plotDendroAndColors(net$dendrograms[[2]],
-  mergedcolors[net$blockGenes[[2]]],
+plotDendroAndColors(net$dendrograms[[1]],
+  mergedcolors[net$blockGenes[[1]]],
   "Module Colors",
   dendroLabels = FALSE,
   addGuide = TRUE,
