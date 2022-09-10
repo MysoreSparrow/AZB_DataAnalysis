@@ -266,7 +266,7 @@ plotDendroAndColors(sampleTree2,
 
 ```{r}
 # Choose a set of soft-thresholding powers
-powers <- c(c(1:10), seq(from = 12, to = 20, by = 2))
+powers <- c(c(1:10), seq(from = 1, to = 20, by = 2))
 # Call the network topology analysis function
 sft <- pickSoftThreshold(count_matrix, 
                          powerVector = powers,
@@ -292,7 +292,7 @@ text(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
   labels = powers, cex = cex1, col = "red"
 )
 # this line corresponds to using an R^2 cut-off of h
-abline(h = 0.7, col = "green")
+abline(h = 0.8, col = "green")
 
 # Mean connectivity as a function of the soft-thresholding power
 plot(sft$fitIndices[, 1], 
@@ -314,32 +314,29 @@ cor <- WGCNA::cor
 
 net <- blockwiseModules(count_matrix,
   power = 10,
-  TOMType = "unsigned",
+  TOMType = "signed",
   minModuleSize = 10,
   reassignThreshold = 0,
-  mergeCutHeight = 1,
+  mergeCutHeight = 0.1,
   numericLabels = TRUE,
   pamRespectsDendro = FALSE,
-  saveTOMs = TRUE,
-  saveTOMFileBase = "TOM",
-  verbose = 3
+  # saveTOMs = TRUE,
+  # saveTOMFileBase = "TOM",
+  verbose = 5
 )
 ```
 ```{r}
 table(net$colors)
 ```
 ```{r}
-mergedcolors <- labels2colors(net$colors)
+modulecolors <- labels2colors(net$colors)
 ```
 
-```{r}
-net$dendrograms
-```
 
 
 ```{r}
 plotDendroAndColors(net$dendrograms[[1]],
-  mergedcolors[net$blockGenes[[1]]],
+  modulecolors[net$blockGenes[[1]]],
   "Module Colors",
   dendroLabels = FALSE,
   addGuide = TRUE,
@@ -347,3 +344,34 @@ plotDendroAndColors(net$dendrograms[[1]],
   guideHang = 0.05
 )
 ```
+
+
+```{r}
+module_df <- data.frame(gene_id = names(net$colors),
+                        colors = labels2colors(net$colors)
+) 
+```
+
+# Determine Eigengenes - hypothetical central genes
+
+## Get module Eigen genes per cluster
+
+```{r}
+#Define number of Genes and Samples
+nGenes = ncol(count_matrix)
+nSamples = nrow(count_matrix)
+```
+
+Recalculate MEs with color labels
+```{r}
+MEs0 <- moduleEigengenes(count_matrix, modulecolors)$eigengenes
+```
+
+Reorder Modules so that similar modules are next to each other
+
+```{r}
+MEs <- orderMEs(MEs0)
+
+moduleTraitCor = cor(MEs, effector, use = "p" )
+```
+
