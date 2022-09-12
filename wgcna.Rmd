@@ -1,6 +1,15 @@
 ---
 title: "WGCNA Notebook"
-output: html_notebook
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    fig_width: 12
+    fig_height: 12
+    fig_caption: yes
+    number_sections: yes
 ---
 
 ```{r}
@@ -307,7 +316,7 @@ count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
 ```{r}
 cor <- WGCNA::cor
 net <- blockwiseModules(count_matrix,
-  power = 10,
+  power = 15,
   TOMType = "signed",
   minModuleSize = 10,
   reassignThreshold = 0,
@@ -417,11 +426,82 @@ labeledHeatmap(Matrix = moduleTraitCor,
   
 )
 ```
-## Relationship of Genes to Effectors and Important Modules
 
-Gene Significance (GS) : the association of individual genes with interesting effectors(weight) can be quantified by GS, as the (absolute value of ) correlation between and effector. 
 
 ```{r}
+#names(count_matrix)[modulecolors =="black"]
+black_module <- filter(module_df, colors == "black")
+turquoise_module <- filter(module_df, colors == "turquoise")
+```
 
+# Relationship of Genes to Effectors and Important Modules
+
+### Gene Significance (GS) 
+The association of individual genes with interesting effectors(weight) can be quantified by GS, as the (absolute value of ) correlation between and effector. 
+
+Here, I dont have any quantitative variable regarding effector data, so I will create one called net_effectors, by rowwise sum of all presence comparing each strain.
+
+
+```{r}
+effector_df <- as.data.frame(effector)
+net_eff <- rowSums(effector_df, na.rm = TRUE, dims = 1)
+effector_df$net_effector <- net_eff
+head(effector_df)
+```
+```{r}
+# Net_eff variable
+net_eff <- as.data.frame(net_eff)
+
+# Names (Colors) of the Modules
+modNames <-  substring(names(MEs), 3)
+```
+
+### Module Membership (MM)
+
+For each module, we define a quantitative measure of module membership MM as the correlation between the module eigengene and gene expression profile. This enables to quanitfy the similarity of all genes on the array to every module.´
+
+```{r}
+geneModuleMembership <- as.data.frame(cor(count_matrix, MEs, use = "p"))
+head(geneModuleMembership)
+MMPvalue <- as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples))
+# fix up the names
+names(geneModuleMembership) <- paste("MM", modNames, sep = "_")
+names(MMPvalue) <- paste("p.MM", modNames, sep = "")
+```
+```{r}
+geneModuleMembership_df <- cbind(geneModuleMembership, MMPvalue)
+head(geneModuleMembership_df)
+```
+
+```{r}
+geneEffSignificance <- as.data.frame(cor(count_matrix, net_eff, use = "p"))
+GSPvalue <- as.data.frame(corPvalueStudent(as.matrix(geneEffSignificance), nSamples))
+
+names(geneEffSignificance) <- paste("GS", names(net_eff), sep = ",")
+names(GSPvalue) <- paste("p.GS", names(net_eff), sep = "")
+
+geneEffSignificance_df <- cbind(geneEffSignificance, GSPvalue)
+names(geneEffSignificance_df) <- c("GS", "pvalue.GS")
+
+head(geneEffSignificance_df)
+```
+
+## Intramodular Analysis
+
+Use GS and MM, to identify genes that have a high significance for NetEff and also high module membership in interesting modules.
+
+```{r}
+module = "turquoise"
+column = match(module, modNames)
+moduleGenes = modulecolors == module
+
+verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                   abs(geneEffSignificance[moduleGenes,1]),
+                   xlab = paste("Module membership in",module,"module"),
+                   ylab = "Gene Significance for Net Effectors", 
+                   main = paste("Module Membership vs gene Significance \n"),
+                   cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module
+  
+)
 ```
 
