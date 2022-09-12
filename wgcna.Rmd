@@ -408,16 +408,16 @@ textMatrix_df <- as.data.frame(textMatrix)
 2. Each cell contains the corresponding correlation and p-value (pvalue is displayed in brackets). 
 3. The table is color-coded by correlation according to the color legend.
 
-```{r fig.height=8, fig.width=16}
+```{r fig.height=10, fig.width=20}
 labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = names(data.frame(effector)),
-               yLabels = names(MEs),
-               ySymbols = names(MEs),
+               yLabels = substring(names(MEs), 3),
+               ySymbols = substring(names(MEs), 3),
                colorLabels = FALSE,
                colors = blueWhiteRed(50),
                textMatrix = textMatrix,
                setStdMargins = FALSE,
-               cex.text = 0.66,
+               cex.text = .7,
                main = paste("All relationships of T3SS Effector with Modules of Differential Genes"),
                keepLegendSpace = TRUE,
                horizontalSeparator.y = c(1:12),
@@ -447,11 +447,11 @@ dim(textMatrix_filtered) = dim(moduleTraitCor)
 ```{r}
 textMatrix_filtered_df <- as.data.frame(textMatrix_filtered)
 ```
-```{r fig.height=8, fig.width=16}
+```{r fig.height=10, fig.width=20}
 labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = names(data.frame(effector)),
-               yLabels = names(MEs),
-               ySymbols = names(MEs),
+               yLabels = substring(names(MEs), 3),
+               ySymbols = substring(names(MEs), 3),
                colorLabels = FALSE,
                colors = blueWhiteRed(50),
                textMatrix = textMatrix_filtered,
