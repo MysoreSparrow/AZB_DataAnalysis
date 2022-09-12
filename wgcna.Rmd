@@ -418,12 +418,51 @@ labeledHeatmap(Matrix = moduleTraitCor,
                textMatrix = textMatrix,
                setStdMargins = FALSE,
                cex.text = 0.66,
-               main = paste("T3SS Effector relationships with Modules of Differential Genes"),
+               main = paste("All relationships of T3SS Effector with Modules of Differential Genes"),
                keepLegendSpace = TRUE,
                horizontalSeparator.y = c(1:12),
                verticalSeparator.x = c(1:56),
                plotLegend = TRUE
   
+)
+```
+
+### Filter for only significant P values
+
+```{r}
+moduleTraitPvalue_df <- as.matrix(moduleTraitPvalue)
+filtered_mat <- ifelse(moduleTraitPvalue <= 0.05, moduleTraitPvalue, 0) # filter out the insignificant values and keep teh regular values
+```
+
+```{r}
+textMatrix_filtered = paste(signif(moduleTraitCor, 1),
+                   "\n (",
+                   signif(filtered_mat,1),
+                   ")\n",
+                   sep = ""
+                   )
+dim(textMatrix_filtered) = dim(moduleTraitCor)
+```
+
+```{r}
+textMatrix_filtered_df <- as.data.frame(textMatrix_filtered)
+```
+```{r fig.height=8, fig.width=16}
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = names(data.frame(effector)),
+               yLabels = names(MEs),
+               ySymbols = names(MEs),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix_filtered,
+               setStdMargins = FALSE,
+               cex.text = .7,
+               main = paste("Statistically significant relationships of T3SS Effectors with Modules of Differential Genes"),
+               keepLegendSpace = TRUE,
+               horizontalSeparator.y = c(1:12),
+               verticalSeparator.x = c(1:56),
+               plotLegend = TRUE
+
 )
 ```
 
