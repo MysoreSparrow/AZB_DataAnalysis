@@ -187,7 +187,7 @@ library(genefilter)
 ```
 ```{r}
 wpn_vsd <- getVarianceStabilizedData(dds)
-# rv_wpn <- rowVars(wpn_vsd)
+rv_wpn <- rowVars(wpn_vsd)
 # summary(rv_wpn)
 q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
 ```
@@ -237,7 +237,12 @@ head(input_mat)
 ```
 
 ```{r}
+
+count_matrix <- input_mat[-c(15,16), ]
 dim(count_matrix)
+```
+
+```{r}
 head(count_matrix)
 ```
 
@@ -266,7 +271,7 @@ plotDendroAndColors(sampleTree2,
 
 ```{r}
 # Choose a set of soft-thresholding powers
-powers <- c(c(1:10), seq(from = 1, to = 20, by = 2))
+powers <- c(c(1:10), seq(from = 1, to = 20, by = 1))
 # Call the network topology analysis function
 sft <- pickSoftThreshold(count_matrix, 
                          powerVector = powers,
@@ -320,8 +325,8 @@ net <- blockwiseModules(count_matrix,
   mergeCutHeight = 0.1,
   numericLabels = TRUE,
   pamRespectsDendro = FALSE,
-  # saveTOMs = TRUE,
-  # saveTOMFileBase = "TOM",
+  saveTOMs = TRUE,
+  saveTOMFileBase = "TOM",
   verbose = 5
 )
 ```
@@ -368,10 +373,48 @@ MEs0 <- moduleEigengenes(count_matrix, modulecolors)$eigengenes
 ```
 
 Reorder Modules so that similar modules are next to each other
+```{r}
+effector <- t(effector) # transposing to have same number of rows and cols for correlations
+```
 
 ```{r}
 MEs <- orderMEs(MEs0)
 
 moduleTraitCor = cor(MEs, effector, use = "p" )
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
+```
+
+# Display correlations and respective Pvalues
+
+
+```{r}
+textMatrix = paste(signif(moduleTraitCor, 1),
+                   "\n (",
+                   signif(moduleTraitPvalue,1),
+                   "\n)",
+                   sep = ""
+                   )
+dim(textMatrix) = dim(moduleTraitCor)
+```
+
+
+
+## Display Correlation Value with heatmap plot
+
+The correlation is given and respetive pvalue is displayed in brackets.
+
+```{r fig.height=8, fig.width=15}
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = names(data.frame(effector)),
+               yLabels = names(MEs),
+               ySymbols = names(MEs),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = TRUE,
+               cex.text = 0.6,
+               main = paste("T3SS Effector relationships with Modules of Differential Genes")
+  
+)
 ```
 
