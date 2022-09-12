@@ -1,14 +1,14 @@
 ---
-title: "WGCNA R Notebook"
+title: "WGCNA Notebook"
 output: html_notebook
 ---
-
 
 ```{r}
 library(tidyverse)
 library(stringr)
 library(DESeq2)
 library(magrittr)
+library(genefilter)
 library(readxl)
 library(org.Mm.eg.db)
 library(AnnotationDbi)
@@ -16,7 +16,6 @@ library(WGCNA)
 ```
 
 ```{r}
-
 effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forKeshav.xlsx",
   col_types = c(
     "text", "numeric", "numeric", "numeric", "numeric",
@@ -24,7 +23,6 @@ effector <- as.data.frame(read_excel("allStrains_PresentAbsent_effectorlist_forK
     "numeric", "numeric", "numeric", "numeric", "numeric"
   )
 ))
-
 rownames(effector) <- effector[, 1] # move effectors to rownames
 effector <- subset(effector, select = -...1) # remove effector symbol column
 head(effector)
@@ -36,7 +34,9 @@ Let's create the sample information
 
 ```{r}
 # Read the csv file and change the column name
-sample_ID <- read.csv("~/R/Alina_RNAseq/samples.csv")
+sample_ID <- read.csv("~/Documents/AlinaRnaSeq/countmatrices/samples.csv", 
+                      sep = "", 
+                      stringsAsFactors=TRUE)
 head(sample_ID)
 ```
 
@@ -89,12 +89,11 @@ coldata
 ```
 ## Input Count Matrix 
 ```{r}
-count_matrix0 <- read.csv("~/R/Alina_RNAseq/newcounts.csv",
+count_matrix0 <- read.csv("~/Documents/AlinaRnaSeq/countmatrices/newcounts.csv",
                           stringsAsFactors = TRUE
                           )
 rownames(count_matrix0) <- count_matrix0[, 1] # make the symbols as rownames
 count_matrix0 <- subset(count_matrix0, select = -X) # remove the X and symbol columns
-
 colnames(count_matrix0) <- str_remove_all(colnames(count_matrix0),
                                       pattern="run6_trimmed_|_.bam|_S\\d\\d|_S\\d"
                                           )
@@ -118,7 +117,6 @@ symbols <- mapIds(
   keytype = "ENSEMBL",
   multiVals = "first"
 )
-
 symbols <- symbols[!is.na(symbols)]
 symbols <- symbols[match(rownames(count_matrix0), names(symbols))]
 head(symbols, 25)
@@ -131,10 +129,8 @@ nrow(count_matrix0)
 count_matrix0 <- tibble::rownames_to_column(count_matrix0, "E_ID")
 # Removing the duplicated genes so that then these genes can be made into rownames for countsmatrix
 count_matrix0 <- distinct(count_matrix0[!duplicated(count_matrix0$genename), ])
-
 # Now make the ganename column into rownames of count matrix
 rownames(count_matrix0) <- count_matrix0[, "genename"]
-
 # dropping the column E_ID, genenames so that only numeric values are present in it as an input of DESEq Object.
 count_matrix0 <- subset(count_matrix0, select = -c(genename, E_ID)) #
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
@@ -165,7 +161,6 @@ dds <- DESeqDataSetFromMatrix(countData = count_matrix0,
                               colData = coldata,
                               design = ~condition
 )
-
 dds <- DESeq(dds)
 nrow(dds)
 ```
@@ -173,17 +168,15 @@ nrow(dds)
 ## VST Transformation
 
 ```{r}
-
 keep <- rowSums(counts(dds)) > 10
 dds <- dds[keep, ]
 nrow(dds)
-
 # vsd <- vst(dds, blind = FALSE)
 # head(assay(vsd), 3)
 vsd <- varianceStabilizingTransformation(dds)
 ```
 ```{r}
-library(genefilter)
+
 ```
 ```{r}
 wpn_vsd <- getVarianceStabilizedData(dds)
@@ -237,7 +230,6 @@ head(input_mat)
 ```
 
 ```{r}
-
 count_matrix <- input_mat[-c(15,16), ]
 dim(count_matrix)
 ```
@@ -250,7 +242,6 @@ head(count_matrix)
 
 ```{r}
 sampleTree <- hclust(dist(count_matrix), method = "average")
-
 plot(sampleTree, hang = -1)
 ```
 
@@ -298,7 +289,6 @@ text(sft$fitIndices[, 1], -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
 )
 # this line corresponds to using an R^2 cut-off of h
 abline(h = 0.8, col = "green")
-
 # Mean connectivity as a function of the soft-thresholding power
 plot(sft$fitIndices[, 1], 
      sft$fitIndices[, 5],
@@ -316,7 +306,6 @@ count_matrix <- apply(count_matrix, 2, function(x) as.numeric(as.character(x)))
 
 ```{r}
 cor <- WGCNA::cor
-
 net <- blockwiseModules(count_matrix,
   power = 10,
   TOMType = "signed",
@@ -344,7 +333,9 @@ plotDendroAndColors(net$dendrograms[[1]],
   modulecolors[net$blockGenes[[1]]],
   "Module Colors",
   dendroLabels = FALSE,
+  autoColorHeight = TRUE,
   addGuide = TRUE,
+  addTextGuide = TRUE,
   hang = 0.05,
   guideHang = 0.05
 )
@@ -379,7 +370,6 @@ effector <- t(effector) # transposing to have same number of rows and cols for c
 
 ```{r}
 MEs <- orderMEs(MEs0)
-
 moduleTraitCor = cor(MEs, effector, use = "p" )
 moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
 ```
@@ -391,19 +381,25 @@ moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
 textMatrix = paste(signif(moduleTraitCor, 1),
                    "\n (",
                    signif(moduleTraitPvalue,1),
-                   "\n)",
+                   ")\n",
                    sep = ""
                    )
 dim(textMatrix) = dim(moduleTraitCor)
+```
+
+```{r}
+textMatrix_df <- as.data.frame(textMatrix)
 ```
 
 
 
 ## Display Correlation Value with heatmap plot
 
-The correlation is given and respetive pvalue is displayed in brackets.
+1. Each row corresponds to a module eigengene, column to a trait (effector in our case). 
+2. Each cell contains the corresponding correlation and p-value (pvalue is displayed in brackets). 
+3. The table is color-coded by correlation according to the color legend.
 
-```{r fig.height=8, fig.width=15}
+```{r fig.height=8, fig.width=16}
 labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = names(data.frame(effector)),
                yLabels = names(MEs),
@@ -411,10 +407,21 @@ labeledHeatmap(Matrix = moduleTraitCor,
                colorLabels = FALSE,
                colors = blueWhiteRed(50),
                textMatrix = textMatrix,
-               setStdMargins = TRUE,
-               cex.text = 0.6,
-               main = paste("T3SS Effector relationships with Modules of Differential Genes")
+               setStdMargins = FALSE,
+               cex.text = 0.66,
+               main = paste("T3SS Effector relationships with Modules of Differential Genes"),
+               keepLegendSpace = TRUE,
+               horizontalSeparator.y = c(1:12),
+               verticalSeparator.x = c(1:56),
+               plotLegend = TRUE
   
 )
+```
+## Relationship of Genes to Effectors and Important Modules
+
+Gene Significance (GS) : the association of individual genes with interesting effectors(weight) can be quantified by GS, as the (absolute value of ) correlation between and effector. 
+
+```{r}
+
 ```
 
