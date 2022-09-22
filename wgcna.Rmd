@@ -185,16 +185,12 @@ nrow(dds)
 vsd <- varianceStabilizingTransformation(dds)
 ```
 ```{r}
-
-```
-```{r}
 wpn_vsd <- getVarianceStabilizedData(dds)
 rv_wpn <- rowVars(wpn_vsd)
 # summary(rv_wpn)
 q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
-```
-```{r}
-normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
+
+normalized_input <- wpn_vsd[rv_wpn > q95_wpn,]
 head(normalized_input)
 ```
 ```{r}
@@ -247,6 +243,20 @@ dim(count_matrix)
 head(count_matrix)
 ```
 
+## using log2Fc tabel with Zero thresh
+```{r}
+# count_matrix_zerothresh <- read.csv("~/2D_Analysis/l2fctable_InfectedvsControl_BL6_zerothresh.csv", 
+#                               stringsAsFactors = TRUE)
+# #
+# 
+# rownames(count_matrix_zerothresh) <- count_matrix_zerothresh[, 2] # make the symbols as rownames
+# count_matrix_zerothresh <- subset(count_matrix_zerothresh, select = -c(X, symbol)) # remove the X and symbol columns
+# ```
+# 
+# ```{r}
+# count_matrix <- count_matrix_zerothresh
+```
+
 ## Cluster the samples
 
 ```{r}
@@ -271,7 +281,7 @@ plotDendroAndColors(sampleTree2,
 
 ```{r}
 # Choose a set of soft-thresholding powers
-powers <- c(c(1:10), seq(from = 1, to = 20, by = 1))
+powers <- c(c(1:20), seq(from = 1, to = 20, by = 1))
 # Call the network topology analysis function
 sft <- pickSoftThreshold(count_matrix, 
                          powerVector = powers,
@@ -320,8 +330,8 @@ net <- blockwiseModules(count_matrix,
   TOMType = "signed",
   minModuleSize = 10,
   reassignThreshold = 0,
-  mergeCutHeight = 0.1,
-  numericLabels = TRUE,
+  mergeCutHeight = 0.005,
+  numericLabels = FALSE,
   pamRespectsDendro = FALSE,
   saveTOMs = TRUE,
   saveTOMFileBase = "TOM",
@@ -394,9 +404,7 @@ textMatrix = paste(signif(moduleTraitCor, 1),
                    sep = ""
                    )
 dim(textMatrix) = dim(moduleTraitCor)
-```
 
-```{r}
 textMatrix_df <- as.data.frame(textMatrix)
 ```
 
@@ -420,7 +428,7 @@ labeledHeatmap(Matrix = moduleTraitCor,
                cex.text = .7,
                main = paste("All relationships of T3SS Effector with Modules of Differential Genes"),
                keepLegendSpace = TRUE,
-               horizontalSeparator.y = c(1:12),
+               #horizontalSeparator.y = c(1:14),
                verticalSeparator.x = c(1:56),
                plotLegend = TRUE
   
@@ -452,14 +460,14 @@ labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = names(data.frame(effector)),
                yLabels = substring(names(MEs), 3),
                ySymbols = substring(names(MEs), 3),
-               colorLabels = FALSE,
-               colors = blueWhiteRed(50),
+               colorLabels = TRUE,
+               colors = blueWhiteRed(100),
                textMatrix = textMatrix_filtered,
                setStdMargins = FALSE,
                cex.text = .7,
                main = paste("Statistically significant relationships of T3SS Effectors with Modules of Differential Genes"),
                keepLegendSpace = TRUE,
-               horizontalSeparator.y = c(1:12),
+               horizontalSeparator.y = c(1:14),
                verticalSeparator.x = c(1:56),
                plotLegend = TRUE
 
@@ -471,6 +479,17 @@ labeledHeatmap(Matrix = moduleTraitCor,
 #names(count_matrix)[modulecolors =="black"]
 black_module <- filter(module_df, colors == "black")
 turquoise_module <- filter(module_df, colors == "turquoise")
+grey_module <- filter(module_df, colors == "grey")
+magenta_module <- filter(module_df, colors == "magenta")
+salmon_module <- filter(module_df, colors == "salmon")
+tan_module <- filter(module_df, colors == "tan")
+```
+
+```{r}
+write.csv(magenta_module,file = "magenta_module.csv")
+write.csv(black_module,file = "black_module.csv")
+write.csv(turquoise_module,file = "turquoise_module.csv")
+write.csv(grey_module,file = "grey_module.csv")
 ```
 
 # Relationship of Genes to Effectors and Important Modules
