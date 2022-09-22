@@ -328,9 +328,9 @@ cor <- WGCNA::cor
 net <- blockwiseModules(count_matrix,
   power = 15,
   TOMType = "signed",
-  minModuleSize = 10,
+  minModuleSize = 5,
   reassignThreshold = 0,
-  mergeCutHeight = 0.005,
+  mergeCutHeight = 0.05,
   numericLabels = FALSE,
   pamRespectsDendro = FALSE,
   saveTOMs = TRUE,
@@ -479,10 +479,14 @@ labeledHeatmap(Matrix = moduleTraitCor,
 #names(count_matrix)[modulecolors =="black"]
 black_module <- filter(module_df, colors == "black")
 turquoise_module <- filter(module_df, colors == "turquoise")
-grey_module <- filter(module_df, colors == "grey")
+royalblue_module <- filter(module_df, colors == "royalblue")
 magenta_module <- filter(module_df, colors == "magenta")
 salmon_module <- filter(module_df, colors == "salmon")
 tan_module <- filter(module_df, colors == "tan")
+lightgreen_module <- filter(module_df, colors == "lightgreen")
+lightyellow_module <- filter(module_df, colors == "lightyellow")
+grey60_module <- filter(module_df, colors == "grey60")
+
 ```
 
 ```{r}
