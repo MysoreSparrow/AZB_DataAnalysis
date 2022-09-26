@@ -47,7 +47,7 @@ suppressPackageStartupMessages(library("enrichplot"))
 suppressPackageStartupMessages(library("ggnewscale"))
 suppressPackageStartupMessages(library("glue"))
 suppressPackageStartupMessages(library("ggupset"))
-# suppressPackageStartupMessages(library("SPIA"))
+suppressPackageStartupMessages(library("stringr"))
 suppressPackageStartupMessages(library("stats"))
 suppressPackageStartupMessages(library("FactoMineR"))
 suppressPackageStartupMessages(library("factoextra"))
@@ -129,7 +129,7 @@ coldata$Epithelial_response <- c(
 coldata$clinical_outcome <- c(
   "symptomatic", "symptomatic", "symptomatic",
   "Lethal", "asymptomatic", "Lethal", "symptomatic",
-  "asymptomatic", "Lethal", "symptomatic", "symptomatic",
+  "asymptomatic", "Lethal", "asymptomatic", "symptomatic",
   "Lethal", "asymptomatic", "Lethal", "NR", "NR"
 )
 coldata$microcolonies <- c(
@@ -149,7 +149,7 @@ coldata$phylogenomic_lineage <- c(
 )
 coldata$phylogroup <- c(
   "B2", "A", "B2", "B2", "B1", "A", "B2", "B2", "B1", "B2", "B1",
-  "B2", "B1", "B2", "NR", "NR"
+  "B2", "B1", "B1", "NR", "NR"
 )
 coldata$Intimin_Type <- c(
   "alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
@@ -282,8 +282,8 @@ saveplot <- function(plot, name) {
       glue("/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/{name}.png"),
     plot = plot,
     dpi = 300,
-    width = 10,
-    height = 10,
+    width = 25,
+    height = 25,
     units = "in"
   )
 }
@@ -518,7 +518,7 @@ percentVar_infected
 ) +
   xlab(paste0("PC1: ", percentVar_infected[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  ggtitle("BL6 InfectedvsControl") +
   scale_colour_manual(values = color_values) +
   theme.my.own)
 
@@ -539,7 +539,7 @@ savingFunction(PCAplot_vst, "condition")
 ) +
   xlab(paste0("PC2: ", percentVar_infected[2], "% variance")) +
   ylab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  ggtitle("BL6 InfectedvsControl") +
   scale_colour_manual(values = color_values) +
   theme.my.own)
 
@@ -569,7 +569,7 @@ ggsave(
 ) +
   xlab(paste0("PC3: ", percentVar_infected[3], "% variance")) +
   ylab(paste0("PC4: ", percentVar_infected[4], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedvsControl") +
+  ggtitle("BL6 InfectedvsControl") +
   scale_colour_manual(values = color_values) +
   theme.my.own)
 
@@ -602,7 +602,7 @@ percentVar_infected_ER <- percentvar_calculation(PCAdata_infected_ER)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_ER[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_ER[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedvsControl - Epithelial_response") +
+  ggtitle("BL6 InfectedvsControl - Epithelial_response") +
   theme.my.own)
 
 savingFunction(PCAplot_ER, "Epithelial_response")
@@ -627,7 +627,7 @@ percentVar_infected_MC <- percentvar_calculation(PCAdata_infected_MC)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_MC[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_MC[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedvsControl - Microcolonies") +
+  ggtitle("BL6 InfectedvsControl - Microcolonies") +
   theme.my.own)
 
 savingFunction(PCAplot_MC, "microcolonies")
@@ -652,7 +652,7 @@ percentVar_infected_CO <- percentvar_calculation(PCAdata_infected_CO)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_CO[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_CO[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedVsControl - Clinical Outcome") +
+  ggtitle("BL6 InfectedVsControl - Clinical Outcome") +
   theme.my.own)
 
 savingFunction(PCAplot_CO, "clinical_outcome")
@@ -661,7 +661,8 @@ savingFunction(PCAplot_CO, "clinical_outcome")
 ### PCA for ER_Microcolonies
 
 ```{r fig.height=6, fig.width=8}
-PCAdata_infected_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), returnData = TRUE)
+PCAdata_infected_ERMC <- plotPCA(vsd, intgroup = c("Sample_Name", "ER_microcolonies"), 
+                                 returnData = TRUE)
 percentVar_infected_ERMC <- percentvar_calculation(PCAdata_infected_ERMC)
 
 (PCAplot_ERMC <- ggplot(
@@ -674,7 +675,7 @@ percentVar_infected_ERMC <- percentvar_calculation(PCAdata_infected_ERMC)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_ERMC[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_ERMC[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedVsControl - ER_Microcolonies") +
+  ggtitle("BL6 InfectedVsControl - ER_Microcolonies") +
   theme.my.own)
 
 savingFunction(PCAplot_ERMC, "ER_microcolonies")
@@ -702,7 +703,7 @@ percentVar_infected_PL <- percentvar_calculation(PCAdata_infected_PL)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_PL[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_PL[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedVsControl - Phylogenomic Lineage") +
+  ggtitle("BL6 InfectedVsControl - Phylogenomic Lineage") +
   theme.my.own)
 
 savingFunction(PCAplot_PL, "phylogenomic_lineage")
@@ -724,7 +725,7 @@ percentVar_infected_PG <- percentvar_calculation(PCAdata_infected_PG)
 ) +
   xlab(paste0("PC1: ", percentVar_infected_PG[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_PG[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedVsControl - Phylogroup") +
+  ggtitle("BL6 InfectedVsControl - Phylogroup") +
   theme.my.own)
 
 savingFunction(PCAplot_PG, "phylogroup")
@@ -747,7 +748,7 @@ percentVar_infected_IT <- round(100 * attr(PCAdata_infected_IT, "percentVar"), d
 ) +
   xlab(paste0("PC1: ", percentVar_infected_IT[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar_infected_IT[2], "% variance")) +
-  ggtitle("PCA Plot - BL6 InfectedVs Control - Intimin type") +
+  ggtitle("BL6 InfectedVs Control - Intimin type") +
   theme.my.own)
 
 savingFunction(PCAplot_IT, "Intimin_Type")
@@ -1053,7 +1054,7 @@ p1 <- EnhancedVolcano(res3df_infected,
   title = "DE genes: Log2FoldChange Vs -Log10 Pvalue",
   subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
   pointSize = 2.0,
-  labSize = 5.0,
+  labSize = 5.5,
   boxedLabels = FALSE,
   gridlines.major = FALSE,
   gridlines.minor = FALSE,
@@ -1063,7 +1064,8 @@ p1 <- EnhancedVolcano(res3df_infected,
   legendIconSize = 4.0,
   drawConnectors = T,
   widthConnectors = 0.75,
-  max.overlaps = 8
+  max.overlaps = 8,
+  axisLabSize = 22
 )
 (volcano1 <- p1 + scale_y_continuous(
   limits = c(0, 8),
@@ -1118,7 +1120,8 @@ p2 <- EnhancedVolcano(res3df_infected,
   legendIconSize = 4.0,
   drawConnectors = T,
   widthConnectors = 0.75,
-  max.overlaps = 10
+  max.overlaps = 8,
+  axisLabSize = 22
 )
 
 (volcano2 <- p2 + scale_y_continuous(
@@ -1275,6 +1278,7 @@ newHP <- Heatmap(mat2.zs,
   show_row_names = FALSE,
   use_raster = TRUE,
   raster_quality = 5,
+  column_names_gp = grid::gpar(fontsize = 12),
   # width = unit(8, "in"),
   # height = unit(8, "in")
   row_labels = sigs2df_infected[rownames(mat2.zs), ]$symbol
@@ -1291,6 +1295,7 @@ LongHeatMap_Allgenes <- Heatmap(mat2.zs,
   show_row_names = TRUE,
   use_raster = TRUE,
   raster_quality = 5,
+  column_names_gp = grid::gpar(fontsize = 12),
 )
 LongHeatMap_Allgenes
 # saveplot(LongHeatMap_Allgenes, "LongHeatMap_Allgenes")
@@ -1314,7 +1319,8 @@ Heatmap(mat1.zs,
   cluster_rows = TRUE,
   column_labels = colnames(mat1.zs),
   name = "DE Genes",
-  row_labels = sigs1df_infected$symbol
+  row_labels = sigs1df_infected$symbol,
+  column_names_gp = grid::gpar(fontsize = 12)
 )
 ```
 
@@ -1351,21 +1357,21 @@ write.csv(GO_UpRegdf_infected, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/Iv
 
 ```{r fig.height=8}
 GO_UPReg_Barplot_infected <- plot(barplot(GO_UPRegResults_infected, showCategory = 21, 
-                                          font.size = 20,
+                                          font.size = 40,
                                           title = "InfectedVsControl Up Regulated",
-                                          label_format = 75))
+                                          label_format = 60))
 saveplot(GO_UPReg_Barplot_infected, "GO_UPReg_Barplot_infected")
 ```
 
 ```{r fig.height=10}
 GO_UPReg_Dotplot_infected <- plot(dotplot(GO_UPRegResults_infected, 
                                           showCategory = 23, 
-                                          font.size = 22,
+                                          font.size = 42,
                                           title = "InfectedVsControl Up Regulated",
-                                          label_format = 75
+                                          label_format = 60
                                           ))
 #GO_UPReg_Dotplot_infected1 <- GO_UPReg_Dotplot_infected + scale_y_discrete(labels=function(y) str_wrap(y, width=40))
-#saveplot(GO_UPReg_Dotplot_infected, "GO_UPReg_Dotplot_infected")
+saveplot(GO_UPReg_Dotplot_infected, "GO_UPReg_Dotplot_infected")
 ```
 
 ```{r fig.height=10, fig.width=12}
