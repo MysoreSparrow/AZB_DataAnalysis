@@ -4,7 +4,7 @@ Package_List <- c(
   "dplyr", "DESeq2", "pheatmap", "PoiClaClu", "RColorBrewer", "vsn", "EnhancedVolcano", "gplots",
   "org.Mm.eg.db", "stringr", "genefilter", "tidyverse", "AnnotationDbi", "ComplexHeatmap", "DOSE",
   "clusterProfiler", "ggrepel", "GO.db", "GOstats", "gage", "gageData", "GOSemSim", "enrichplot",
-  "ggnewscale", "glue", "ggupset", "FactoMineR", "factoextra", "here", "tibble"
+  "ggnewscale", "glue", "ggupset", "FactoMineR", "factoextra", "here", "tibble", "edgeR"
 )
 not_installed <- Package_List[!(Package_List %in% installed.packages()[, "Package"])] # Extract not installed packages
 if (length(not_installed)) install.packages(not_installed) # Install the uninstalled packages
@@ -322,7 +322,6 @@ heat.colors <- brewer.pal(6, "RdYlBu")
 saveplot(Genes_Biplot, plotname = "Genes_Biplot")
 
 (Genes_contributions_Biplot <- fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
-                                            habillage = res.pca$
                                             labelsize = 6,
                                             gradient.cols = c("Gray", "blue", "pink", "yellow", "orange",
                                                               "green", "red", "black")
@@ -679,6 +678,6 @@ keep <- rowSums(cpmtable) > 0
 cpmtable <- cpmtable[keep, ]
 nrow(cpmtable)
 
-write.csv(cpmtable, "/home/keshavprasadgubbi/Documents/AlinaRnaSeq/IvC/CPMtable_BL6.csv")
+write.csv(cpmtable, file = file.path(Comparison_path , glue("CPMTable_{Comparison}.csv")))
 
 sessionInfo()
