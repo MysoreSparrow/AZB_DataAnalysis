@@ -391,7 +391,7 @@ volcano1 <- EnhancedVolcano(resdf,
                             title = glue("DE genes: Log2FoldChange Vs -Log10 Pvalue: {Comparison}"),
                             subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
                             pointSize = 2.0,
-                            labSize = 5.5,
+                            labSize = 6,
                             boxedLabels = FALSE,
                             gridlines.major = FALSE,
                             gridlines.minor = FALSE,
@@ -401,12 +401,12 @@ volcano1 <- EnhancedVolcano(resdf,
                             legendIconSize = 4.0,
                             drawConnectors = T,
                             widthConnectors = 0.75,
-                            max.overlaps = 15,
+                            max.overlaps = 12,
                             axisLabSize = 22
 )
 (volcano1 <- volcano1 + scale_y_continuous(limits = c(0, 8), breaks = seq(0, 8, 1),
                                            sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)) +
-    scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1),
+    scale_x_continuous(limits = c(-5, 10), breaks = seq(-5, 10, 2),
                        sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)) )
 #xlab(expression(DownRegulated %<->% UpRegulated)))
 saveplot(volcano1, plotname = "Volcano_pvalue")
@@ -423,7 +423,7 @@ volcano2 <- EnhancedVolcano(resdf,
                             title = glue("DE genes: Log2FoldChange Vs -Log10 Padj: {Comparison}"),
                             subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
                             pointSize = 2.0,
-                            labSize = 5.0,
+                            labSize = 6.0,
                             boxedLabels = FALSE,
                             gridlines.major = FALSE,
                             gridlines.minor = FALSE,
@@ -433,12 +433,12 @@ volcano2 <- EnhancedVolcano(resdf,
                             legendIconSize = 4.0,
                             drawConnectors = T,
                             widthConnectors = 0.75,
-                            max.overlaps = 15,
+                            max.overlaps = 12,
                             axisLabSize = 22
 )
 (volcano2 <- volcano2 + scale_y_continuous(limits = c(0, 4), breaks = seq(0, 4, 1),
                                            sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)) +
-    scale_x_continuous(limits = c(-4, 4), breaks = seq(-4, 4, 1),
+    scale_x_continuous(limits = c(-5, 10), breaks = seq(-5, 10, 2),
                        sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)))
 #xlab(expression(DownRegulated %<->% UpRegulated))
 saveplot(volcano2, plotname = "Volcano_padj")
