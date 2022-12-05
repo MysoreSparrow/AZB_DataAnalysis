@@ -230,7 +230,7 @@ color_values <- c("red", "red", "red", "red",  "black", "black", "red", "red", "
                   "red", "red", "red", "blue")
 # The basic set of common aesthetic settings for PCA plots,
 theme.my.own <- list(theme_bw(),
-                     geom_point(size = 3),
+                     geom_point(size = 5),
                      coord_fixed(),
                      scale_y_continuous(breaks = seq(-100, 100, 10),
                                         sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)),
@@ -239,13 +239,13 @@ theme.my.own <- list(theme_bw(),
                      theme_classic(),
                      geom_hline(yintercept = 0, color = "gray", linewidth = 1),
                      geom_vline(xintercept = 0, color = "gray", linewidth = 1),
-                     theme(text = element_text(size = 24),
-                           axis.text = element_text(size = 24),
+                     theme(text = element_text(size = 36),
+                           axis.text = element_text(size = 36),
                            #legend.position = "bottom",
                            legend.position = "none", # if one wants to remove the legend
                            aspect.ratio = 1),
                      #geom_text(size = 8),
-                     geom_text_repel(size = 8, min.segment.length = 0.1)
+                     geom_text_repel(size = 14, min.segment.length = 0.1)
 )
 # PCA Plot Calculation
 # Calculating all PCA Values
@@ -314,6 +314,7 @@ saveplot(PCAplot_vst, plotname = "PCA_PC1vsPC2")
     scale_colour_manual(values = color_values) +
     theme.my.own)
 saveplot(PCAplot_pc34, plotname = "PCA_PC3vsPC4")
+
 
 # ************************FactoExtra************************
 # calculate the variance for top 500 gene
