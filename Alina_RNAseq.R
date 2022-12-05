@@ -232,10 +232,13 @@ color_values <- c("red", "red", "red", "red",  "black", "black", "red", "red", "
 theme.my.own <- list(theme_bw(),
                      geom_point(size = 5),
                      coord_fixed(),
-                     scale_y_continuous(breaks = seq(-100, 100, 10),
-                                        sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)),
-                     scale_x_continuous(breaks = seq(-100, 100, 10),
-                                        sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)),
+                     scale_y_continuous(#limits = c(-15, 20),
+                                        breaks = seq(-15, 20, 5),
+                                        sec.axis = sec_axis(~ . * 1, labels = NULL)), #breaks = NULL
+
+                     scale_x_continuous(#limits = c(-15, 20),
+                                        breaks = seq(-15, 20, 5),
+                                        sec.axis = sec_axis(~ . * 1, labels = NULL)), #breaks = NULL
                      theme_classic(),
                      geom_hline(yintercept = 0, color = "gray", linewidth = 1),
                      geom_vline(xintercept = 0, color = "gray", linewidth = 1),
@@ -305,17 +308,13 @@ percentVar
 saveplot(PCAplot_vst, plotname = "PCA_PC1vsPC2")
 
 # PCA Plot : PC3 vs PC4
-(PCAplot_pc34 <- ggplot(
-  pcaData,
-  aes(x = PC3,y = PC4, color = Sample_Name, label = Sample_Name)) +
+(PCAplot_pc34 <- ggplot(pcaData, aes(x = PC3,y = PC4, color = Sample_Name, label = Sample_Name)) +
     xlab(paste0("PC3: ", percentVar[3], "% variance")) +
     ylab(paste0("PC4: ", percentVar[4], "% variance")) +
     ggtitle(glue("PCA: {Comparison}")) +
     scale_colour_manual(values = color_values) +
     theme.my.own)
 saveplot(PCAplot_pc34, plotname = "PCA_PC3vsPC4")
-
-
 # ************************FactoExtra************************
 # calculate the variance for top 500 gene
 
