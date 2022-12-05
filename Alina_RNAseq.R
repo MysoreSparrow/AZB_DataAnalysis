@@ -153,6 +153,7 @@ class(countsmatrix) <- "numeric"
 ### Reduce larger Matrix to smaller one - based on comparison
 paste0(Comparison )
 
+
 # **********************FUNCTIONS******************************************************************
 # Function to save generic plots
 saveplot <- function(plot, plotname) {
@@ -183,9 +184,22 @@ keep <- rowSums(counts(dds)) > 10
 dds <- dds[keep, ]
 nrow(dds)
 ## Applying VST transformation
-vsd <- vst(dds, blind = FALSE)
-vsd_coldata <- colData(vsd)
+vsd <- vst(dds, blind = FALSE) # Apply Variance Stabilizing Transformation
+vsd_coldata <- colData(vsd) # Creating a SummarizedExperiment objects
 dds <- estimateSizeFactors(dds)
+
+##############################for 2D Analysis#############################################
+vsd <- varianceStabilizingTransformation(dds)
+dds <- estimateDispersions(dds)
+wpn_vsd <- getVarianceStabilizedData(dds)
+rv_wpn <- rowVars(wpn_vsd)
+summary(rv_wpn)
+# q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
+# normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
+# head(normalized_input)
+write.csv(rv_wpn, file.path(here(), "mappedcounts.csv"))
+###########################################################################
+
 ### Euclidean Distance between samples
 sampleDists <- dist(t(assay(vsd)))
 sampleDistMatrix <- as.matrix(sampleDists)
@@ -225,12 +239,13 @@ theme.my.own <- list(theme_bw(),
                      theme_classic(),
                      geom_hline(yintercept = 0, color = "gray", linewidth = 1),
                      geom_vline(xintercept = 0, color = "gray", linewidth = 1),
-                     theme(text = element_text(size = 20),
-                           axis.text = element_text(size = 15),
-                           legend.position = "bottom",
+                     theme(text = element_text(size = 24),
+                           axis.text = element_text(size = 24),
+                           #legend.position = "bottom",
+                           legend.position = "none", # if one wants to remove the legend
                            aspect.ratio = 1),
                      #geom_text(size = 8),
-                     geom_text_repel(size = 6, min.segment.length = 0.1)
+                     geom_text_repel(size = 8, min.segment.length = 0.1)
 )
 # PCA Plot Calculation
 # Calculating all PCA Values
@@ -270,7 +285,7 @@ plotPCA_local <- function(object, intgroup = "condition", ntop = 500, returnData
 ## PCA Plot with VST Data
 ### Function for calculating percentvar for different variables
 percentvar_calculation <- function(pcaData_variable) {
-  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 3)
+  percentvar_variable <- round(100 * attr(pcaData_variable, "percentVar"), digits = 1)
   return(percentvar_variable)
 }
 
@@ -319,6 +334,12 @@ var <- get_pca_var(res.pca)
 heat.colors <- brewer.pal(6, "RdYlBu")
 ## Genes + PCA Biplots
 (Genes_Biplot <- fviz_pca_biplot(res.pca, repel = TRUE, labelsize = 6))
+(Genes_Biplot <- Genes_Biplot + theme(text = element_text(size = 17),
+                                      axis.title = element_text(size = 17),
+                                      axis.text = element_text(size = 17),
+                                      legend.key.size = unit(3, 'cm'),
+                                      legend.text = element_text(size = 20))
+)
 saveplot(Genes_Biplot, plotname = "Genes_Biplot")
 
 (Genes_contributions_Biplot <- fviz_pca_var(res.pca, col.var = "contrib", repel = TRUE,
@@ -326,6 +347,12 @@ saveplot(Genes_Biplot, plotname = "Genes_Biplot")
                                             gradient.cols = c("Gray", "blue", "pink", "yellow", "orange",
                                                               "green", "red", "black")
                                             ))
+(Genes_contributions_Biplot <- (Genes_contributions_Biplot + theme(text = element_text(size = 17),
+                                                       axis.title = element_text(size = 17),
+                                                       axis.text = element_text(size = 17),
+                                                       legend.key.size = unit(1, 'cm'),
+                                                       legend.text = element_text(size = 20)
+                                                        )))
 saveplot(Genes_contributions_Biplot, plotname = "Genes_contributions_Biplot")
 # Contributions of variables to PC2
 (top25_genes_dim2 <- fviz_contrib(res.pca, choice = "var", axes = 2, top = 25))
@@ -468,7 +495,7 @@ colnames(mat.zs) <- coldata$Sample_Name# need to provide correct sample names fo
                             show_row_names = FALSE,
                             use_raster = TRUE,
                             raster_quality = 10,
-                            column_names_gp = grid::gpar(fontsize = 18),
+                            column_names_gp = grid::gpar(fontsize = 22),
                             #row_labels = sigs2df[rownames(mat2.zs), ]$symbol
                             heatmap_legend_param = list(legend_direction = "horizontal",
                                                         legend_width = unit(x= 5, units = "cm"))))
