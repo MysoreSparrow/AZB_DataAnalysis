@@ -18,9 +18,11 @@ paste0(here())
 # glue Variable. Define the Comparison and also create the folder for saving all plots and results to be
 # saved as per the comparison
 
-Comparison <- "BL6_InfectedVsControl"
+# Comparison <- "BL6_InfectedVsControl"
+Comparison <- "BL6_ER_HighInducerVsLowInducer"
 # Determine the Comparison Condition: Comment one of them out based on the comparison you are trying to run.
-Comparison_Condition <- "condition"
+# Comparison_Condition <- "condition"
+Comparison_Condition <- "Epithelial_response"
 
 # Folder Paths for Different Comparisons
 Comparison_path <- file.path(here(), glue("{Comparison}"))
@@ -31,9 +33,7 @@ paste0(Comparison_path)
 # for Example: UninfectedVSInfected is the volcano plot notation: for Deseq2 results,
 # the infected is Numerator.and uninfected is Denominator. which will result in DESEQ contrast like (condition, Infected, Uninfected) and hence the infected part will come on the right side of the volcano plot.
 
-
 ## Creating metadata for the DGE Analysis
-
 # Read the csv file and change the column name. the samples.csv is a list of sample names, ie, the names of bam files.
 
 sample_ID <- read.csv(file.path(here(), "/samples.csv"))
@@ -135,7 +135,7 @@ symbols <- as.data.frame(mapIds(org.Mm.eg.db,
                   multiVals = "first")) %>%
   rownames_to_column(var = "EID") %>% #move the ensemblID in rownames to separate column called EID
   drop_na() %>% # drop Na rows so that it reduces size of matrix. Na values arise due to 1:many mapping of ensembl.
-  rename(genename = 2) # chnage the name of 2nd column to genename
+  rename(genename = 2) # change the name of 2nd column to genename
 
 countsmatrix <- countsmatrix %>%
   filter(countsmatrix$EnsemblID %in% symbols$EID) %>% # keep the genes in countmatrix that have gene names in symbols, based on matching ensemblID columns.
@@ -152,8 +152,6 @@ class(countsmatrix) <- "numeric"
 # # *****************Now to the comparisons*************
 ### Reduce larger Matrix to smaller one - based on comparison
 paste0(Comparison )
-
-
 # **********************FUNCTIONS******************************************************************
 # Function to save generic plots
 saveplot <- function(plot, plotname) {
@@ -171,13 +169,24 @@ ncol(countsmatrix) == nrow(coldata)
 dim(countsmatrix)
 
 # Create DEseq Object based on design that was chosen through the Comparison_Condition that was chosen at the begininning of the script run.
-if (Comparison_Condition == "condition") {
-  ## Creating the DESeq Data set Object
-  dds <- DESeqDataSetFromMatrix(countData = countsmatrix, colData = coldata, design = ~condition)
-}else {
-  # dds <- DESeqDataSetFromMatrix(countData = countsmatrix, colData = coldata, design = ~Epithelial_response)
-  print("Design Condition Not Found in coldata column!")
-}
+# if (Comparison_Condition == "condition") {
+#   ## Creating the DESeq Data set Object
+#   dds <- DESeqDataSetFromMatrix(countData = countsmatrix, colData = coldata, design = ~condition)
+# }else {
+#   # dds <- DESeqDataSetFromMatrix(countData = countsmatrix, colData = coldata, design = ~Epithelial_response)
+#   print("Design Condition Not Found in coldata column!")
+# }
+paste0(Comparison_Condition )
+switch(Comparison_Condition,
+       "condition" = {(dds <-
+                         DESeqDataSetFromMatrix(countData = countsmatrix,
+                                                colData = coldata,
+                                                design = ~condition))},
+       "Epithelial_response" = {(dds <-
+                                   DESeqDataSetFromMatrix(countData = countsmatrix,
+                                                          colData = coldata,
+                                                          design = ~Epithelial_response))},
+)
 
 # Further filtering of low count genes
 keep <- rowSums(counts(dds)) > 10
@@ -189,15 +198,15 @@ vsd_coldata <- colData(vsd) # Creating a SummarizedExperiment objects
 dds <- estimateSizeFactors(dds)
 
 ##############################for 2D Analysis#############################################
-vsd <- varianceStabilizingTransformation(dds)
-dds <- estimateDispersions(dds)
-wpn_vsd <- getVarianceStabilizedData(dds)
-rv_wpn <- rowVars(wpn_vsd)
-summary(rv_wpn)
-# q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
-# normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
-# head(normalized_input)
-write.csv(rv_wpn, file.path(here(), "mappedcounts.csv"))
+# vsd <- varianceStabilizingTransformation(dds)
+# dds <- estimateDispersions(dds)
+# wpn_vsd <- getVarianceStabilizedData(dds)
+# rv_wpn <- rowVars(wpn_vsd)
+# summary(rv_wpn)
+# # q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
+# # normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
+# # head(normalized_input)
+# write.csv(wpn_vsd, file.path(here(), "mappedcounts.csv"))
 ###########################################################################
 
 ### Euclidean Distance between samples
@@ -368,9 +377,14 @@ dds <- DESeq(dds)
 ### Building the results table
 ### 2nd term will be the Nr.(Infected)
 switch(Comparison,
-"BL6_InfectedVsControl" = {res <- results(dds, cooksCutoff = FALSE, independentFiltering = FALSE,
+"BL6_InfectedVsControl" = {res <- results(dds,
+                                          cooksCutoff = FALSE,
+                                          independentFiltering = FALSE,
                                           contrast = c("condition", "Infected", "control"))},#BL6_InfectedVsControl
-# "adult_GFVsd7_GF"   = {res <- results(dds, contrast = c("condition", "d7", "adult"))}, #adult_GFVsd7_GF
+"BL6_ER_HighInducerVsLowInducer" = {res <- results(dds,
+                                                   cooksCutoff = FALSE,
+                                                   independentFiltering = FALSE,
+                                                   contrast = c("Epithelial_response", "HighInducer", "LowInducer"))}, #Epithelial_response
 # "adult_WTVsd7_WT"   = {res <- results(dds, contrast = c("condition", "d7", "adult"))}, #adult_WTVsd7_WT
 # "d7_WTVsd7_spF"     = {res <- results(dds, contrast = c("MouseType", "SPF", "WLD"))}, # d7_WTVsd7_spF
 # "d7_GFVsd7_SPF"     = {res <- results(dds, contrast = c("MouseType", "SPF", "GF"))},# d7_GFVsd7_SPF
@@ -418,7 +432,7 @@ volcano1 <- EnhancedVolcano(resdf,
                             title = glue("DE genes: Log2FoldChange Vs -Log10 Pvalue: {Comparison}"),
                             subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
                             pointSize = 2.0,
-                            labSize = 6,
+                            labSize = 8,
                             boxedLabels = FALSE,
                             gridlines.major = FALSE,
                             gridlines.minor = FALSE,
@@ -428,8 +442,8 @@ volcano1 <- EnhancedVolcano(resdf,
                             legendIconSize = 4.0,
                             drawConnectors = T,
                             widthConnectors = 0.75,
-                            max.overlaps = 12,
-                            axisLabSize = 22
+                            max.overlaps = 15,
+                            axisLabSize = 25
 )
 (volcano1 <- volcano1 + scale_y_continuous(limits = c(0, 8), breaks = seq(0, 8, 1),
                                            sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)) +
@@ -450,7 +464,7 @@ volcano2 <- EnhancedVolcano(resdf,
                             title = glue("DE genes: Log2FoldChange Vs -Log10 Padj: {Comparison}"),
                             subtitle = bquote(~ Log[2] ~ "|FoldChange| = 1, pvalue < 0.05"),
                             pointSize = 2.0,
-                            labSize = 6.0,
+                            labSize = 8,
                             boxedLabels = FALSE,
                             gridlines.major = FALSE,
                             gridlines.minor = FALSE,
@@ -460,10 +474,10 @@ volcano2 <- EnhancedVolcano(resdf,
                             legendIconSize = 4.0,
                             drawConnectors = T,
                             widthConnectors = 0.75,
-                            max.overlaps = 12,
-                            axisLabSize = 22
+                            max.overlaps = 15,
+                            axisLabSize = 25
 )
-(volcano2 <- volcano2 + scale_y_continuous(limits = c(0, 4), breaks = seq(0, 4, 1),
+(volcano2 <- volcano2 + scale_y_continuous(limits = c(0, 8), breaks = seq(0, 8, 1),
                                            sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)) +
     scale_x_continuous(limits = c(-5, 10), breaks = seq(-5, 10, 2),
                        sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)))
