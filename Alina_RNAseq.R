@@ -19,13 +19,13 @@ paste0(here())
 # saved as per the comparison
 
 # Comparison <- "BL6_InfectedVsControl"
-# Comparison <- "BL6_ER_HighInducerVsLowInducer"
-Comparison <- "BL6_MC_HighVsLow"
+Comparison <- "BL6_ER_HighInducerVsLowInducer"
+# Comparison <- "BL6_MC_HighVsLow"
 
 # Determine the Comparison Condition: Comment one of them out based on the comparison you are trying to run.
 # Comparison_Condition <- "condition"
-# Comparison_Condition <- "Epithelial_response"
-Comparison_Condition <- "microcolonies"
+Comparison_Condition <- "Epithelial_response"
+# Comparison_Condition <- "microcolonies"
 # Folder Paths for Different Comparisons
 Comparison_path <- file.path(here(), glue("{Comparison}"))
 
@@ -339,14 +339,32 @@ percentvar_calculation <- function(pcaData_variable) {
   return(percentvar_variable)
 }
 
-pcaData <- plotPCA_local(vsd, intgroup = c("condition", "Sample_Name"), returnData = T)
-# pcaData <- plotPCA_local(vsd, intgroup = c("MouseType", "Sample_Name"), returnData = T)
-pcaData
+
+switch(Comparison,
+       "BL6_InfectedVsControl" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("condition", "Sample_Name"),
+                                  returnData = T)
+       }, # BL6_InfectedVsControl
+       "BL6_ER_HighInducerVsLowInducer" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("Epithelial_response", "Sample_Name"),
+                                  returnData = T)
+       },
+       # Epithelial_response
+       "BL6_MC_HighVsLow" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("microcolonies", "Sample_Name"),
+                                  returnData = T)
+       }, # BL6_microcolonies
+)
+print(pcaData)
 percentVar <- percentvar_calculation(pcaData)
-percentVar
+print(percentVar)
 
 # PC Plot: PC1 vs PC2
-(PCAplot_vst <- ggplot(pcaData, aes(x = PC1, y = PC2, color = Sample_Name, label = Sample_Name)) +
+(PCAplot_vst <- ggplot(pcaData,
+                       aes(x = PC1, y = PC2, color = Sample_Name, label = Sample_Name)) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   ggtitle(glue("PCA: {Comparison}")) +
@@ -553,14 +571,20 @@ volcano2 <- EnhancedVolcano(resdf,
   drawConnectors = T,
   widthConnectors = 0.75,
   max.overlaps = 15,
-  axisLabSize = 25
+  axisLabSize = 25,
+  xlim = c(min(resdf$log2FoldChange, na.rm = TRUE) - 0.5, max(resdf$log2FoldChange, na.rm = TRUE) + 0.5),
+  ylim = c(0, max(-log10(resdf$pvalue)))
 )
-volcano2 <- volcano2 + scale_y_continuous(
-  limits = c(0, 8), breaks = seq(0, 8, 1),
-  sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)
-) +
+volcano2 <- volcano2 +
+  scale_y_continuous(
+    limits = c(0, max(-log10(resdf$pvalue))),
+    #breaks = seq(0, 8, 1),
+    sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)
+  ) +
   scale_x_continuous(
-    limits = c(-5, 10), breaks = seq(-5, 10, 2),
+    limits = c(min(resdf$log2FoldChange, na.rm = TRUE) - 0.5,
+               max(resdf$log2FoldChange, na.rm = TRUE) + 0.5),
+    #breaks = seq(, , 2),
     sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)
   )
 # xlab(expression(DownRegulated %<->% UpRegulated))
