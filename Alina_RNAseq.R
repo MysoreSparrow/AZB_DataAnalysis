@@ -18,14 +18,20 @@ paste0(here())
 # glue Variable. Define the Comparison and also create the folder for saving all plots and results to be
 # saved as per the comparison
 
-# Comparison <- "BL6_InfectedVsControl"
-Comparison <- "BL6_ER_HighInducerVsLowInducer"
+Comparison <- "BL6_InfectedVsControl"
+# Comparison <- "BL6_ER_HighInducerVsLowInducer"
 # Comparison <- "BL6_MC_HighVsLow"
-
+# Comparison <- "BL6_ERMC_755VsHiHM"
+# Comparison <- "BL6_ERMC_HiHMVsLiLM"
+# Comparison <- "BL6_HPosition_RightvsLeft"
+# Comparison <- "BL6_VPosition_TopVsDown"
 # Determine the Comparison Condition: Comment one of them out based on the comparison you are trying to run.
-# Comparison_Condition <- "condition"
-Comparison_Condition <- "Epithelial_response"
+Comparison_Condition <- "condition"
+# Comparison_Condition <- "Epithelial_response"
 # Comparison_Condition <- "microcolonies"
+# Comparison_Condition <- "ERMC_HiHMVsLiLM"
+# Comparison_Condition <- "HPosition_RightvsLeft"
+# Comparison_Condition <- "VPosition_TopVsDown"
 # Folder Paths for Different Comparisons
 Comparison_path <- file.path(here(), glue("{Comparison}"))
 
@@ -77,7 +83,7 @@ coldata[coldata == "Ctrl1_R1"] <- "C1"
 coldata[coldata == "Ctrl2_R2"] <- "C2"
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
-
+write.csv(coldata, file.path(here(), "coldata.csv"))
 # Adding the groupings by Alina for further Metadata Information
 
 coldata$Epithelial_response <- c(
@@ -116,6 +122,14 @@ coldata$Intimin_Type <- c(
   "alpha", "ND", "lambda", "lambda", "epsilon", "epsilon",
   "mu", "lambda", "beta", "kappa", "beta", "alpha", "beta",
   "beta", "NR", "NR"
+)
+coldata$HPosition <- c(
+  "Left", "Left", "Right", "Right", "Left", "Left", "Right", "Right", "Left",
+  "Right", "Left", "Right", "Left", "Left", "NR", "NR"
+)
+coldata$VPosition <- c(
+  "Top", "Top", "Bottom", "Top", "Bottom", "Bottom", "Top", "Top", "Bottom",
+  "Top", "Bottom", "Bottom", "Bottom", "Bottom", "NR", "NR"
 )
 
 # Lets Deal with the Countmatrix
@@ -159,7 +173,8 @@ countsmatrix <- countsmatrix[!duplicated(countsmatrix$genename), ] %>%
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
 colnames(countsmatrix) <- coldata$Sample_Name
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
-# class(countsmatrix) <- "numeric"
+class(countsmatrix) <- "numeric"
+# countsmatrix <- countsmatrix[rowSums(countsmatrix) > 1000 , ]
 write.csv(countsmatrix, file.path(here(), "genemappedcounts.csv"))
 # # *****************Now to the comparisons*************
 ### Reduce larger Matrix to smaller one - based on comparison
@@ -216,10 +231,42 @@ switch(Comparison_Condition,
         design = ~microcolonies
       ))
   },
+  "ERMC_755VsHiHM" = {
+    (dds <-
+       DESeqDataSetFromMatrix(
+         countData = countsmatrix,
+         colData = coldata,
+         design = ~ER_microcolonies
+       ))
+  },#ERMC_755VsHiHM
+  "ERMC_HiHMVsLiLM" = {
+    (dds <-
+       DESeqDataSetFromMatrix(
+         countData = countsmatrix,
+         colData = coldata,
+         design = ~ER_microcolonies
+       ))
+  }, #ERMC_HiHMVsLiLM
+  "HPosition_RightvsLeft" = {
+    (dds <-
+       DESeqDataSetFromMatrix(
+         countData = countsmatrix,
+         colData = coldata,
+         design = ~HPosition
+       ))
+  }, #HPosition_RightvsLeft
+  "VPosition_TopVsDown" = {
+    (dds <-
+       DESeqDataSetFromMatrix(
+         countData = countsmatrix,
+         colData = coldata,
+         design = ~VPosition
+       ))
+  }, #VPosition_TopVsDown
 )
 
 # Further filtering of low count genes
-keep <- rowSums(counts(dds)) > 10
+keep <- rowSums(counts(dds)) > 100
 dds <- dds[keep, ]
 nrow(dds)
 ## Applying VST transformation
@@ -228,15 +275,15 @@ vsd_coldata <- colData(vsd) # Creating a SummarizedExperiment objects
 dds <- estimateSizeFactors(dds)
 
 ############################## for 2D Analysis#############################################
-# vsd <- varianceStabilizingTransformation(dds)
-# dds <- estimateDispersions(dds)
-# wpn_vsd <- getVarianceStabilizedData(dds)
-# rv_wpn <- rowVars(wpn_vsd)
-# summary(rv_wpn)
-# # q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
-# # normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
-# # head(normalized_input)
-# write.csv(wpn_vsd, file.path(here(), "mappedcounts.csv"))
+vsd <- varianceStabilizingTransformation(dds)
+dds <- estimateDispersions(dds)
+wpn_vsd <- getVarianceStabilizedData(dds)
+rv_wpn <- rowVars(wpn_vsd)
+summary(rv_wpn)
+q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
+normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
+head(normalized_input)
+write.csv(wpn_vsd, file.path(here(), "normalisedmappedcounts.csv"))
 ###########################################################################
 
 ### Euclidean Distance between samples
@@ -339,7 +386,6 @@ percentvar_calculation <- function(pcaData_variable) {
   return(percentvar_variable)
 }
 
-
 switch(Comparison,
        "BL6_InfectedVsControl" = {
          pcaData <- plotPCA_local(vsd,
@@ -357,6 +403,26 @@ switch(Comparison,
                                   intgroup = c("microcolonies", "Sample_Name"),
                                   returnData = T)
        }, # BL6_microcolonies
+       "BL6_ERMC_755VsHiHM" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("ER_microcolonies", "Sample_Name"),
+                                  returnData = T)
+       }, # ERMC_HiHMVs755
+       "BL6_ERMC_HiHMVsLiLM" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("ER_microcolonies", "Sample_Name"),
+                                  returnData = T)
+       }, # BL6_ERMC_HiHMVsLiLM
+       "BL6_HPosition_RightvsLeft"  = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("HPosition", "Sample_Name"),
+                                  returnData = T)
+       }, # BL6_HPosition_RightvsLeft
+       "BL6_VPosition_TopVsDown" = {
+         pcaData <- plotPCA_local(vsd,
+                                  intgroup = c("VPosition", "Sample_Name"),
+                                  returnData = T)
+       }, # BL6_VPosition_TopVsDown
 )
 print(pcaData)
 percentVar <- percentvar_calculation(pcaData)
@@ -380,6 +446,112 @@ saveplot(PCAplot_vst, plotname = "PCA_PC1vsPC2")
   scale_colour_manual(values = color_values) +
   theme.my.own)
 saveplot(PCAplot_pc34, plotname = "PCA_PC3vsPC4")
+
+# ***************## PCA Plot for different groupings of metadata********************************
+if (Comparison == "condition") {
+# PCA for Epithelial_response
+
+PCAdata_ER <- plotPCA_local(vsd,
+                                    intgroup = c("Epithelial_response","Sample_Name"),
+                                    returnData = TRUE)
+percentVar_ER <- percentvar_calculation(PCAdata_ER)
+print(percentVar_ER)
+
+(PCAplot_ER <- ggplot(PCAdata_ER,
+                      aes(x = PC1, y = PC2, color = Epithelial_response, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_ER[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_ER[2], "% variance")) +
+    ggtitle(glue("PCA: Epithelial Response")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+  )
+saveplot(PCAplot_ER, plotname = "PCA_ER_PC1vsPC2")
+
+#  Microcolonies
+PCAdata_MC <- plotPCA_local(vsd,
+                            intgroup = c("microcolonies","Sample_Name"),
+                            returnData = TRUE)
+percentVar_MC <- percentvar_calculation(PCAdata_MC)
+print(percentVar_MC)
+
+(PCAplot_MC <- ggplot(PCAdata_MC,
+                      aes(x = PC1, y = PC2, color = microcolonies, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_ER[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_ER[2], "% variance")) +
+    ggtitle(glue("PCA: Microcolonies")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+)
+saveplot(PCAplot_MC, plotname = "PCA_MC_PC1vsPC2")
+
+#  ER_Microcolonies
+PCAdata_ERMC <- plotPCA_local(vsd,
+                            intgroup = c("ER_microcolonies","Sample_Name"),
+                            returnData = TRUE)
+percentVar_ERMC <- percentvar_calculation(PCAdata_ERMC)
+print(percentVar_ERMC)
+
+(PCAplot_ERMC <- ggplot(PCAdata_ERMC,
+                      aes(x = PC1, y = PC2, color = ER_microcolonies, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_ERMC[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_ERMC[2], "% variance")) +
+    ggtitle(glue("PCA: ER_Microcolonies")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+)
+saveplot(PCAplot_ERMC, plotname = "PCA_ERMC_PC1vsPC2")
+
+#  clinical_outcome
+PCAdata_CO <- plotPCA_local(vsd,
+                              intgroup = c("clinical_outcome","Sample_Name"),
+                              returnData = TRUE)
+percentVar_CO <- percentvar_calculation(PCAdata_CO)
+print(percentVar_CO)
+
+(PCAplot_CO <- ggplot(PCAdata_CO,
+                        aes(x = PC1, y = PC2, color = clinical_outcome, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_CO[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_CO[2], "% variance")) +
+    ggtitle(glue("PCA: Clinical_Outcome")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+)
+saveplot(PCAplot_CO, plotname = "PCA_CO_PC1vsPC2")
+
+#  phylogenomic_lineage
+PCAdata_PL <- plotPCA_local(vsd,
+                            intgroup = c("phylogenomic_lineage","Sample_Name"),
+                            returnData = TRUE)
+percentVar_PL <- percentvar_calculation(PCAdata_PL)
+print(percentVar_PL)
+
+(PCAplot_PL <- ggplot(PCAdata_PL,
+                      aes(x = PC1, y = PC2, color = phylogenomic_lineage, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_PL[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_PL[2], "% variance")) +
+    ggtitle(glue("PCA: Phylogenomic_Lineage")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+)
+saveplot(PCAplot_PL, plotname = "PCA_PL_PC1vsPC2")
+
+#  intimin_type
+PCAdata_IT <- plotPCA_local(vsd,
+                            intgroup = c("Intimin_Type","Sample_Name"),
+                            returnData = TRUE)
+percentVar_IT <- percentvar_calculation(PCAdata_IT)
+print(percentVar_IT)
+
+(PCAplot_IT <- ggplot(PCAdata_IT,
+                      aes(x = PC1, y = PC2, color = Intimin_Type, label = Sample_Name)) +
+    xlab(paste0("PC1: ", percentVar_IT[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_IT[2], "% variance")) +
+    ggtitle(glue("PCA: Intimin_Type")) +
+    # scale_colour_manual(values = color_values) +
+    theme.my.own
+)
+saveplot(PCAplot_IT, plotname = "PCA_IT_PC1vsPC2")
+}
 # ************************FactoExtra************************
 # calculate the variance for top 500 gene
 
@@ -413,14 +585,14 @@ saveplot(Genes_Biplot, plotname = "Genes_Biplot")
   axes = c(3, 4),
   repel = TRUE, labelsize = 6
 ))
-(Genes_Biplot34 <- Genes_Biplot34 + theme(
+(Genes_Biplot34 <- Genes_Biplot34 +
+    theme(
   text = element_text(size = 17),
   axis.title = element_text(size = 17),
   axis.text = element_text(size = 17),
   legend.key.size = unit(3, "cm"),
   legend.text = element_text(size = 20)
-)
-)
+))
 saveplot(Genes_Biplot34, plotname = "Genes_Biplot34")
 
 
@@ -437,6 +609,24 @@ saveplot(Genes_Biplot34, plotname = "Genes_Biplot34")
   legend.text = element_text(size = 20)
 )))
 saveplot(Genes_contributions_Biplot, plotname = "Genes_contributions_Biplot")
+
+# Genes Contributions Plot for PC3 and PC 4
+(Genes_contributions_Biplot34 <- fviz_pca_var(res.pca, axes = c(3, 4),
+                                            col.var = "contrib", repel = TRUE,
+                                            labelsize = 6,
+                                            gradient.cols = c("Gray", "blue", "pink", "yellow", "orange", "green", "red", "black")
+))
+(Genes_contributions_Biplot34 <- (Genes_contributions_Biplot34 + theme(
+  text = element_text(size = 17),
+  axis.title = element_text(size = 17),
+  axis.text = element_text(size = 17),
+  legend.key.size = unit(1, "cm"),
+  legend.text = element_text(size = 20)
+)))
+saveplot(Genes_contributions_Biplot34, plotname = "Genes_contributions_Biplot34")
+#
+
+
 # Contributions of variables to PC2
 (top25_genes_dim2 <- fviz_contrib(res.pca, choice = "var", axes = 2, top = 25))
 saveplot(top25_genes_dim2, plotname = "top25_genes_dim2")
@@ -473,6 +663,34 @@ switch(Comparison,
       contrast = c("microcolonies", "High", "Low")
     )
   }, # BL6_microcolonies
+  "BL6_ERMC_755VsHiHM" = {
+    res <- results(dds,
+                   cooksCutoff = FALSE,
+                   independentFiltering = FALSE,
+                   contrast = c("ER_microcolonies", "HI_LM", "HI_HM")
+    )
+  }, # BL6_ERMC_755VsHiHM
+  "BL6_ERMC_HiHMVsLiLM" = {
+    res <- results(dds,
+                   cooksCutoff = FALSE,
+                   independentFiltering = FALSE,
+                   contrast = c("ER_microcolonies", "HI_LM", "LI_LM")
+    )
+  }, # BL6_ERMC_HiHMVsLiLM
+  "BL6_HPosition_RightvsLeft" = {
+    res <- results(dds,
+                   cooksCutoff = FALSE,
+                   independentFiltering = FALSE,
+                   contrast = c("HPosition", "Right", "Left")
+    )
+  }, # BL6_HPosition_RightvsLeft
+  "BL6_VPosition_TopVsDown" = {
+    res <- results(dds,
+                   cooksCutoff = FALSE,
+                   independentFiltering = FALSE,
+                   contrast = c("VPosition", "Top", "Bottom")
+    )
+  }, # BL6_VPosition_TopVsDown
 )
 write.csv(as.data.frame(res), file = file.path(Comparison_path, glue("DGE_Results_{Comparison}.csv")))
 
@@ -536,7 +754,7 @@ volcano1 <- EnhancedVolcano(resdf,
 volcano1 <- volcano1 +
     scale_y_continuous(
   limits = c(0, max(-log10(resdf$pvalue))),
-  #breaks = seq(0, 8, 1),
+  breaks = seq(0, max(-log10(resdf$pvalue)), 1),
   sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)
 ) +
   scale_x_continuous(
@@ -573,12 +791,12 @@ volcano2 <- EnhancedVolcano(resdf,
   max.overlaps = 15,
   axisLabSize = 25,
   xlim = c(min(resdf$log2FoldChange, na.rm = TRUE) - 0.5, max(resdf$log2FoldChange, na.rm = TRUE) + 0.5),
-  ylim = c(0, max(-log10(resdf$pvalue)))
+  ylim = c(0, 2)
 )
 volcano2 <- volcano2 +
   scale_y_continuous(
-    limits = c(0, max(-log10(resdf$pvalue))),
-    #breaks = seq(0, 8, 1),
+    limits = c(0, 2),
+    breaks = seq(0, 2, .5),
     sec.axis = sec_axis(~ . * 1, labels = NULL, breaks = NULL)
   ) +
   scale_x_continuous(
@@ -600,38 +818,38 @@ write.csv(significantgenes_df_DOWN, file.path(Comparison_path, glue("Significant
 
 ## ********************************Z-score based Gene Heatmaps********************************
 # Determining the significant Genes based on Log2FC and pvalue thresholds
-sigs2df <- resdf[(abs(resdf$log2FoldChange) > 1) & (resdf$pvalue < 0.05), ]
+sigs2df <- resdf[(abs(resdf$log2FoldChange) > 2) & (resdf$pvalue < 0.05), ]
 
 # mat <- counts(dds1, normalized = TRUE)[rownames(sigsdf),]
 mat <- counts(dds, normalized = TRUE)[(significantgenes_df$symbol) %in% rownames(counts(dds)), ]
 mat.zs <- t(apply(mat, 1, scale)) # Calculating the zscore for each row
-colnames(mat.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
+colnames(mat.zs) <- coldata$Sample_Name# need to provide correct sample names for each of the columns
 
-(AllGenes_Heatmap <- Heatmap(mat.zs,
-  cluster_columns = TRUE,
-  cluster_rows = TRUE,
-  column_labels = colnames(mat.zs),
-  name = glue("DE Genes- {Comparison}"),
-  show_row_names = FALSE,
-  use_raster = TRUE,
-  raster_quality = 10,
-  column_names_gp = grid::gpar(fontsize = 22),
-  # row_labels = sigs2df[rownames(mat2.zs), ]$symbol
-  heatmap_legend_param = list(
-    legend_direction = "horizontal",
-    legend_width = unit(x = 5, units = "cm")
-  )
-))
-
-jpeg(
-  file = file.path(Comparison_path, glue("/DEGenes_heatmap1_{Comparison}.jpeg")),
-  width = 1000, height = 1000, units = "px", pointsize = 12,
-  bg = "white", res = NA, family = "", restoreConsole = TRUE,
-  type = "windows",
-  symbolfamily = "default"
-)
-draw(AllGenes_Heatmap, heatmap_legend_side = "bottom")
-while (!is.null(dev.list())) dev.off()
+# (AllGenes_Heatmap <- Heatmap(mat.zs,
+#   cluster_columns = TRUE,
+#   cluster_rows = TRUE,
+#   column_labels = colnames(mat.zs),
+#   name = glue("DE Genes- {Comparison}"),
+#   show_row_names = FALSE,
+#   use_raster = TRUE,
+#   raster_quality = 10,
+#   column_names_gp = grid::gpar(fontsize = 22),
+#   # row_labels = sigs2df[rownames(mat2.zs), ]$symbol
+#   heatmap_legend_param = list(
+#     legend_direction = "horizontal",
+#     legend_width = unit(x = 5, units = "cm")
+#   )
+# ))
+#
+# jpeg(
+#   file = file.path(Comparison_path, glue("/DEGenes_heatmap1_{Comparison}.jpeg")),
+#   width = 1000, height = 1000, units = "px", pointsize = 12,
+#   bg = "white", res = NA, family = "", restoreConsole = TRUE,
+#   type = "windows",
+#   symbolfamily = "default"
+# )
+# draw(AllGenes_Heatmap, heatmap_legend_side = "bottom")
+# while (!is.null(dev.list())) dev.off()
 # Long heatmap
 # LongHeatMap_Allgenes <- Heatmap(mat.zs,
 #                                 cluster_columns = TRUE,
@@ -653,7 +871,7 @@ while (!is.null(dev.list())) dev.off()
 
 
 ### Heatmap with tighter constraints (all genes together!)
-sigs1df <- resdf[(resdf$baseMean > 250) & (abs(resdf$log2FoldChange) > 2) & (resdf$pvalue < 0.05), ]
+sigs1df <- resdf[(resdf$baseMean > 20) & (abs(resdf$log2FoldChange) > 2) & (resdf$pvalue < 0.05), ]
 mat1 <- counts(dds, normalized = TRUE)[(sigs1df$symbol), ]
 mat1.zs <- t(apply(mat1, MARGIN = 1, scale)) # Calculating the zscore for each row
 colnames(mat1.zs) <- coldata$Sample_Name # need to provide correct sample names for each of the columns
@@ -694,23 +912,23 @@ write.csv(GO_UPRegResults_df, file.path(Comparison_path, glue("GO_UPRegResults_d
 # Functional Analysis Plots
 if (nrow(GO_UPRegResults_df > 0)) {
   GO_UPReg_Barplot <- plot(barplot(GO_UPRegResults,
-    showCategory = 25, font.size = 15,
+    showCategory = 10, font.size = 15,
     title = "UpRegulated", label_format = 45
   ))
   saveplot(plot = GO_UPReg_Barplot, plotname = "GO_UPReg_Barplot")
   GO_UPReg_Dotplot <- plot(dotplot(GO_UPRegResults,
-    showCategory = 25, font.size = 15,
+    showCategory = 10, font.size = 15,
     title = "UpRegulated", label_format = 45
   ))
   saveplot(plot = GO_UPReg_Dotplot, plotname = "GO_UPReg_Dotplot")
-  GO_UPReg_Cnetplot <- plot(cnetplot(GO_UPRegResults, showCategory = 15, font.size = 20))
+  GO_UPReg_Cnetplot <- plot(cnetplot(GO_UPRegResults, showCategory = 10, font.size = 20))
   saveplot(plot = GO_UPReg_Cnetplot, plotname = "GO_UPReg_Cnetplot")
   GO_UPReg_Heatplot <- plot(heatplot(GO_UPRegResults, foldChange = 1))
   saveplot(plot = GO_UPReg_Heatplot, plotname = "GO_UPReg_Heatplot")
   edox2 <- pairwise_termsim(GO_UPRegResults)
   GO_UPReg_enrichtreeplot <- plot(treeplot(edox2))
   saveplot(plot = GO_UPReg_enrichtreeplot, plotname = "GO_UPReg_enrichtreeplot")
-  (GO_UPReg_emapplot <- emapplot(edox2, showCategory = 25, repel = TRUE))
+  (GO_UPReg_emapplot <- emapplot(edox2, showCategory = 10, repel = TRUE))
   saveplot(plot = GO_UPReg_emapplot, plotname = "GO_UPReg_emapplot")
 } else {
   print("There were 0 rows in ORA analysis results!")
@@ -727,16 +945,16 @@ write.csv(GO_DOWNRegResults_df, file.path(Comparison_path, glue("GO_DOWNRegResul
 
 if (nrow(GO_DOWNRegResults_df > 0)) {
   GO_DOWNReg_Barplot <- plot(barplot(GO_DOWNRegResults,
-    showCategory = 25, font.size = 15,
+    showCategory = 10, font.size = 15,
     title = "DOWNRegulated", label_format = 45
   ))
   saveplot(plot = GO_DOWNReg_Barplot, plotname = "GO_DOWNReg_Barplot")
   GO_DOWNReg_Dotplot <- plot(dotplot(GO_DOWNRegResults,
-    showCategory = 25, font.size = 15,
+    showCategory = 10, font.size = 15,
     title = "DOWNRegulated", label_format = 45
   ))
   saveplot(plot = GO_DOWNReg_Dotplot, plotname = "GO_DOWNReg_Dotplot")
-  GO_DOWNReg_Cnetplot <- plot(cnetplot(GO_DOWNRegResults, showCategory = 15, font.size = 20))
+  GO_DOWNReg_Cnetplot <- plot(cnetplot(GO_DOWNRegResults, showCategory = 10, font.size = 20))
   saveplot(plot = GO_DOWNReg_Cnetplot, plotname = "GO_DOWNReg_Cnetplot")
   GO_DOWNReg_Heatplot <- plot(heatplot(GO_DOWNRegResults, foldChange = 1))
   saveplot(plot = GO_DOWNReg_Heatplot, plotname = "GO_DOWNReg_Heatplot")
@@ -744,111 +962,120 @@ if (nrow(GO_DOWNRegResults_df > 0)) {
   GO_DOWNReg_enrichtreeplot <- plot(treeplot(edox2))
   saveplot(plot = GO_DOWNReg_enrichtreeplot, plotname = "GO_DOWNReg_enrichtreeplot")
 
-  GO_DOWNReg_emapplot <- emapplot(edox2, showCategory = 25, repel = TRUE)
+  GO_DOWNReg_emapplot <- emapplot(edox2, showCategory = 10, repel = TRUE)
   saveplot(plot = GO_DOWNReg_emapplot, plotname = "GO_DOWNReg_emapplot")
 } else {
   print("There were 0 rows in ORA analysis results!")
 }
 
 
-# Log2Fold Change Table
-
-# Creating a list of samplenmes that can be provided
-samplelist <- as.list(coldata$Sample_Name)
-
-# Design a generic function
-run_individualDESeq <- function(namelist, cd, cm) {
-  # cd is coldata, cm is countsmatrix
-  # Create an empty list for the results
-  resultslist <- list()
-  for (i in 1:14) {
-    name <- namelist[[i]]
-    print(glue("Working with Strain:{name}"))
-    cm_input <- cm[, c(i, 15:16)]
-    coldata_input <- cd[c(i, 15:16), ]
-    rownames(coldata_input)
-    colnames(cm_input)
-    all(rownames(coldata_input) %in% colnames(cm_input))
-    ncol(cm_input) == nrow(coldata_input)
-    dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~condition)
-    dds <- DESeq(dds)
-    dds1 <- DESeq(dds, minReplicatesForReplace = Inf)
-    res <- results(dds1,
-      cooksCutoff = FALSE, independentFiltering = FALSE,
-      contrast = c("condition", "Infected", "control")
-    )
-    res_df <- as.data.frame(res) # convert the results table to a df
-    res_df <- tibble::rownames_to_column(res_df, "symbol")
-    res_df <- res_df %>% filter(!is.na(log2FoldChange))
-    colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
-    res_df <- as.data.frame(res_df)
-    print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
-    # Appending each new results table into a resultslist
-    resultslist[[length(resultslist) + 1]] <- res_df
-  }
-  return(resultslist)
-}
-
-# Calling the function to run DESeq for each Strain
-resulttable <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
-# Mapping -> converting the list of objects to list of dataframes
-list_df <- Map(as.data.frame, resulttable)
-# merge all data frames in list based on symbol column
-table <- list_df %>% reduce(full_join, by = "symbol")
-
-l2fctable <- table %>% select(
-  "symbol",
-  "log2FoldChange_T", "log2FoldChange_S54", "log2FoldChange_S55", "log2FoldChange_L57",
-  "log2FoldChange_L57", "log2FoldChange_A58", "log2FoldChange_L60", "log2FoldChange_S61",
-  "log2FoldChange_A62", "log2FoldChange_L63", "log2FoldChange_A64", "log2FoldChange_S65",
-  "log2FoldChange_L66", "log2FoldChange_A68", "log2FoldChange_L69"
-)
-
-write.csv(l2fctable, file = file.path(Comparison_path, glue("LogFCTable_{Comparison}.csv")))
-
-# Calculating CPM Values
-
-run_individualDESeq2 <- function(namelist, cd, cm) {
-  # cd is coldata, cm is countsmatrix
-  # Create an empty list for the results
-  cpmlist <- list()
-  for (i in 1:14) {
-    name <- namelist[[i]]
-    print(glue("Working with Strain:{name}"))
-    cm_input <- cm[, i]
-    coldata_input <- cd[i, ]
-    # print(head(cm_input, 3))
-    # print(head(coldata_input, 3))
-    # CPM Values
-    # as DGEList
-    dge_er <- DGEList(counts = cm_input)
-    dim(dge_er)
-    colnames(dge_er)
-    # dge_er$samples
-    ## calculate norm. factors
-    nr <- calcNormFactors(dge_er)
-    ## get normalized counts
-    cpm_df <- as.data.frame(cpm(nr))
-    colnames(cpm_df) <- glue("CPM_{name}")
-    cpm_df <- tibble::rownames_to_column(cpm_df, "symbol")
-    # Appending each new result table into cpmlist
-    cpmlist[[length(cpmlist) + 1]] <- cpm_df
-  }
-  return(cpmlist)
-}
-
-cpmT <- run_individualDESeq2(namelist = samplelist, cd = coldata, cm = countsmatrix)
-# Mapping -> converting the list of objects to list of dataframes
-list_df2 <- Map(as.data.frame, cpmT)
-# merge all data frames in list based on symbol column
-cpmtable <- list_df2 %>% reduce(full_join, by = "symbol")
-nrow(cpmtable)
-rownames(cpmtable) <- cpmtable[, 1]
-cpmtable <- subset(cpmtable, select = -symbol)
-keep <- rowSums(cpmtable) > 0
-cpmtable <- cpmtable[keep, ]
-nrow(cpmtable)
-
-write.csv(cpmtable, file = file.path(Comparison_path, glue("CPMTable_{Comparison}.csv")))
+# # Log2Fold Change Table
+#
+# # Creating a list of samplenmes that can be provided
+# samplelist <- as.list(coldata$Sample_Name)
+#
+# # Design a generic function
+# run_individualDESeq <- function(namelist, cd, cm) {
+#   # cd is coldata, cm is countsmatrix
+#   # Create an empty list for the results
+#   resultslist <- list()
+#   for (i in 1:14) {
+#     name <- namelist[[i]]
+#     print(glue("Working with Strain:{name}"))
+#     cm_input <- cm[, c(i, 15:16)]
+#     coldata_input <- cd[c(i, 15:16), ]
+#     rownames(coldata_input)
+#     colnames(cm_input)
+#     all(rownames(coldata_input) %in% colnames(cm_input))
+#     ncol(cm_input) == nrow(coldata_input)
+#     dds <- DESeqDataSetFromMatrix(countData = cm_input, colData = coldata_input, design = ~condition)
+#     dds <- DESeq(dds)
+#     dds1 <- DESeq(dds, minReplicatesForReplace = Inf)
+#     res <- results(dds1,
+#       cooksCutoff = FALSE, independentFiltering = FALSE,
+#       contrast = c("condition", "Infected", "control")
+#     )
+#     res_df <- as.data.frame(res) # convert the results table to a df
+#     res_df <- tibble::rownames_to_column(res_df, "symbol")
+#     res_df <- res_df %>% filter(!is.na(log2FoldChange))
+#     colnames(res_df)[which(names(res_df) == "log2FoldChange")] <- glue("log2FoldChange_{name}")
+#     res_df <- as.data.frame(res_df)
+#     print(glue("completed {name} strain DESeq calculations and produced result tables!!"))
+#     # Appending each new results table into a resultslist
+#     resultslist[[length(resultslist) + 1]] <- res_df
+#   }
+#   return(resultslist)
+# }
+#
+# # Calling the function to run DESeq for each Strain
+# resulttable <- run_individualDESeq(namelist = samplelist, cd = coldata, cm = countsmatrix)
+# # Mapping -> converting the list of objects to list of dataframes
+# list_df <- Map(as.data.frame, resulttable)
+# # merge all data frames in list based on symbol column
+# table <- list_df %>% reduce(full_join, by = "symbol")
+#
+# l2fctable <- table %>% select(
+#   "symbol",
+#   "log2FoldChange_T", "log2FoldChange_S54", "log2FoldChange_S55", "log2FoldChange_L57",
+#   "log2FoldChange_L57", "log2FoldChange_A58", "log2FoldChange_L60", "log2FoldChange_S61",
+#   "log2FoldChange_A62", "log2FoldChange_L63", "log2FoldChange_A64", "log2FoldChange_S65",
+#   "log2FoldChange_L66", "log2FoldChange_A68", "log2FoldChange_L69"
+# )
+#
+# write.csv(l2fctable, file = file.path(Comparison_path, glue("LogFCTable_{Comparison}.csv")))
+#
+# # Calculating CPM Values
+#
+# run_individualDESeq2 <- function(namelist, cd, cm) {
+#   # cd is coldata, cm is countsmatrix
+#   # Create an empty list for the results
+#   cpmlist <- list()
+#   for (i in 1:14) {
+#     name <- namelist[[i]]
+#     print(glue("Working with Strain:{name}"))
+#     cm_input <- cm[, i]
+#     coldata_input <- cd[i, ]
+#     # print(head(cm_input, 3))
+#     # print(head(coldata_input, 3))
+#     # CPM Values
+#     # as DGEList
+#     dge_er <- DGEList(counts = cm_input)
+#     dim(dge_er)
+#     colnames(dge_er)
+#     # dge_er$samples
+#     ## calculate norm. factors
+#     nr <- calcNormFactors(dge_er)
+#     ## get normalized counts
+#     cpm_df <- as.data.frame(cpm(nr))
+#     colnames(cpm_df) <- glue("CPM_{name}")
+#     cpm_df <- tibble::rownames_to_column(cpm_df, "symbol")
+#     # Appending each new result table into cpmlist
+#     cpmlist[[length(cpmlist) + 1]] <- cpm_df
+#   }
+#   return(cpmlist)
+# }
+#
+# cpmT <- run_individualDESeq2(namelist = samplelist, cd = coldata, cm = countsmatrix)
+# # Mapping -> converting the list of objects to list of dataframes
+# list_df2 <- Map(as.data.frame, cpmT)
+# # merge all data frames in list based on symbol column
+# cpmtable <- list_df2 %>% reduce(full_join, by = "symbol")
+# nrow(cpmtable)
+# rownames(cpmtable) <- cpmtable[, 1]
+# cpmtable <- subset(cpmtable, select = -symbol)
+# keep <- rowSums(cpmtable) > 0
+# cpmtable <- cpmtable[keep, ]
+# nrow(cpmtable)
+#
+# write.csv(cpmtable, file = file.path(Comparison_path, glue("CPMTable_{Comparison}.csv")))
 
 sessionInfo()
+
+# library(readxl)
+# eff <- as.data.frame(read_excel("~/R/2danalysis/allStrains_PresentAbsent_effectorlist_forKeshav.xlsx"))
+# eff <- t(eff)
+# colnames(eff) <- eff[1,]
+# eff <- eff[-1,]
+# met <- merge(coldata, eff, by=0, all=TRUE)
+# met <- met %>% drop_na() %>% column_to_rownames(var = "Sample_Name") %>% select(-c(Epithelial_response,phylogenomic_lineage, phylogroup, Intimin_Type, condition, ER_microcolonies, microcolonies, Row.names))
+# write.csv(met, file.path(here(), "met.csv"))
