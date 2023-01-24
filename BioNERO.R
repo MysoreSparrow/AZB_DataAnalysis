@@ -3,12 +3,15 @@ Package_List <- c(
   "dplyr", "DESeq2", "pheatmap", "PoiClaClu", "RColorBrewer", "vsn", "EnhancedVolcano", "gplots",
   "org.Mm.eg.db", "stringr", "genefilter", "tidyverse", "AnnotationDbi", "ComplexHeatmap", "DOSE",
   "clusterProfiler", "ggrepel", "GO.db", "GOstats", "gage", "gageData", "GOSemSim", "enrichplot",
-  "ggnewscale", "glue", "ggupset", "FactoMineR", "factoextra", "here", "tibble", "edgeR", "BioNERO", "readxl"
-)
+  "ggnewscale", "glue", "ggupset", "FactoMineR", "factoextra", "here", "tibble", "edgeR", "BioNERO", "readxl", "WGCNA")
 not_installed <- Package_List[!(Package_List %in% installed.packages()[, "Package"])] # Extract not installed packages
 if (length(not_installed)) install.packages(not_installed) # Install the uninstalled packages
 invisible(lapply(Package_List, suppressPackageStartupMessages(library), character.only = TRUE))
 set.seed(123)
+
+# File Path Declarations
+here::i_am(path = "BioNERO.R")
+paste0(here())
 
 # Metadata for the Analysis
 
@@ -50,40 +53,54 @@ coldata[coldata == "Ctrl1_R1"] <- "C1"
 coldata[coldata == "Ctrl2_R2"] <- "C2"
 # convert column1 with sample names to row.names of coldata
 rownames(coldata) <- coldata$Sample_Name
-write.csv(coldata, file.path(here(), "coldata.csv"))
 
 # Adding the groupings by Alina for further Metadata Information
-coldata$Epithelial_response <- c(0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0 , 0, 0, 0)
-#   "0", "0", "HighInducer",
-#   "HighInducer", "LowInducer", "LowInducer",
-#   "HighInducer", "HighInducer", "LowInducer",
-#   "HighInducer", "LowInducer", "HighInducer",
-#   "LowInducer", "LowInducer", "NR", "NR"
+coldata$Epithelial_response <- c(
+  "LowInducer", "LowInducer", "HighInducer",
+  "HighInducer", "LowInducer", "LowInducer",
+  "HighInducer", "HighInducer", "LowInducer",
+  "HighInducer", "LowInducer", "HighInducer",
+  "LowInducer", "LowInducer", "NR", "NR"
+)
+# coldata$clinical_outcome <- c(
+#   "symptomatic", "symptomatic", "symptomatic",
+#   "Lethal", "asymptomatic", "Lethal", "symptomatic",
+#   "asymptomatic", "Lethal", "symptomatic", "symptomatic",
+#   "Lethal", "asymptomatic", "Lethal", "NR", "NR"
 # )
+#
+
 coldata <- coldata[1:14, ] # Remove C1 and C2
-coldata <- coldata[,c(1,3)]
-head(coldata)
+coldata_bionero <- coldata
+coldata_bionero <- coldata_bionero[, -c(1, 2)]
+head(coldata_bionero)
 
-## Read-in the Effectors
-effector <- as.data.frame(read_excel((
-  file.path(here(), "allStrains_PresentAbsent_effectorlist_forKeshav.xlsx")),
-  col_types = c(
-    "text", "numeric", "numeric", "numeric", "numeric",
-    "numeric", "numeric", "numeric", "numeric", "numeric",
-    "numeric", "numeric", "numeric", "numeric", "numeric"
-  )
-))
-
-rownames(effector) <- effector[,1] # move effectors to rownames
-effector <- subset(effector, select = - Effector) #remove effector symbol column
-effector <- t(effector)
-head(effector)
-
-# Merge coldata and effectors into single DF
-coldata_merged <- merge(coldata, effector, by = 'row.names', all = TRUE)
-rownames(coldata_merged) <- coldata_merged[,1] # move effectors to rownames
-coldata_merged <- subset(coldata_merged, select = - Row.names) #remove effector symbol column
-head(coldata_merged)
+# ## Read-in the Effectors
+# effector <- as.data.frame(read_excel((
+#   file.path(here(), "allStrains_PresentAbsent_effectorlist_forKeshav.xlsx")),
+#   col_types = c(
+#     "text", "numeric", "numeric", "numeric", "numeric",
+#     "numeric", "numeric", "numeric", "numeric", "numeric",
+#     "numeric", "numeric", "numeric", "numeric", "numeric"
+#   )
+# ))
+#
+# rownames(effector) <- effector[,1] # move effectors to rownames
+# effector <- subset(effector, select = - Effector) #remove effector symbol column
+# effector <- t(effector)
+# head(effector)
+#
+# # Replace 0, 1 , 2
+# effector[effector == "0"] <- "Absent"
+# effector[effector == "1"] <- "Present"
+# effector[effector == "2"] <- "Double"
+#
+#
+# # Merge coldata and effectors into single DF
+# coldata_merged <- merge(coldata, effector, by = 'row.names', all = TRUE)
+# rownames(coldata_merged) <- coldata_merged[,1] # move effectors to rownames
+# coldata_merged <- subset(coldata_merged, select = - Row.names) #remove effector symbol column
+# head(coldata_merged)
 
 # Lets Deal with the Countmatrix
 # Readin  countsmatrix
@@ -127,7 +144,7 @@ countsmatrix <- countsmatrix[!duplicated(countsmatrix$genename), ] %>%
 countsmatrix <- countsmatrix[,1:14]
 
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
-colnames(countsmatrix) <- coldata$Sample_Name
+colnames(countsmatrix) <- rownames(coldata)
 # Changing countsmatrix into Matrix of numeric values so that only numeric values are present in it as an input of DESEq Object.
 class(countsmatrix) <- "numeric"
 head(countsmatrix)
@@ -138,14 +155,14 @@ head(countsmatrix)
 # countsmatrix <- countsmatrix[ , genomic_idx]
 
 # create SummarizedExperiment object
-se = SummarizedExperiment(list(counts = countsmatrix), colData = (coldata))
+se = SummarizedExperiment(list(counts = countsmatrix), colData = (coldata_bionero))
 # se@metadata <- as.data.frame(effector) # Adding the effectors as an metadata to se object
 
 # Pre-Processing
 
 # Automatic One step Processing
 final_exp <- exp_preprocess(se,
-                            n = 2000,
+                            n = 2500,
                             Zk_filtering = TRUE,
                             variance_filter = TRUE,
                             cor_method = "pearson",
@@ -192,23 +209,62 @@ plot_ngenes_per_module(net)
 # Gene coexpression network analysis
 #
 # Make rows in coldata_merged with same order of row names as coldata
-row_order <- match(rownames(coldata), rownames(coldata_merged))
-row_order
-coldata_merged <- coldata_merged[row_order,]
+# row_order <- match(rownames(coldata), rownames(coldata_merged))
+# row_order
+# coldata_merged <- coldata_merged[row_order,]
+# coldata_merged <- coldata_merged[, 1:2]
+# coldata_merged <- coldata_merged[,c(3,2)]
+# head(coldata_merged)
 
-coldata_merged <- coldata_merged[, 1:5]
-head(coldata_merged)
+
 # Module Trait Correlations
-# MEtrait <- module_trait_cor(exp = final_exp,
-#                             MEs = net$MEs,
-#                             cor_method = "pearson",
-#                             continuous_trait = FALSE
-#                             )
-# MEtrait <- module_trait_cor(exp = as.data.frame(assay(final_exp)),
-#                             MEs = net$MEs,
-#                             metadata = coldata_merged,
-#                             cor_method = "pearson",
-#                             continuous_trait = FALSE
-#                             )
+MEtrait <- module_trait_cor(exp = final_exp,
+                            MEs = net$MEs,
+                            cor_method = "pearson",
+                            continuous_trait = FALSE,
+                            transpose = FALSE
+                            )
+head(MEtrait)
 
+## Gene Significance
+gs <- gene_significance(exp = final_exp,
+                        # genes = c("Espn", "Spp1", "Zfr2", "Dpkg", "Nrp1"),
+                        show_rownames = TRUE)
+# head(gs, 3)
 
+# Visualising Module Expression Profile
+
+plot_expression_profile(exp = final_exp, net = net,
+                        plot_module = TRUE, modulename = "darkturquoise")
+plot_expression_profile(exp = final_exp, net = net,
+                        plot_module = TRUE, modulename = "green")
+plot_expression_profile(exp = final_exp, net = net,
+                        plot_module = TRUE, modulename = "black")
+
+# Enrichment Analysis
+
+# functionalAnalysis <- module_enrichment(net = net,
+#                                         background_genes = rownames(final_exp))
+
+# Hub gene identification
+hubs <- get_hubs_gcn(final_exp, net)
+hubs
+
+# Extracting subgraphs
+
+edges <- get_edge_list(net, module = "green")
+head(edges)
+
+# Remove edges based on optimal scale-free topology fit
+edges_filtered <- get_edge_list(net, module = "green", filter = TRUE,
+                                method = "pvalue",
+                                nSamples = ncol(final_exp)
+                                )
+
+# Network Visualisation
+plot_gcn(
+  edgelist_gcn = edges_filtered,
+  net = net,
+  color_by = "module",
+  hubs = hubs
+)
