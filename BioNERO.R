@@ -1,12 +1,50 @@
 
+
 Package_List <- c(
-  "dplyr", "DESeq2", "pheatmap", "PoiClaClu", "RColorBrewer", "vsn", "EnhancedVolcano", "gplots",
-  "org.Mm.eg.db", "stringr", "genefilter", "tidyverse", "AnnotationDbi", "ComplexHeatmap", "DOSE",
-  "clusterProfiler", "ggrepel", "GO.db", "GOstats", "gage", "gageData", "GOSemSim", "enrichplot",
-  "ggnewscale", "glue", "ggupset", "FactoMineR", "factoextra", "here", "tibble", "edgeR", "BioNERO", "readxl", "WGCNA")
-not_installed <- Package_List[!(Package_List %in% installed.packages()[, "Package"])] # Extract not installed packages
-if (length(not_installed)) install.packages(not_installed) # Install the uninstalled packages
-invisible(lapply(Package_List, suppressPackageStartupMessages(library), character.only = TRUE))
+  "dplyr",
+  "DESeq2",
+  "pheatmap",
+  "PoiClaClu",
+  "RColorBrewer",
+  "vsn",
+  "EnhancedVolcano",
+  "gplots",
+  "org.Mm.eg.db",
+  "stringr",
+  "genefilter",
+  "tidyverse",
+  "AnnotationDbi",
+  "ComplexHeatmap",
+  "DOSE",
+  "clusterProfiler",
+  "ggrepel",
+  "GO.db",
+  "GOstats",
+  "gage",
+  "gageData",
+  "GOSemSim",
+  "enrichplot",
+  "ggnewscale",
+  "glue",
+  "ggupset",
+  "FactoMineR",
+  "factoextra",
+  "here",
+  "tibble",
+  "edgeR",
+  "BioNERO",
+  "readxl",
+  "WGCNA"
+)
+not_installed <-
+  Package_List[!(Package_List %in% installed.packages()[, "Package"])] # Extract not installed packages
+if (length(not_installed))
+  install.packages(not_installed) # Install the uninstalled packages
+invisible(lapply(
+  Package_List,
+  suppressPackageStartupMessages(library),
+  character.only = TRUE
+))
 set.seed(123)
 
 # File Path Declarations
@@ -20,18 +58,33 @@ paste0(here())
 
 sample_ID <- read.csv(file.path(here(), "/samples.csv"))
 condition <- c(
-  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-  "Infected", "Infected", "Infected", "Infected", "Infected", "Infected",
-  "Infected", "Infected", "control", "control"
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "Infected",
+  "control",
+  "control"
 )
 coldata <- data.frame(sample_ID, condition)
-colnames(coldata) <- c("Sample_Name", "condition") # change name of one of the columns
+colnames(coldata) <-
+  c("Sample_Name", "condition") # change name of one of the columns
 # The metadata can be found in a df called coldata!
 
 # Tidying up the names for plots later! First from coldata.
 
 # tidying up the names of samples in both columns that list of samples
-coldata$Sample_Name <- str_remove_all(coldata$Sample_Name, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
+coldata$Sample_Name <-
+  str_remove_all(coldata$Sample_Name, pattern = "run6_trimmed_|_.bam|_S\\d\\d|_S\\d")
 coldata$condition <- as.factor(coldata$condition)
 
 # Changing the names of samples (as per Alina)
@@ -56,11 +109,22 @@ rownames(coldata) <- coldata$Sample_Name
 
 # Adding the groupings by Alina for further Metadata Information
 coldata$Epithelial_response <- c(
-  "LowInducer", "LowInducer", "HighInducer",
-  "HighInducer", "LowInducer", "LowInducer",
-  "HighInducer", "HighInducer", "LowInducer",
-  "HighInducer", "LowInducer", "HighInducer",
-  "LowInducer", "LowInducer", "NR", "NR"
+  "LowInducer",
+  "LowInducer",
+  "HighInducer",
+  "HighInducer",
+  "LowInducer",
+  "LowInducer",
+  "HighInducer",
+  "HighInducer",
+  "LowInducer",
+  "HighInducer",
+  "LowInducer",
+  "HighInducer",
+  "LowInducer",
+  "LowInducer",
+  "NR",
+  "NR"
 )
 # coldata$clinical_outcome <- c(
 #   "symptomatic", "symptomatic", "symptomatic",
@@ -70,41 +134,43 @@ coldata$Epithelial_response <- c(
 # )
 #
 
-coldata <- coldata[1:14, ] # Remove C1 and C2
+coldata <- coldata[1:14,] # Remove C1 and C2
 coldata_bionero <- coldata
 coldata_bionero <- coldata_bionero[, -c(1, 2)]
 head(coldata_bionero)
 
 # ## Read-in the Effectors
-# effector <- as.data.frame(read_excel((
-#   file.path(here(), "allStrains_PresentAbsent_effectorlist_forKeshav.xlsx")),
-#   col_types = c(
-#     "text", "numeric", "numeric", "numeric", "numeric",
-#     "numeric", "numeric", "numeric", "numeric", "numeric",
-#     "numeric", "numeric", "numeric", "numeric", "numeric"
-#   )
-# ))
-#
-# rownames(effector) <- effector[,1] # move effectors to rownames
-# effector <- subset(effector, select = - Effector) #remove effector symbol column
-# effector <- t(effector)
-# head(effector)
-#
-# # Replace 0, 1 , 2
-# effector[effector == "0"] <- "Absent"
-# effector[effector == "1"] <- "Present"
-# effector[effector == "2"] <- "Double"
+effector <- as.data.frame(read_excel((
+  file.path(here(), "allStrains_PresentAbsent_effectorlist_forKeshav.xlsx")),
+  col_types = c(
+    "text", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric",
+    "numeric", "numeric", "numeric", "numeric", "numeric"
+  )
+))
+
+rownames(effector) <- effector[,1] # move effectors to rownames
+effector <- subset(effector, select = - Effector) #remove effector symbol column
+effector <- t(effector)
+head(effector)
+
+# Replace 0, 1 , 2
+effector[effector == "0"] <- "Absent"
+effector[effector == "1"] <- "Present"
+effector[effector == "2"] <- "Double"
 #
 #
 # # Merge coldata and effectors into single DF
-# coldata_merged <- merge(coldata, effector, by = 'row.names', all = TRUE)
-# rownames(coldata_merged) <- coldata_merged[,1] # move effectors to rownames
-# coldata_merged <- subset(coldata_merged, select = - Row.names) #remove effector symbol column
-# head(coldata_merged)
+coldata_merged <- merge(coldata, effector, by = 'row.names', all = TRUE)
+rownames(coldata_merged) <- coldata_merged[,1] # move effectors to rownames
+coldata_merged <- subset(coldata_merged, select = - Row.names) #remove effector symbol column
+coldata_merged <- coldata_merged[, -c(1, 2)]
+head(coldata_merged)
 
 # Lets Deal with the Countmatrix
 # Readin  countsmatrix
-countsmatrix <- as.data.frame(read.csv(file.path(here(), "/newcounts.csv")))
+countsmatrix <-
+  as.data.frame(read.csv(file.path(here(), "/newcounts.csv")))
 names(countsmatrix)[1] <- "EnsemblID" # change name of 1st column
 
 ## Removal of Gender Genes from ENSEMBL ID itself
@@ -119,12 +185,16 @@ countsmatrix <- countsmatrix %>% filter(
 
 # Annotating and Exporting ENSEMBL ID into Gene Symbols
 ## Adding genes annotated from ENSEMBL ID to Gene symbols and ENTREZ Id to countsmatrix table
-symbols <- as.data.frame(mapIds(org.Mm.eg.db,
-                                keys = countsmatrix$EnsemblID, # mapping ENSEMBL to Gene Symbol
-                                column = "SYMBOL",
-                                keytype = "ENSEMBL",
-                                multiVals = "first"
-)) %>%
+symbols <- as.data.frame(
+  mapIds(
+    org.Mm.eg.db,
+    keys = countsmatrix$EnsemblID,
+    # mapping ENSEMBL to Gene Symbol
+    column = "SYMBOL",
+    keytype = "ENSEMBL",
+    multiVals = "first"
+  )
+) %>%
   rownames_to_column(var = "EID") %>% # move the ensemblID in rownames to separate column called EID
   drop_na() %>% # drop Na rows so that it reduces size of matrix. Na values arise due to 1:many mapping of ensembl.
   rename(genename = 2) # change the name of 2nd column to genename
@@ -134,14 +204,15 @@ countsmatrix <- countsmatrix %>%
   mutate(genename = symbols$genename)
 
 # Removing the duplicated genes & then these genes put into rownames for countsmatrix and drop EnsemblId column
-countsmatrix <- countsmatrix[!duplicated(countsmatrix$genename), ] %>%
+countsmatrix <-
+  countsmatrix[!duplicated(countsmatrix$genename),] %>%
   remove_rownames() %>%
   column_to_rownames(var = "genename") %>%
   select(-EnsemblID) %>%
   as.matrix()
 
 # drop the Control Columns
-countsmatrix <- countsmatrix[,1:14]
+countsmatrix <- countsmatrix[, 1:14]
 
 # the elements from Sample_Name from coldata must the the colnames of countsmatrix
 colnames(countsmatrix) <- rownames(coldata)
@@ -159,22 +230,21 @@ se = SummarizedExperiment(list(counts = countsmatrix), colData = (coldata_bioner
 # se@metadata <- as.data.frame(effector) # Adding the effectors as an metadata to se object
 
 # Pre-Processing
-
 # Automatic One step Processing
-final_exp <- exp_preprocess(se,
-                            n = 2500,
-                            Zk_filtering = TRUE,
-                            variance_filter = TRUE,
-                            cor_method = "pearson",
-                            vstransform = TRUE)
-
+final_exp <- exp_preprocess(
+  se,
+  n = 2500,
+  Zk_filtering = TRUE,
+  variance_filter = TRUE,
+  cor_method = "pearson",
+  vstransform = TRUE
+)
 print(final_exp)
 
-
 # Exploratory Data Analysis
-
-(Sample_Corr_Heatmap <- plot_heatmap(exp = final_exp, type = "samplecor"))
-             # col_metadata = c(coldata$Sample_Name, coldata$Epithelial_response)))
+(Sample_Corr_Heatmap <-
+    plot_heatmap(exp = final_exp, type = "samplecor"))
+# col_metadata = c(coldata$Sample_Name, coldata$Epithelial_response)))
 
 (Expression_Heatmap = plot_heatmap(final_exp, type = "expr"))
 
@@ -186,13 +256,16 @@ print(final_exp)
 
 # Gene CoExpression Network Inference
 
-sft <- SFT_fit(final_exp, net_type = "signed hybrid", cor_method = "pearson")
+sft <-
+  SFT_fit(final_exp, net_type = "signed hybrid", cor_method = "pearson")
 sft$power
 power <- sft$power
 sft$plot
 
 net <- exp2gcn(
-  final_exp, net_type = "signed hybrid", SFTpower = power,
+  final_exp,
+  net_type = "signed hybrid",
+  SFTpower = power,
   cor_method = "pearson"
 )
 names(net)
@@ -218,28 +291,91 @@ plot_ngenes_per_module(net)
 
 
 # Module Trait Correlations
-MEtrait <- module_trait_cor(exp = final_exp,
-                            MEs = net$MEs,
-                            cor_method = "pearson",
-                            continuous_trait = FALSE,
-                            transpose = FALSE
-                            )
-head(MEtrait)
+# Using the SE Object
+# MEtrait <- module_trait_cor(
+#   exp = final_exp,
+#   MEs = net$MEs,
+#   cor_method = "pearson",
+#   continuous_trait = FALSE,
+#   transpose = FALSE
+# )
+# head(MEtrait)
+
+# MEtrait <- module_trait_cor(
+#   exp = final_exp,
+#   MEs = net$MEs,
+#   cor_method = "pearson",
+#   continuous_trait = FALSE,
+#   transpose = FALSE
+# )
+# head(MEtrait)
+
+###########To make it work like a individual column###########
+exp_df <- as.data.frame(final_exp@assays@data@listData)
+metdata_df <- as.data.frame(final_exp@colData)
+
+MEtrait_new <- module_trait_cor(
+  exp = exp_df,
+  metadata = metdata_df,
+  MEs = net$MEs,
+  cor_method = "pearson",
+  continuous_trait = FALSE,
+  transpose = FALSE
+)
+# head(MEtrait_new)
+
+## Trying with all columns of coldata merged
+##
+# Create a vector from column 2 to last column
+idx <- 2:ncol(coldata_merged)
+
+# Create an empty Dataframe
+df = data.frame(matrix(nrow = 66, ncol = 4))
+
+cor_list <- lapply(idx, function(x) {
+  MEtrait <- module_trait_cor(exp = exp_df,
+                              MEs = net$MEs,
+                              metadata = coldata_merged[, x, drop = FALSE],
+                              cor_method = "pearson")
+  return(MEtrait)
+})
+
+# for (i in seq_along(cor_list)) {
+#   df <- as.data.frame(cor_list[[i]])
+#   head(df)
+# }
+library(dplyr)
+dataFrame <- cor_list %>%
+  as_tibble()
+dataFrame
+############################################
 
 ## Gene Significance
-gs <- gene_significance(exp = final_exp,
-                        # genes = c("Espn", "Spp1", "Zfr2", "Dpkg", "Nrp1"),
-                        show_rownames = TRUE)
+(gs_Reg3g <- gene_significance(exp = final_exp,
+                        genes = "Reg3g",
+                        show_rownames = TRUE))
 # head(gs, 3)
 
 # Visualising Module Expression Profile
 
-plot_expression_profile(exp = final_exp, net = net,
-                        plot_module = TRUE, modulename = "darkturquoise")
-plot_expression_profile(exp = final_exp, net = net,
-                        plot_module = TRUE, modulename = "green")
-plot_expression_profile(exp = final_exp, net = net,
-                        plot_module = TRUE, modulename = "black")
+plot_expression_profile(
+  exp = final_exp,
+  net = net,
+  plot_module = TRUE,
+  modulename = "darkturquoise"
+)
+plot_expression_profile(
+  exp = final_exp,
+  net = net,
+  plot_module = TRUE,
+  modulename = "green"
+)
+plot_expression_profile(
+  exp = final_exp,
+  net = net,
+  plot_module = TRUE,
+  modulename = "black"
+)
 
 # Enrichment Analysis
 
@@ -256,15 +392,30 @@ edges <- get_edge_list(net, module = "green")
 head(edges)
 
 # Remove edges based on optimal scale-free topology fit
-edges_filtered <- get_edge_list(net, module = "green", filter = TRUE,
-                                method = "pvalue",
-                                nSamples = ncol(final_exp)
-                                )
+edges_filtered <-
+  get_edge_list(
+    net,
+    module = "green",
+    filter = TRUE,
+    method = "pvalue",
+    nSamples = ncol(final_exp)
+  )
 
 # Network Visualisation
-plot_gcn(
-  edgelist_gcn = edges_filtered,
-  net = net,
-  color_by = "module",
-  hubs = hubs
-)
+# plot_gcn(
+#   edgelist_gcn = edges_filtered,
+#   net = net,
+#   color_by = "module",
+#   hubs = hubs
+# )
+
+# plot_gcn(
+#   edgelist_gcn = edges_filtered,
+#   net = net,
+#   color_by = "module",
+#   hubs = hubs,
+#   show_labels = "tophubs",
+#   top_n_hubs = 5,
+#   interactive = TRUE,
+#   dim_interactive = c(500, 500)
+# )
