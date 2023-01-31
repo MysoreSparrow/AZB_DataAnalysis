@@ -11,23 +11,23 @@ if (length(not_installed)) install.packages(not_installed) # Install the uninsta
 invisible(lapply(Package_List, suppressPackageStartupMessages(library), character.only = TRUE))
 
 # File Path Declarations
-here::i_am(path = "Alina_RNAseq.R")
+here::i_am(path = "Alina_RNAseq_Paper.R")
 paste0(here())
 
 # Also Create a comparison Variable: That Could be used later for all other comparison titles using a
 # glue Variable. Define the Comparison and also create the folder for saving all plots and results to be
 # saved as per the comparison
 
-# Comparison <- "BL6_InfectedVsControl"
-Comparison <- "BL6_ER_HighInducerVsLowInducer"
+Comparison <- "BL6_InfectedVsControl"
+# Comparison <- "BL6_ER_HighInducerVsLowInducer"
 # Comparison <- "BL6_MC_HighVsLow"
 # Comparison <- "BL6_ERMC_755VsHiHM"
 # Comparison <- "BL6_ERMC_HiHMVsLiLM"
 # Comparison <- "BL6_HPosition_RightvsLeft"
 # Comparison <- "BL6_VPosition_TopVsDown"
 # Determine the Comparison Condition: Comment one of them out based on the comparison you are trying to run.
-# Comparison_Condition <- "condition"
-Comparison_Condition <- "Epithelial_response"
+Comparison_Condition <- "condition"
+# Comparison_Condition <- "Epithelial_response"
 # Comparison_Condition <- "microcolonies"
 # Comparison_Condition <- "ERMC_HiHMVsLiLM"
 # Comparison_Condition <- "HPosition_RightvsLeft"
@@ -266,24 +266,24 @@ switch(Comparison_Condition,
 )
 
 # Further filtering of low count genes
-keep <- rowSums(counts(dds)) > 100
+keep <- rowSums(counts(dds)) > 1
 dds <- dds[keep, ]
 nrow(dds)
 ## Applying VST transformation
-vsd <- vst(dds, blind = FALSE) # Apply Variance Stabilizing Transformation
-vsd_coldata <- colData(vsd) # Creating a SummarizedExperiment objects
+# vsd <- vst(dds, blind = FALSE) # Apply Variance Stabilizing Transformation
+# vsd_coldata <- colData(vsd) # Creating a SummarizedExperiment objects
 dds <- estimateSizeFactors(dds)
 
 ############################## for 2D Analysis#############################################
-vsd <- varianceStabilizingTransformation(dds)
+# vsd <- varianceStabilizingTransformation(dds)
 dds <- estimateDispersions(dds)
 wpn_vsd <- getVarianceStabilizedData(dds)
-rv_wpn <- rowVars(wpn_vsd)
-summary(rv_wpn)
-q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
-normalized_input <- wpn_vsd[rv_wpn>q95_wpn,]
-head(normalized_input)
-write.csv(wpn_vsd, file.path(here(), "normalisedmappedcounts.csv"))
+# rv_wpn <- rowVars(wpn_vsd)
+# summary(rv_wpn)
+# q95_wpn <- quantile(rowVars(wpn_vsd), 0.95)
+# normalized_input <- wpn_vsd[rv_wpn > q95_wpn,]
+# head(normalized_input)
+write.csv(wpn_vsd, file.path(here(), "vst_normalisedcounts.csv"))
 ###########################################################################
 
 ### Euclidean Distance between samples
@@ -493,7 +493,8 @@ saveplot(Genes_Biplot34, plotname = "Genes_Biplot34")
 (Genes_contributions_Biplot <- fviz_pca_var(res.pca,
   col.var = "contrib", repel = TRUE,
   labelsize = 6,
-  gradient.cols = c("Gray", "blue", "pink", "yellow", "orange", "green", "red", "black")
+  gradient.cols = c("#CCCCCC", "#CCCCCC", "#999999", "#666666", "gray", "#333333",
+                             "#000000", "orange")
 ))
 (Genes_contributions_Biplot <- (Genes_contributions_Biplot + theme(
   text = element_text(size = 17),
@@ -508,7 +509,7 @@ saveplot(Genes_contributions_Biplot, plotname = "Genes_contributions_Biplot")
 (Genes_contributions_Biplot34 <- fviz_pca_var(res.pca, axes = c(3, 4),
                                             col.var = "contrib", repel = TRUE,
                                             labelsize = 6,
-                                            gradient.cols = c("Gray", "blue", "pink", "yellow", "orange", "green", "red", "black")
+                                            gradient.cols = c("#FFFFFF", "#CCCCCC", "#999999", "#666666", "gray", "#333333", "#000000")
 ))
 (Genes_contributions_Biplot34 <- (Genes_contributions_Biplot34 + theme(
   text = element_text(size = 17),
